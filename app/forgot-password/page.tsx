@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
   async function callSupabase() {
     const supabase = createBrowserSupabase();
     return supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://stocksnack.app/reset-password",
+      redirectTo: "https://www.stocksnack.app/reset-password",
     });
   }
 

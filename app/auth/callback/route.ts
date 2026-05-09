@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
-import { sendWelcomeEmail } from "@/lib/emails/welcome";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -35,29 +34,11 @@ export async function GET(request: NextRequest) {
     }
   );
 
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     console.error("Auth callback error:", error.message);
     return redirectFailure;
-  }
-
-  // Await the email before redirecting — serverless functions freeze on return,
-  // so fire-and-forget promises are killed before the HTTP call completes.
-  const userEmail = data.session?.user?.email;
-  if (userEmail) {
-    console.log("[auth/callback] Sending welcome email to:", userEmail);
-    try {
-      await sendWelcomeEmail(userEmail);
-      console.log("[auth/callback] Welcome email sent successfully");
-    } catch (err: unknown) {
-      // Log the full error so it appears in Vercel function logs
-      const message = err instanceof Error ? err.message : String(err);
-      const details = typeof err === "object" && err !== null ? JSON.stringify(err) : "";
-      console.error("[auth/callback] Welcome email failed:", message, details);
-    }
-  } else {
-    console.warn("[auth/callback] No user email in session — welcome email skipped");
   }
 
   return redirectSuccess;

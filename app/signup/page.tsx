@@ -57,6 +57,16 @@ export default function SignupPage() {
         return;
       }
 
+      // New user — fire welcome email from the client so the browser keeps
+      // the fetch alive regardless of confirmation mode or redirect timing.
+      if (data.user) {
+        fetch("/api/send-welcome", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }).catch((err) => console.error("[signup] send-welcome fetch failed:", err));
+      }
+
       // Email confirmation disabled → we get a session immediately
       if (data.session) {
         router.push("/screener");

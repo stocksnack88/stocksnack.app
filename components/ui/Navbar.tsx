@@ -36,6 +36,12 @@ export default async function Navbar() {
       </Link>
 
       <div className="flex items-center gap-5 text-xs">
+        <Link
+          href="/pricing"
+          className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41] hidden sm:block"
+        >
+          PRICING
+        </Link>
         {email ? (
           <>
             <span

@@ -39,9 +39,10 @@ export default function CookieBanner() {
           className="text-xs leading-relaxed flex-1"
           style={{ color: "rgba(0,255,65,0.5)" }}
         >
-          We use cookies to improve your experience — including analytics to
-          understand how you use StockSnack so we can make it better. By
-          clicking Accept, you agree to our{" "}
+          We use cookies to{" "}
+          <strong style={{ color: "rgba(0,255,65,0.75)" }}>improve the product</strong>
+          {" "}— including analytics to understand how you use StockSnack so we
+          can make it better. By clicking Accept, you agree to our{" "}
           <Link
             href="/privacy"
             className="underline transition-opacity hover:opacity-80"

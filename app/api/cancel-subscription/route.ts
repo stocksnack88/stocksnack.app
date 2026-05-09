@@ -54,5 +54,5 @@ export async function POST(request: NextRequest) {
 
   await stripe.subscriptions.update(sub.id, { cancel_at_period_end: true });
 
-  return NextResponse.json({ ok: true, periodEnd: sub.current_period_end });
+  return NextResponse.json({ ok: true });
 }

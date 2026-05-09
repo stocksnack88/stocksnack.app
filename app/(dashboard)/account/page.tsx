@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabase";
 import { stripe } from "@/lib/stripe";
+import Stripe from "stripe";
 import CancelSubscriptionButton from "@/components/ui/CancelSubscriptionButton";
 import Link from "next/link";
 
@@ -48,10 +49,13 @@ export default async function AccountPage() {
       customer: profile.stripe_customer_id,
       status: "active",
       limit: 1,
+      expand: ["data.latest_invoice"],
     });
     if (subs.data.length > 0) {
-      periodEnd = subs.data[0].current_period_end;
-      cancelAtPeriodEnd = subs.data[0].cancel_at_period_end;
+      const sub = subs.data[0];
+      cancelAtPeriodEnd = sub.cancel_at_period_end;
+      const inv = sub.latest_invoice as Stripe.Invoice | null;
+      periodEnd = inv?.period_end ?? null;
     }
   }
 

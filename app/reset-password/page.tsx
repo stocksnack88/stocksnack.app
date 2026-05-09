@@ -17,42 +17,9 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
-
-    // PKCE flow: Supabase appends ?code=... to the redirect URL
-    const searchParams = new URLSearchParams(window.location.search);
-    const code = searchParams.get("code");
-    if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        if (error) {
-          console.error("[reset-password] exchangeCodeForSession failed:", error.message);
-          setStage("invalid");
-        } else {
-          setStage("form");
-        }
-      });
-      return;
-    }
-
-    // Implicit flow: Supabase appends #access_token=...&type=recovery to the redirect URL.
-    // Hash fragments are never sent to the server so must be read client-side.
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const accessToken = hashParams.get("access_token");
-    const refreshToken = hashParams.get("refresh_token") ?? "";
-    const type = hashParams.get("type");
-
-    if (type === "recovery" && accessToken) {
-      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(({ error }) => {
-        if (error) {
-          console.error("[reset-password] setSession failed:", error.message);
-          setStage("invalid");
-        } else {
-          setStage("form");
-        }
-      });
-      return;
-    }
-
-    setStage("invalid");
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setStage(session ? "form" : "invalid");
+    });
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

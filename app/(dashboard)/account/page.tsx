@@ -83,7 +83,7 @@ export default async function AccountPage() {
         </div>
         <div className="px-5 py-4 flex items-center justify-between" style={{ background: row }}>
           <p className="text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.45)" }}>EMAIL</p>
-          <p className="text-xs" style={{ color: "rgba(0,255,65,0.8)" }}>{user.email}</p>
+          <p className="text-xs truncate max-w-[55%]" style={{ color: "rgba(0,255,65,0.8)" }}>{user.email}</p>
         </div>
       </div>
 

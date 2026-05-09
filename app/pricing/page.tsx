@@ -70,7 +70,7 @@ export default async function PricingPage() {
           PRICING
         </p>
         <h1
-          className="text-3xl font-bold tracking-[0.15em] mb-5"
+          className="text-xl sm:text-3xl font-bold tracking-tight sm:tracking-[0.15em] mb-5"
           style={{ color: "#00ff41" }}
         >
           SIMPLE, TRANSPARENT PLANS

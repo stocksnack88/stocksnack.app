@@ -157,7 +157,7 @@ export default async function ScreenerPage({
         <div className="max-w-7xl mx-auto">
           <div className="flex items-baseline justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-[0.3em] text-[#00ff41]">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-[0.15em] sm:tracking-[0.3em] text-[#00ff41]">
                 STOCK SCREENER
               </h1>
               <p className="mt-1 text-xs text-[#00ff41]/50 tracking-widest">
@@ -196,7 +196,7 @@ export default async function ScreenerPage({
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto">
           <div className="relative overflow-x-auto rounded border border-[#00ff41]/20">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full min-w-[640px] text-sm border-collapse">
               <thead>
                 <tr className="border-b border-[#00ff41]/30 bg-[#00ff41]/5">
                   <th className="px-4 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">TICKER</th>

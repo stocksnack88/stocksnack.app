@@ -30,7 +30,7 @@ export default async function HomePage() {
 
       {/* Hero */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-        <p className="text-xs text-[#00ff41]/40 tracking-[0.4em] mb-6">
+        <p className="text-xs text-[#00ff41]/40 tracking-widest sm:tracking-[0.4em] mb-6">
           BUFFETT-STYLE STOCK SCREENER
         </p>
 

@@ -35,7 +35,7 @@ export default async function Navbar() {
         STOCKSNACK
       </Link>
 
-      <div className="flex items-center gap-5 text-xs">
+      <div className="flex items-center gap-3 sm:gap-5 text-xs">
         <Link
           href="/pricing"
           className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41] hidden sm:block"
@@ -53,7 +53,7 @@ export default async function Navbar() {
             </Link>
             <Link
               href="/account"
-              className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
+              className="hidden sm:inline tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
             >
               ACCOUNT
             </Link>

@@ -330,13 +330,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             </div>
             <ScoreBar value={score?.growth_score} />
           </div>
-          <div className="px-5 py-4">
-            <table className="w-full text-sm">
+          <div className="px-5 py-4 overflow-x-auto">
+            <table className="w-full min-w-[280px] text-sm">
               <thead>
                 <tr>
                   <th className="text-left pb-3 text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>METRIC</th>
-                  <th className="text-right pb-3 text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>3-YEAR CAGR</th>
-                  <th className="text-right pb-3 text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>5-YEAR CAGR</th>
+                  <th className="text-right pb-3 text-xs tracking-widest whitespace-nowrap pl-4" style={{ color: "rgba(0,255,65,0.4)" }}>3-YR CAGR</th>
+                  <th className="text-right pb-3 text-xs tracking-widest whitespace-nowrap pl-4" style={{ color: "rgba(0,255,65,0.4)" }}>5-YR CAGR</th>
                 </tr>
               </thead>
               <tbody>
@@ -392,9 +392,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   <p className="text-xs" style={{ color: "rgba(0,255,65,0.25)" }}>No data</p>
                 ) : (
                   cat.checks.map((check, i) => (
-                    <div key={i} className="flex items-center justify-between gap-4">
-                      <span className="text-xs" style={{ color: "rgba(0,255,65,0.65)" }}>{check.name}</span>
-                      <div className="flex items-center gap-3 shrink-0">
+                    <div key={i} className="flex items-center justify-between gap-3">
+                      <span className="text-xs flex-1 min-w-0 leading-relaxed" style={{ color: "rgba(0,255,65,0.65)" }}>{check.name}</span>
+                      <div className="flex items-center gap-2 shrink-0">
                         <span className="text-xs font-mono" style={{ color: "rgba(0,255,65,0.25)" }}>
                           {check.years_passed}/5 yrs
                         </span>
@@ -429,7 +429,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               PPM 40% · Growth 30% · Health 30%
             </p>
           </div>
-          <div className="px-5 py-6 flex flex-wrap items-center gap-8">
+          <div className="px-5 py-6 flex flex-wrap items-center gap-4 sm:gap-8">
             <div className="text-center">
               <p
                 className="text-5xl font-bold font-mono"

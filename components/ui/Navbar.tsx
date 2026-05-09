@@ -44,12 +44,19 @@ export default async function Navbar() {
         </Link>
         {email ? (
           <>
-            <span
-              className="hidden sm:block tracking-wide max-w-[200px] truncate"
+            <Link
+              href="/account"
+              className="hidden sm:block tracking-wide max-w-[200px] truncate transition-colors hover:text-[#00ff41]/70"
               style={{ color: "rgba(0,255,65,0.35)" }}
             >
               {email}
-            </span>
+            </Link>
+            <Link
+              href="/account"
+              className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
+            >
+              ACCOUNT
+            </Link>
             <SignOutButton />
           </>
         ) : (

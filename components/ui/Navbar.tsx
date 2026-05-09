@@ -15,8 +15,8 @@ export default async function Navbar() {
       },
     }
   );
-  const { data: { session } } = await supabase.auth.getSession();
-  const email = session?.user?.email ?? null;
+  const { data: { user } } = await supabase.auth.getUser();
+  const email = user?.email ?? null;
 
   return (
     <nav

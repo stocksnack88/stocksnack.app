@@ -1,14 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
+
+const COOLDOWN = 60;
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(COOLDOWN);
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!submitted || countdown <= 0) return;
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [submitted, countdown]);
+
+  async function callSupabase() {
+    const supabase = createBrowserSupabase();
+    return supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://stocksnack.app/reset-password",
+    });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -16,19 +34,15 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const supabase = createBrowserSupabase();
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: "https://stocksnack.app/reset-password",
-      });
+      const { error: resetError } = await callSupabase();
 
       if (resetError) {
         setError(resetError.message);
         return;
       }
 
-      // Always show the same success message whether the email exists or not
-      // to prevent enumeration attacks.
       setSubmitted(true);
+      setCountdown(COOLDOWN);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
       setError(message);
@@ -37,7 +51,22 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  async function handleResend() {
+    setResending(true);
+    setResendSuccess(false);
+    try {
+      await callSupabase();
+      setResendSuccess(true);
+      setCountdown(COOLDOWN);
+      setTimeout(() => setResendSuccess(false), 3000);
+    } finally {
+      setResending(false);
+    }
+  }
+
   if (submitted) {
+    const canResend = countdown <= 0 && !resending;
+
     return (
       <div className="w-full max-w-sm text-center">
         <div className="mb-6 text-3xl" style={{ color: "#00ff41" }}>✓</div>
@@ -53,9 +82,36 @@ export default function ForgotPasswordPage() {
           <br />
           Click the link in the email to set a new password.
         </p>
-        <p className="mt-6 text-xs" style={{ color: "rgba(0,255,65,0.25)" }}>
+        <p className="mt-4 text-xs" style={{ color: "rgba(0,255,65,0.25)" }}>
           Didn&apos;t receive it? Check your spam folder.
         </p>
+
+        <div className="mt-6">
+          {resendSuccess ? (
+            <p className="text-xs py-2.5" style={{ color: "#00ff41" }}>
+              ✓ New link sent!
+            </p>
+          ) : (
+            <button
+              onClick={handleResend}
+              disabled={!canResend}
+              className="w-full font-bold text-xs tracking-widest py-2.5 rounded transition-colors"
+              style={{
+                background: canResend ? "rgba(0,255,65,0.08)" : "transparent",
+                border: `1px solid ${canResend ? "rgba(0,255,65,0.35)" : "rgba(0,255,65,0.12)"}`,
+                color: canResend ? "rgba(0,255,65,0.65)" : "rgba(0,255,65,0.22)",
+                cursor: canResend ? "pointer" : "default",
+              }}
+            >
+              {resending
+                ? "SENDING..."
+                : countdown > 0
+                ? `RESEND IN ${countdown}s`
+                : "RESEND EMAIL →"}
+            </button>
+          )}
+        </div>
+
         <p className="mt-5 text-xs" style={{ color: "rgba(0,255,65,0.3)" }}>
           <Link href="/login" className="underline" style={{ color: "rgba(0,255,65,0.5)" }}>
             Back to sign in

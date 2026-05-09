@@ -31,20 +31,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="min-h-screen bg-black flex items-center justify-center px-4"
-      style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}
-    >
-      <div className="w-full max-w-sm">
-        <div className="mb-10 text-center">
-          <h1 className="text-2xl font-bold tracking-[0.3em] text-[#00ff41]">
-            STOCKSNACK
-          </h1>
-          <p className="mt-1 text-xs text-[#00ff41]/40 tracking-widest">
-            BUFFETT-STYLE STOCK SCREENER
-          </p>
-        </div>
-
+    <div className="w-full max-w-sm">
         <form
           onSubmit={handleSubmit}
           className="border border-[#00ff41]/30 rounded p-8 bg-[#00ff41]/[0.02]"
@@ -107,7 +94,6 @@ export default function LoginPage() {
             Create one free
           </Link>
         </p>
-      </div>
     </div>
   );
 }

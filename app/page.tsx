@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
+import Navbar from "@/components/ui/Navbar";
 
 export default async function HomePage() {
   // Authenticated users go straight to the screener
@@ -24,26 +25,7 @@ export default async function HomePage() {
       className="min-h-screen bg-black flex flex-col"
       style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}
     >
-      {/* Nav */}
-      <nav className="px-6 py-5 flex items-center justify-between border-b border-[#00ff41]/10">
-        <span className="text-[#00ff41] font-bold tracking-[0.25em] text-sm">
-          STOCKSNACK
-        </span>
-        <div className="flex items-center gap-6 text-xs">
-          <Link
-            href="/login"
-            className="text-[#00ff41]/50 hover:text-[#00ff41] transition-colors tracking-widest"
-          >
-            SIGN IN
-          </Link>
-          <Link
-            href="/signup"
-            className="px-4 py-1.5 border border-[#00ff41]/40 text-[#00ff41] hover:bg-[#00ff41]/10 transition-colors tracking-widest rounded"
-          >
-            GET STARTED
-          </Link>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 text-center">

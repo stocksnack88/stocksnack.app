@@ -142,7 +142,7 @@ export default async function ScreenerPage({
   }
 
   return (
-    <div className="min-h-screen bg-black text-[#00ff41]" style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}>
+    <div className="bg-black text-[#00ff41]" style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}>
       {/* Upgrade success banner */}
       {justUpgraded && (
         <div className="bg-[#00ff41]/10 border-b border-[#00ff41]/30 px-6 py-3 text-center">

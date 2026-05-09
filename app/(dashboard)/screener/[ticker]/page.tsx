@@ -126,14 +126,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   // ── Paywall ──────────────────────────────────────────────────────────────────
   if (!canAccess) {
     return (
-      <div className="min-h-screen bg-black" style={mono}>
-        <div className="border-b px-6 py-4" style={{ borderColor: "rgba(0,255,65,0.2)" }}>
+      <div className="bg-black" style={mono}>
+        <div className="border-b px-6 py-3" style={{ borderColor: "rgba(0,255,65,0.1)" }}>
           <Link href="/screener" className="text-xs tracking-widest transition-colors"
             style={{ color: "rgba(0,255,65,0.5)" }}>
             ← SCREENER
           </Link>
         </div>
-        <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
           <p className="text-5xl mb-6" style={{ color: "rgba(0,255,65,0.15)" }}>⊘</p>
           <h2 className="text-sm font-bold tracking-widest mb-2" style={{ color: "#00ff41" }}>
             PRO STOCK
@@ -178,9 +178,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
       : null;
 
   return (
-    <div className="min-h-screen bg-black" style={mono}>
-      {/* Nav */}
-      <div className="border-b px-6 py-4" style={{ borderColor: "rgba(0,255,65,0.2)" }}>
+    <div className="bg-black" style={mono}>
+      {/* Breadcrumb */}
+      <div className="border-b px-6 py-3" style={{ borderColor: "rgba(0,255,65,0.1)" }}>
         <Link
           href="/screener"
           className="text-xs tracking-widest transition-colors"

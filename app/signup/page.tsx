@@ -83,11 +83,7 @@ export default function SignupPage() {
 
   if (checkEmail) {
     return (
-      <div
-        className="min-h-screen bg-black flex items-center justify-center px-4"
-        style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}
-      >
-        <div className="w-full max-w-sm text-center">
+      <div className="w-full max-w-sm text-center">
           <div className="mb-6 text-3xl" style={{ color: "#00ff41" }}>✓</div>
           <h2
             className="text-sm font-bold tracking-widest mb-3"
@@ -112,33 +108,12 @@ export default function SignupPage() {
           <p className="mt-6 text-xs" style={{ color: "rgba(0,255,65,0.25)" }}>
             Didn&apos;t receive it? Check your spam folder.
           </p>
-        </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="min-h-screen bg-black flex items-center justify-center px-4"
-      style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}
-    >
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="mb-10 text-center">
-          <h1
-            className="text-2xl font-bold tracking-[0.3em]"
-            style={{ color: "#00ff41" }}
-          >
-            STOCKSNACK
-          </h1>
-          <p
-            className="mt-1 text-xs tracking-widest"
-            style={{ color: "rgba(0,255,65,0.4)" }}
-          >
-            BUFFETT-STYLE STOCK SCREENER
-          </p>
-        </div>
-
+    <div className="w-full max-w-sm">
         <form
           onSubmit={handleSubmit}
           className="rounded p-8"
@@ -272,7 +247,6 @@ export default function SignupPage() {
             Sign in
           </Link>
         </p>
-      </div>
     </div>
   );
 }

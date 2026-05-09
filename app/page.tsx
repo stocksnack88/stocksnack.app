@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import Link from "next/link";
 import Navbar from "@/components/ui/Navbar";
+import Footer from "@/components/ui/Footer";
 
 export default async function HomePage() {
   // Authenticated users go straight to the screener
@@ -82,12 +83,7 @@ export default async function HomePage() {
         </p>
       </main>
 
-      {/* Footer */}
-      <footer className="px-6 py-5 border-t border-[#00ff41]/10 text-center">
-        <p className="text-xs text-[#00ff41]/20 tracking-widest">
-          DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
-        </p>
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -42,12 +42,16 @@ export async function GET(request: NextRequest) {
     return redirectFailure;
   }
 
-  // Send welcome email non-blocking — a Resend failure must never break login
+  // Await the email before redirecting — serverless functions freeze on return,
+  // so fire-and-forget promises are killed before the HTTP call completes.
   const userEmail = data.session?.user?.email;
   if (userEmail) {
-    sendWelcomeEmail(userEmail).catch((err) =>
-      console.error("[auth/callback] Welcome email failed:", err)
-    );
+    try {
+      await sendWelcomeEmail(userEmail);
+    } catch (err) {
+      // Log but don't block the redirect
+      console.error("[auth/callback] Welcome email failed:", err);
+    }
   }
 
   return redirectSuccess;

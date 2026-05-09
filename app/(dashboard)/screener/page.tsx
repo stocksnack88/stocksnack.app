@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase";
 import UpgradeButton from "@/components/ui/UpgradeButton";
+import ClickableRow from "@/components/ui/ClickableRow";
 
 const FREE_LIMIT = 5;
 
@@ -210,8 +211,9 @@ export default async function ScreenerPage({
               </thead>
               <tbody>
                 {visibleStocks.map((stock, i) => (
-                  <tr
+                  <ClickableRow
                     key={stock.ticker}
+                    href={`/screener/${stock.ticker}`}
                     className={`border-t border-[#00ff41]/10 transition-colors hover:bg-[#00ff41]/5 ${
                       i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""
                     }`}
@@ -242,7 +244,7 @@ export default async function ScreenerPage({
                     <td className="px-4 py-3 text-center">
                       <SignalBadge signal={stock.signal} />
                     </td>
-                  </tr>
+                  </ClickableRow>
                 ))}
 
                 {lockedStocks.map((stock) => (

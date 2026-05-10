@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
+import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
 import SignOutButton from "./SignOutButton";
 
@@ -15,8 +16,19 @@ export default async function Navbar() {
       },
     }
   );
+
   const { data: { user } } = await supabase.auth.getUser();
-  const email = user?.email ?? null;
+
+  let isPro = false;
+  if (user) {
+    const { data: profile } = await supabaseAdmin
+      .from("user_profiles")
+      .select("subscription_status")
+      .eq("id", user.id)
+      .single();
+    const status = profile?.subscription_status ?? "free";
+    isPro = status === "active" || status === "trialing";
+  }
 
   return (
     <nav
@@ -36,43 +48,49 @@ export default async function Navbar() {
       </Link>
 
       <div className="flex items-center gap-3 sm:gap-5 text-xs">
-        <Link
-          href="/pricing"
-          className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41] hidden sm:block"
-        >
-          PRICING
-        </Link>
-        {email ? (
+        {!user && (
           <>
             <Link
-              href="/account"
-              className="hidden sm:block tracking-wide max-w-[200px] truncate transition-colors hover:text-[#00ff41]/70"
-              style={{ color: "rgba(0,255,65,0.35)" }}
+              href="/pricing"
+              className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
             >
-              {email}
+              PRICING
             </Link>
-            <Link
-              href="/account"
-              className="hidden sm:inline tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
-            >
-              ACCOUNT
-            </Link>
-            <SignOutButton />
-          </>
-        ) : (
-          <>
             <Link
               href="/login"
               className="tracking-widest transition-colors text-[#00ff41]/50 hover:text-[#00ff41]"
             >
               SIGN IN
             </Link>
+          </>
+        )}
+
+        {user && !isPro && (
+          <>
             <Link
-              href="/signup"
-              className="px-4 py-1.5 rounded text-xs tracking-widest transition-colors border border-[#00ff41]/40 text-[#00ff41] hover:bg-[#00ff41]/10"
+              href="/pricing"
+              className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
             >
-              GET STARTED
+              PRICING
             </Link>
+            <Link
+              href="/pricing"
+              className="px-4 py-1.5 rounded tracking-widest font-bold transition-colors bg-[#00ff41] text-black hover:bg-[#00ff41]/90"
+            >
+              UPGRADE
+            </Link>
+          </>
+        )}
+
+        {user && isPro && (
+          <>
+            <Link
+              href="/account"
+              className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
+            >
+              ACCOUNT
+            </Link>
+            <SignOutButton />
           </>
         )}
       </div>

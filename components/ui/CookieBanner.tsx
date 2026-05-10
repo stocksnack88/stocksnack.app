@@ -13,9 +13,10 @@ export default function CookieBanner() {
   }, []);
 
   function accept() {
+    document.cookie = "cookie-consent=true; path=/; max-age=31536000; SameSite=Lax";
     localStorage.setItem(STORAGE_KEY, "accepted");
     setVisible(false);
-    // Analytics initialisation goes here when added
+    window.dispatchEvent(new Event("cookie-consent-accepted"));
   }
 
   function decline() {

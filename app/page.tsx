@@ -42,17 +42,17 @@ export default async function HomePage() {
             </p>
           </div>
 
-          {/* Block B: Methodology flow — 80% wide, centred */}
-          <div className="w-full flex flex-col items-center gap-3">
+          {/* Block B: Methodology flow — 60% wide, centred, compact */}
+          <div className="w-full flex flex-col items-center gap-1.5">
 
-            <div className="w-4/5 border border-[#00ff41]/20 rounded px-5 py-4">
-              <div className="text-xs text-[#00ff41]/80 font-bold tracking-widest mb-1">Annual Reports</div>
+            <div className="w-3/5 border border-[#00ff41]/20 rounded px-4 py-2 text-center">
+              <div className="text-xs text-[#00ff41]/80 font-bold tracking-widest mb-0.5">Annual Reports</div>
               <div className="text-xs text-[#00ff41]/30">10-Ks, financials, filings</div>
             </div>
 
-            <div className="text-[#00ff41]/30 text-base">⬇</div>
+            <div className="text-[#00ff41]/30 text-sm leading-none">⬇</div>
 
-            <div className="w-4/5 border border-[#00ff41]/20 rounded overflow-hidden text-xs">
+            <div className="w-3/5 border border-[#00ff41]/20 rounded overflow-hidden text-xs">
               {[
                 "1. Price Projection",
                 "2. Growth Potential",
@@ -60,27 +60,27 @@ export default async function HomePage() {
               ].map((label, i) => (
                 <div
                   key={label}
-                  className={`px-4 py-3 text-[#00ff41]/70 tracking-wide${i < 2 ? " border-b border-[#00ff41]/10" : ""}`}
+                  className={`px-3 py-1.5 text-[#00ff41]/70 tracking-wide text-center${i < 2 ? " border-b border-[#00ff41]/10" : ""}`}
                 >
                   {label}
                 </div>
               ))}
             </div>
 
-            <div className="text-[#00ff41]/30 text-base">⬇</div>
+            <div className="text-[#00ff41]/30 text-sm leading-none">⬇</div>
 
             {/* Merged BUY / or / SELL */}
-            <div className="w-4/5 flex rounded overflow-hidden text-xs font-bold tracking-widest border border-[#00ff41]/15">
-              <div className="flex-1 flex items-center justify-center py-4 bg-[#00ff41]/10 text-[#00ff41]">
+            <div className="w-3/5 flex rounded overflow-hidden text-xs font-bold tracking-widest border border-[#00ff41]/15">
+              <div className="flex-1 flex items-center justify-center py-2.5 bg-[#00ff41]/10 text-[#00ff41]">
                 BUY
               </div>
               <div
-                className="w-10 shrink-0 flex items-center justify-center text-[10px] font-normal tracking-normal text-neutral-500"
+                className="w-8 shrink-0 flex items-center justify-center text-[10px] font-normal tracking-normal text-neutral-500"
                 style={{ background: "linear-gradient(to right, rgba(0,255,65,0.1), rgb(69,10,10))" }}
               >
                 or
               </div>
-              <div className="flex-1 flex items-center justify-center py-4 bg-red-950 text-red-400">
+              <div className="flex-1 flex items-center justify-center py-2.5 bg-red-950 text-red-400">
                 SELL
               </div>
             </div>
@@ -90,7 +90,7 @@ export default async function HomePage() {
           {/* Block C: CTA */}
           <Link
             href="/screener"
-            className="w-full text-center py-3 bg-[#00ff41] text-black font-bold text-sm tracking-widest rounded hover:bg-[#00ff41]/90 transition-colors"
+            className="w-full text-center py-5 bg-[#00ff41] text-black font-bold text-lg tracking-widest rounded hover:bg-[#00ff41]/90 transition-colors"
           >
             VIEW SCREENER →
           </Link>

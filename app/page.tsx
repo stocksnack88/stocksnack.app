@@ -30,11 +30,11 @@ export default async function HomePage() {
 
       {/* Hero */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        <div className="w-full max-w-[500px] flex flex-col items-center gap-12">
+        <div className="w-full max-w-[500px] flex flex-col items-center gap-6 md:gap-12">
 
           {/* Block A: Brand */}
           <div className="flex flex-col items-center gap-3 text-center">
-            <h1 className="text-5xl sm:text-6xl font-bold tracking-[0.15em] text-[#00ff41] leading-tight">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-[0.15em] text-[#00ff41] leading-tight">
               STOCK<br />SNACK
             </h1>
             <p className="text-sm text-[#00ff41]/60">
@@ -45,7 +45,7 @@ export default async function HomePage() {
           {/* Block B: Methodology flow — 60% wide, centred, compact */}
           <div className="w-full flex flex-col items-center gap-1.5">
 
-            <div className="w-3/5 border border-[#00ff41]/20 rounded px-4 py-2 text-center">
+            <div className="w-3/5 border border-[#00ff41]/20 rounded px-2 py-1 md:px-4 md:py-2 text-center">
               <div className="text-xs text-[#00ff41]/80 font-bold tracking-widest mb-0.5">Annual Reports</div>
               <div className="text-xs text-[#00ff41]/30">10-Ks, financials, filings</div>
             </div>
@@ -60,7 +60,7 @@ export default async function HomePage() {
               ].map((label, i) => (
                 <div
                   key={label}
-                  className={`px-3 py-1.5 text-[#00ff41]/70 tracking-wide text-center${i < 2 ? " border-b border-[#00ff41]/10" : ""}`}
+                  className={`px-2 py-1 md:px-3 md:py-1.5 text-[#00ff41]/70 tracking-wide text-center${i < 2 ? " border-b border-[#00ff41]/10" : ""}`}
                 >
                   {label}
                 </div>

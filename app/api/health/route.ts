@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 export async function GET() {
   const { error } = await supabaseAdmin
-    .from("profiles")
+    .from("user_profiles")
     .select("id")
     .limit(1);
 

@@ -50,10 +50,7 @@ export default async function HomePage() {
               <div className="text-xs text-[#00ff41]/30">10-Ks, financials, filings</div>
             </div>
 
-            <svg width="10" height="18" viewBox="0 0 10 18" fill="none" aria-hidden="true">
-              <line x1="5" y1="0" x2="5" y2="13" stroke="rgba(0,255,65,0.35)" strokeWidth="1.5" strokeLinecap="round"/>
-              <polyline points="1,9 5,16 9,9" stroke="rgba(0,255,65,0.35)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <span className="text-[#00ff41]/40 text-sm">↓</span>
 
             <div className="w-3/5 border border-[#00ff41]/20 rounded overflow-hidden text-xs">
               {[
@@ -70,10 +67,7 @@ export default async function HomePage() {
               ))}
             </div>
 
-            <svg width="10" height="18" viewBox="0 0 10 18" fill="none" aria-hidden="true">
-              <line x1="5" y1="0" x2="5" y2="13" stroke="rgba(0,255,65,0.35)" strokeWidth="1.5" strokeLinecap="round"/>
-              <polyline points="1,9 5,16 9,9" stroke="rgba(0,255,65,0.35)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <span className="text-[#00ff41]/40 text-sm">↓</span>
 
             {/* Merged BUY / or / SELL */}
             <div className="w-3/5 flex rounded overflow-hidden text-xs font-bold tracking-widest border border-[#00ff41]/15">

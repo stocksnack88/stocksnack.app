@@ -39,9 +39,19 @@ export default async function HomePage() {
         </p>
 
         {/* Scoring flow */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-12">
-          {/* Inputs */}
-          <div className="flex flex-col gap-2 text-xs">
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-12 text-xs">
+
+          {/* Annual Reports source */}
+          <div className="border border-[#00ff41]/20 rounded px-4 py-3 text-left">
+            <div className="text-[#00ff41]/80 font-bold tracking-widest mb-1">Annual Reports</div>
+            <div className="text-[#00ff41]/30">10-Ks, financials, filings</div>
+          </div>
+
+          {/* → */}
+          <div className="text-[#00ff41]/30 text-lg rotate-90 sm:rotate-0">→</div>
+
+          {/* 3 inputs */}
+          <div className="flex flex-col gap-2">
             {[
               "1. Price Projection",
               "2. Growth Potential",
@@ -56,43 +66,27 @@ export default async function HomePage() {
             ))}
           </div>
 
-          {/* Arrow → Decision */}
-          <div className="flex sm:flex-col items-center gap-1 text-[#00ff41]/30 text-lg rotate-90 sm:rotate-0">
-            →
-          </div>
+          {/* → */}
+          <div className="text-[#00ff41]/30 text-lg rotate-90 sm:rotate-0">→</div>
 
-          <div className="border border-[#00ff41]/40 rounded px-5 py-3 text-[#00ff41] font-bold text-xs tracking-widest">
-            DECISION
-          </div>
-
-          {/* Decision → BUY / SELL */}
-          <div className="flex sm:flex-col items-center gap-3 text-xs font-bold tracking-widest">
-            <div className="flex items-center gap-1">
-              <span className="text-[#00ff41]/30">↑</span>
-              <span className="text-[#00ff41]">BUY</span>
+          {/* BUY / SELL outputs */}
+          <div className="flex flex-col gap-2 font-bold tracking-widest">
+            <div className="rounded px-5 py-2 bg-[#00ff41]/10 border border-[#00ff41]/30 text-[#00ff41]">
+              BUY
             </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[#00ff41]/30">↓</span>
-              <span className="text-red-500">SELL</span>
+            <div className="rounded px-5 py-2 bg-red-950 border border-red-700/50 text-red-400">
+              SELL
             </div>
           </div>
         </div>
 
-        {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <Link
-            href="/screener"
-            className="px-7 py-3 bg-[#00ff41] text-black font-bold text-sm tracking-widest rounded hover:bg-[#00ff41]/90 transition-colors"
-          >
-            VIEW SCREENER →
-          </Link>
-          <Link
-            href="/signup"
-            className="px-7 py-3 border border-[#00ff41]/30 text-[#00ff41]/70 font-bold text-sm tracking-widest rounded hover:border-[#00ff41]/60 hover:text-[#00ff41] transition-colors"
-          >
-            CREATE FREE ACCOUNT
-          </Link>
-        </div>
+        {/* CTA */}
+        <Link
+          href="/screener"
+          className="px-7 py-3 bg-[#00ff41] text-black font-bold text-sm tracking-widest rounded hover:bg-[#00ff41]/90 transition-colors"
+        >
+          VIEW SCREENER →
+        </Link>
       </main>
 
       <Footer />

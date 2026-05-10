@@ -30,36 +30,52 @@ export default async function HomePage() {
 
       {/* Hero */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-        <p className="text-xs text-[#00ff41]/40 tracking-widest sm:tracking-[0.4em] mb-6">
-          BUFFETT-STYLE STOCK SCREENER
-        </p>
-
         <h1 className="text-5xl sm:text-6xl font-bold tracking-[0.15em] text-[#00ff41] mb-6 leading-tight">
           STOCK<br />SNACK
         </h1>
 
         <p className="text-sm text-[#00ff41]/60 max-w-sm leading-relaxed mb-10">
-          Four-layer fundamental scoring model — valuation, growth, financial
-          health, and Buffett-tier quality — ranked weekly across 20 large-cap
-          stocks.
+          Backed by 30 financial metrics.
         </p>
 
-        {/* Score preview chips */}
-        <div className="flex flex-wrap justify-center gap-3 mb-12 text-xs">
-          {[
-            { label: "PPM", sub: "Price Projection" },
-            { label: "GROWTH", sub: "Revenue & FCF" },
-            { label: "HEALTH", sub: "24 Checks" },
-            { label: "FINAL", sub: "BUY · HOLD · SELL" },
-          ].map(({ label, sub }) => (
-            <div
-              key={label}
-              className="border border-[#00ff41]/20 rounded px-3 py-2 text-left"
-            >
-              <div className="text-[#00ff41] font-bold tracking-widest">{label}</div>
-              <div className="text-[#00ff41]/30 mt-0.5">{sub}</div>
+        {/* Scoring flow */}
+        <div className="flex flex-col sm:flex-row items-center gap-4 mb-12">
+          {/* Inputs */}
+          <div className="flex flex-col gap-2 text-xs">
+            {[
+              "1. Price Projection",
+              "2. Growth Potential",
+              "3. Financial Health Check",
+            ].map((label) => (
+              <div
+                key={label}
+                className="border border-[#00ff41]/20 rounded px-4 py-2 text-[#00ff41]/70 tracking-wide"
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+
+          {/* Arrow → Decision */}
+          <div className="flex sm:flex-col items-center gap-1 text-[#00ff41]/30 text-lg rotate-90 sm:rotate-0">
+            →
+          </div>
+
+          <div className="border border-[#00ff41]/40 rounded px-5 py-3 text-[#00ff41] font-bold text-xs tracking-widest">
+            DECISION
+          </div>
+
+          {/* Decision → BUY / SELL */}
+          <div className="flex sm:flex-col items-center gap-3 text-xs font-bold tracking-widest">
+            <div className="flex items-center gap-1">
+              <span className="text-[#00ff41]/30">↑</span>
+              <span className="text-[#00ff41]">BUY</span>
             </div>
-          ))}
+            <div className="flex items-center gap-1">
+              <span className="text-[#00ff41]/30">↓</span>
+              <span className="text-red-500">SELL</span>
+            </div>
+          </div>
         </div>
 
         {/* CTAs */}
@@ -77,10 +93,6 @@ export default async function HomePage() {
             CREATE FREE ACCOUNT
           </Link>
         </div>
-
-        <p className="mt-6 text-xs text-[#00ff41]/25 tracking-wide">
-          5 stocks free · all 20 with Pro · $20/mo
-        </p>
       </main>
 
       <Footer />

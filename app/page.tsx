@@ -33,8 +33,8 @@ export default async function HomePage() {
         <div className="w-full max-w-[500px] flex flex-col items-center gap-6 md:gap-12">
 
           {/* Block A: Brand */}
-          <div className="flex flex-col items-center gap-3 text-center">
-            <h1 className="text-5xl md:text-6xl font-bold tracking-[0.15em] text-[#00ff41] leading-none md:leading-tight">
+          <div className="flex flex-col items-center gap-3 md:gap-1 text-center">
+            <h1 className="text-5xl md:text-7xl font-bold tracking-[0.15em] text-[#00ff41] leading-none">
               STOCK<br />SNACK
             </h1>
             <p className="text-sm text-[#00ff41]/60">
@@ -43,7 +43,7 @@ export default async function HomePage() {
           </div>
 
           {/* Block B: Methodology flow — 60% wide, centred, compact */}
-          <div className="w-full flex flex-col items-center gap-1.5">
+          <div className="w-full flex flex-col items-center gap-1.5 mt-4 md:mt-0">
 
             <div className="w-3/5 border border-[#00ff41]/20 rounded px-2 py-1 md:px-4 md:py-2 text-center">
               <div className="text-xs text-[#00ff41]/80 font-bold tracking-widest mb-0.5">Annual Reports</div>

@@ -29,12 +29,12 @@ export default async function HomePage() {
       <Navbar />
 
       {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+      <main className="flex-1 flex flex-col items-center justify-start md:justify-center px-6 pt-8 pb-12 md:py-12">
         <div className="w-full max-w-[500px] flex flex-col items-center gap-6 md:gap-12">
 
           {/* Block A: Brand */}
           <div className="flex flex-col items-center gap-3 text-center">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-[0.15em] text-[#00ff41] leading-tight">
+            <h1 className="text-5xl md:text-6xl font-bold tracking-[0.15em] text-[#00ff41] leading-none md:leading-tight">
               STOCK<br />SNACK
             </h1>
             <p className="text-sm text-[#00ff41]/60">
@@ -90,7 +90,7 @@ export default async function HomePage() {
           {/* Block C: CTA */}
           <Link
             href="/screener"
-            className="w-full text-center py-5 bg-[#00ff41] text-black font-bold text-lg tracking-widest rounded hover:bg-[#00ff41]/90 transition-colors"
+            className="w-full text-center py-5 bg-[#00ff41] text-black font-bold text-lg tracking-widest rounded hover:bg-[#00ff41]/90 transition-colors mt-6 md:mt-0"
           >
             VIEW SCREENER →
           </Link>

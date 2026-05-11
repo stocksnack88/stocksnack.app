@@ -73,25 +73,38 @@ export default function ScreenerTable({
     <div className="overflow-x-auto [overflow-y:clip]">
       <table className="w-full text-sm border-collapse">
         <thead>
-          {/* SCORES group label — appears above score columns when insights are open */}
-          {insightsOpen && (
-            <tr className="bg-[#001200] border-b border-[#00ff41]/10">
-              <th className="sticky left-0 z-20 bg-[#001200] px-3 py-1" />
-              {/* COMPANY — desktop only */}
-              <th className="hidden md:table-cell bg-[#001200] px-2 py-1" />
-              <th className="bg-[#001200] px-2 py-1" />
-              <th className="bg-[#001200] px-2 py-1" />
+          {/* Group label row — always visible */}
+          <tr className="bg-[#001200]">
+            {/* TICKER — no group label */}
+            <th className="sticky left-0 z-20 bg-[#001200] px-3 py-1" />
+            {/* COMPANY — desktop only, no group label */}
+            <th className="hidden md:table-cell bg-[#001200] px-2 py-1" />
+            {/* 5Y RETURN spans CAGR + RETURN */}
+            <th
+              colSpan={2}
+              className="bg-[#001200] px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30"
+            >
+              5Y RETURN
+            </th>
+            {/* SCORES spans VALUE, GROWTH, HEALTH, OVERALL — only when open */}
+            {insightsOpen && (
               <th
                 colSpan={4}
                 className="bg-[#001200] px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30"
               >
                 SCORES
               </th>
-              <th className="bg-[#001200] px-2 py-1" />
-              <th className="bg-[#001200] px-2 py-1" />
-              <th className="bg-[#001200] px-2 py-1" />
-            </tr>
-          )}
+            )}
+            {/* VERDICT spans SIGNAL + RANK */}
+            <th
+              colSpan={2}
+              className="bg-[#001200] px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30"
+            >
+              VERDICT
+            </th>
+            {/* [+] column — no group label */}
+            <th className="sticky right-0 z-20 bg-[#001200] px-2 py-1" />
+          </tr>
 
           {/* Main column header row — sticky */}
           <tr className="border-b border-[#00ff41]/60 bg-[#001200]">
@@ -99,16 +112,14 @@ export default function ScreenerTable({
             {/* COMPANY — desktop only */}
             <th className={`hidden md:table-cell px-3 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>COMPANY</th>
             <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>CAGR</th>
-            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>
-              <span className="hidden sm:inline">5Y </span>RETURN
-            </th>
+            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>RETURN</th>
             <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${ins}`}>VALUE</th>
             <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${ins}`}>GROWTH</th>
             <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${ins}`}>HEALTH</th>
             <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${ins}`}>OVERALL</th>
             <th className={`px-2 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>SIGNAL</th>
             <th className={`px-2 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>RANK</th>
-            <th className={`px-2 py-3 text-center ${stickyTh}`}>
+            <th className="sticky top-0 right-0 z-30 bg-[#001200] px-2 py-3 text-center">
               <button
                 onClick={() => setInsightsOpen((o) => !o)}
                 className="text-[#00ff41]/40 hover:text-[#00ff41] border border-[#00ff41]/25 rounded px-1.5 py-0.5 font-mono text-xs transition-colors leading-none"
@@ -162,7 +173,7 @@ export default function ScreenerTable({
               <td className="px-2 py-3 text-center">
                 <span className="text-[#00ff41]/40 font-mono text-xs">#{i + 1}</span>
               </td>
-              <td className="px-2 py-3" />
+              <td className="sticky right-0 z-[5] bg-black px-2 py-3" />
             </tr>
           ))}
 

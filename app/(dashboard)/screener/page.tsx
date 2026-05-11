@@ -110,7 +110,7 @@ export default async function ScreenerPage({
           <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1 md:gap-4">
             <div className="flex flex-col">
               <h1 className="text-xl sm:text-2xl font-bold tracking-[0.15em] sm:tracking-[0.3em] text-[#00ff41]">
-                STOCKSNACK SCREENER
+                STOCK SCREENER
               </h1>
               <div className="flex items-center mt-1">
                 <span className="text-[10px] text-[#00ff41]/40 tracking-widest font-bold">SCORES (0–100)</span>

@@ -72,12 +72,12 @@ export default function ScreenerTable({
   const totalCols = insightsOpen ? 9 : 5;
 
   return (
-    <div className="flex items-stretch">
-      {/* Scrollable table */}
-      <div className="flex-1 min-w-0 overflow-x-auto">
+    <div className="flex items-start">
+      {/* Scrollable table — overflow-y:clip prevents scroll-container creation so sticky headers work */}
+      <div className="flex-1 min-w-0 overflow-x-auto [overflow-y:clip]">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="border-b border-[#00ff41]/30">
+            <tr className="border-b border-[#00ff41]/60">
               <th className={`px-3 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70 ${cornerTh}`}>TICKER</th>
               <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>CAGR</th>
               <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>
@@ -189,14 +189,14 @@ export default function ScreenerTable({
         </table>
       </div>
 
-      {/* Vertical pill toggle — right edge, outside scroll container */}
+      {/* Vertical pill toggle — right edge, sticky so it stays visible while scrolling */}
       <button
         onClick={() => setInsightsOpen((o) => !o)}
-        className="flex-none flex items-center justify-center bg-black border-l border-[#00ff41]/10 text-[#00ff41]/40 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.03] transition-colors px-1.5"
+        className="flex-none sticky top-0 z-10 flex items-center justify-center bg-black border-l border-[#00ff41]/15 text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.05] transition-colors px-2"
         style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
         aria-label={insightsOpen ? "Hide more insights" : "Show more insights"}
       >
-        <span className="text-[9px] tracking-widest border border-[#00ff41]/20 rounded-full py-3 px-[3px] leading-none">
+        <span className="text-[10px] tracking-widest border border-[#00ff41]/50 rounded-full py-3 px-1 leading-none">
           {insightsOpen ? "− More Insights" : "+ More Insights"}
         </span>
       </button>

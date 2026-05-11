@@ -108,10 +108,29 @@ export default async function ScreenerPage({
       <div className="border-b border-[#00ff41]/20 px-6 py-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1 md:gap-4">
-            <div className="flex items-center">
+            <div className="flex flex-col">
               <h1 className="text-xl sm:text-2xl font-bold tracking-[0.15em] sm:tracking-[0.3em] text-[#00ff41]">
                 STOCKSNACK SCREENER
               </h1>
+              <div className="flex items-center mt-1">
+                <span className="text-[10px] text-[#00ff41]/40 tracking-widest font-bold">SCORES (0–100)</span>
+                <InfoTooltip>
+                  <div className="flex flex-col gap-2 text-[11px] tracking-widest">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#00ff41]">■</span>
+                      <span className="text-[#00ff41]">≥70 STRONG</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-300">■</span>
+                      <span className="text-yellow-300">45–69 MODERATE</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-400">■</span>
+                      <span className="text-red-400">&lt;45 WEAK</span>
+                    </div>
+                  </div>
+                </InfoTooltip>
+              </div>
             </div>
             <div className="text-left md:text-right">
               {updatedAt && (
@@ -124,16 +143,6 @@ export default async function ScreenerPage({
               )}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Legend bar */}
-      <div className="px-6 py-3 border-b border-[#00ff41]/10 bg-[#00ff41]/[0.02]">
-        <div className="max-w-7xl mx-auto flex items-center gap-4 text-xs flex-wrap">
-          <span className="text-[#00ff41] tracking-widest">■ ≥70 STRONG</span>
-          <span className="text-yellow-300 tracking-widest">■ 45–69 MODERATE</span>
-          <span className="text-red-400 tracking-widest">■ &lt;45 WEAK</span>
-          <InfoTooltip text="Scores are 0–100. ≥70 Strong · 45–69 Moderate · <45 Weak" />
         </div>
       </div>
 

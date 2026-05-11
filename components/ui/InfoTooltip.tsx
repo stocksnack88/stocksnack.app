@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import React from "react";
 
-export default function InfoTooltip({ text }: { text: string }) {
+export default function InfoTooltip({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -17,8 +18,11 @@ export default function InfoTooltip({ text }: { text: string }) {
         ⓘ
       </button>
       {open && (
-        <span className="absolute left-0 top-full mt-1.5 z-20 w-64 rounded border border-[#00ff41]/20 bg-black px-3 py-2 text-xs text-[#00ff41]/60 leading-relaxed shadow-lg pointer-events-none">
-          {text}
+        <span
+          className="absolute left-0 top-full mt-1.5 z-30 rounded border border-[#00ff41]/20 bg-black px-3 py-2.5 shadow-lg pointer-events-none"
+          style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}
+        >
+          {children}
         </span>
       )}
     </span>

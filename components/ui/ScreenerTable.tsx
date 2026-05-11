@@ -210,7 +210,7 @@ export default function ScreenerTable({
                   className="text-[#00ff41] font-bold tracking-widest text-sm hover:text-[#00ff41]/70 transition-colors"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  Unlock {lockedStocks.length} more stocks — Upgrade to Pro →
+                  Unlock all stocks — Upgrade to Pro →
                 </a>
                 {!hasSession && (
                   <p className="mt-2 text-xs text-[#00ff41]/30">

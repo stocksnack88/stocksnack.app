@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import UpgradeButton from "./UpgradeButton";
 
 export type ScreenerRow = {
   ticker: string;
@@ -17,6 +16,7 @@ export type ScreenerRow = {
   signal: string | null;
 };
 
+// Dotted group divider applied as border-right on last column of each group
 const D = "border-r border-dashed border-[#00ff41]/20";
 
 function SignalBadge({ signal }: { signal: string | null }) {
@@ -52,27 +52,6 @@ function ReturnCell({ blended, current }: { blended: number | null; current: num
   return <span className={`font-mono font-bold ${color}`}>{mult.toFixed(1)}x</span>;
 }
 
-function LockedRow({ ticker, rank }: { ticker: string; rank: number }) {
-  return (
-    <tr className="border-t border-[#00ff41]/10 blur-[3px] select-none pointer-events-none">
-      <td className={`px-4 py-3 ${D}`}>
-        <span className="font-mono font-bold text-[#00ff41]/40">{ticker}</span>
-        <span className="block text-gray-700 text-[10px]">████████████</span>
-      </td>
-      <td className="px-4 py-3 text-right text-gray-600">████</td>
-      <td className={`px-4 py-3 text-right text-gray-600 hidden md:table-cell ${D}`}>██████</td>
-      <td className="px-4 py-3 text-right text-gray-600 hidden md:table-cell">██</td>
-      <td className="px-4 py-3 text-right text-gray-600 hidden md:table-cell">██</td>
-      <td className="px-4 py-3 text-right text-gray-600 hidden md:table-cell">██</td>
-      <td className={`px-4 py-3 text-right text-gray-600 hidden md:table-cell ${D}`}>██</td>
-      <td className={`px-4 py-3 text-center ${D}`}>
-        <span className="inline-block px-2 py-0.5 rounded text-xs bg-gray-800 text-gray-600 border border-gray-700">████</span>
-      </td>
-      <td className="px-4 py-3 text-center text-[#00ff41]/20 font-mono text-xs">#{rank}</td>
-    </tr>
-  );
-}
-
 export default function ScreenerTable({
   visibleStocks,
   lockedStocks,
@@ -99,35 +78,44 @@ export default function ScreenerTable({
 
   const totalStocks = visibleStocks.length + lockedStocks.length;
 
+  // Shared classes for sticky-header cells (bottom row)
+  const stickyTh = "sticky top-0 z-10 bg-black";
+  // Corner cell: sticky both top and left
+  const cornerTh = "sticky top-0 left-0 z-20 bg-black";
+  // Sticky first column in body
+  const stickyTd = "sticky left-0 z-[5] bg-black";
+
   return (
     <div className="relative overflow-x-auto rounded border border-[#00ff41]/20">
       <table className="w-full md:min-w-[800px] text-sm border-collapse">
         <thead>
-          {/* Top group-label row — desktop only */}
-          <tr className="hidden md:table-row border-b border-[#00ff41]/10 bg-[#00ff41]/[0.03]">
-            <th className={`px-4 py-1.5 ${D}`} />
-            <th colSpan={2} className={`px-4 py-1.5 text-center text-[10px] font-bold tracking-widest text-[#00ff41]/35 ${D}`}>
+          {/* Group-label row — desktop only, not sticky */}
+          <tr className="hidden md:table-row border-b border-[#00ff41]/10 bg-[#001200]">
+            <th className={`px-4 py-1.5 bg-[#001200] ${D}`} />
+            <th colSpan={2} className={`px-4 py-1.5 text-center text-[10px] font-bold tracking-widest text-[#00ff41]/35 bg-[#001200] ${D}`}>
               EST. 5Y RETURN
             </th>
-            <th colSpan={4} className={`px-4 py-1.5 text-center text-[10px] font-bold tracking-widest text-[#00ff41]/35 ${D}`}>
+            <th colSpan={4} className={`px-4 py-1.5 text-center text-[10px] font-bold tracking-widest text-[#00ff41]/35 bg-[#001200] ${D}`}>
               SCORES (0–100)
             </th>
-            <th className={`px-4 py-1.5 ${D}`} />
-            <th className="px-4 py-1.5" />
+            <th className={`px-4 py-1.5 bg-[#001200] ${D}`} />
+            <th className="px-4 py-1.5 bg-[#001200]" />
           </tr>
-          {/* Column-name row */}
-          <tr className="border-b border-[#00ff41]/30 bg-[#00ff41]/5">
-            <th className={`px-4 py-3 text-left   text-xs font-bold tracking-widest text-[#00ff41]/70 ${D}`}>TICKER</th>
-            <th className="px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70">5Y RETURN</th>
-            <th className={`px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 hidden md:table-cell ${D}`}>CAGR</th>
-            <th className="px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 hidden md:table-cell">VALUE</th>
-            <th className="px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 hidden md:table-cell">GROWTH</th>
-            <th className="px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 hidden md:table-cell">HEALTH</th>
-            <th className={`px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 hidden md:table-cell ${D}`}>OVERALL</th>
-            <th className={`px-4 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${D}`}>SIGNAL</th>
-            <th className="px-4 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70">RANK</th>
+
+          {/* Column-name row — sticky */}
+          <tr className="border-b border-[#00ff41]/30">
+            <th className={`px-4 py-3 text-left   text-xs font-bold tracking-widest text-[#00ff41]/70 ${cornerTh} ${D}`}>TICKER</th>
+            <th className={`px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>5Y RETURN</th>
+            <th className={`px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 hidden md:table-cell ${stickyTh} ${D}`}>CAGR</th>
+            <th className={`px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 hidden md:table-cell ${stickyTh}`}>VALUE</th>
+            <th className={`px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 hidden md:table-cell ${stickyTh}`}>GROWTH</th>
+            <th className={`px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 hidden md:table-cell ${stickyTh}`}>HEALTH</th>
+            <th className={`px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 hidden md:table-cell ${stickyTh} ${D}`}>OVERALL</th>
+            <th className={`px-4 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${D}`}>SIGNAL</th>
+            <th className={`px-4 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>RANK</th>
           </tr>
         </thead>
+
         <tbody>
           {visibleStocks.map((stock, i) => {
             const rank = i + 1;
@@ -140,8 +128,8 @@ export default function ScreenerTable({
                     i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""
                   }`}
                 >
-                  {/* TICKER + company name + mobile expand button */}
-                  <td className={`px-4 py-3 ${D}`}>
+                  {/* TICKER + company + mobile expand button */}
+                  <td className={`px-4 py-3 ${stickyTd} ${D}`}>
                     <div className="flex items-center justify-between gap-2">
                       <div>
                         <span className="font-mono font-bold text-[#00ff41] tracking-wider">{stock.ticker}</span>
@@ -217,33 +205,28 @@ export default function ScreenerTable({
             );
           })}
 
-          {lockedStocks.map((stock, i) => (
-            <LockedRow key={stock.ticker} ticker={stock.ticker} rank={freeLimit + i + 1} />
-          ))}
+          {/* Single upgrade CTA row — replaces blurred locked rows */}
+          {lockedStocks.length > 0 && (
+            <tr className="border-t border-[#00ff41]/20">
+              <td colSpan={9} className="px-6 py-5 text-center">
+                <a
+                  href="/pricing"
+                  className="text-[#00ff41] font-bold tracking-widest text-sm hover:text-[#00ff41]/70 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Unlock {lockedStocks.length} more stocks — Upgrade to Pro →
+                </a>
+                {!hasSession && (
+                  <p className="mt-2 text-xs text-[#00ff41]/30">
+                    Already have an account?{" "}
+                    <a href="/login" className="text-[#00ff41]/50 hover:text-[#00ff41] underline">Sign in</a>
+                  </p>
+                )}
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
-
-      {/* Paywall overlay */}
-      {lockedStocks.length > 0 && (
-        <div className="relative">
-          <div className="absolute inset-x-0 -top-32 h-32 bg-gradient-to-b from-transparent to-black/80 pointer-events-none" />
-          <div className="border-t border-[#00ff41]/20 bg-black px-6 py-8 text-center">
-            <p className="text-[#00ff41] font-bold tracking-widest text-sm mb-1">
-              {lockedStocks.length} MORE STOCKS LOCKED
-            </p>
-            <p className="text-[#00ff41]/50 text-xs mb-5 tracking-wide">
-              Upgrade to Pro to unlock all {totalStocks} stocks with full scoring data
-            </p>
-            <UpgradeButton />
-            {!hasSession && (
-              <p className="mt-3 text-xs text-[#00ff41]/30">
-                Already have an account?{" "}
-                <a href="/login" className="text-[#00ff41]/60 hover:text-[#00ff41] underline">Sign in</a>
-              </p>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

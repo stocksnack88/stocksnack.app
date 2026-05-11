@@ -1,80 +1,10 @@
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase";
-import UpgradeButton from "@/components/ui/UpgradeButton";
-import ClickableRow from "@/components/ui/ClickableRow";
 import InfoTooltip from "@/components/ui/InfoTooltip";
+import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
 
 const FREE_LIMIT = 5;
-
-type ScreenerRow = {
-  ticker: string;
-  name: string | null;
-  ppm_cagr: number | null;
-  ppm_blended_price: number | null;
-  current_price: number | null;
-  ppm_score: number | null;
-  growth_score: number | null;
-  health_score: number | null;
-  final_score: number | null;
-  signal: string | null;
-  updated_at: string | null;
-};
-
-const divider = "border-r border-dashed border-[#00ff41]/20";
-
-function SignalBadge({ signal }: { signal: string | null }) {
-  const s = (signal ?? "").toUpperCase();
-  const styles: Record<string, string> = {
-    BUY:  "bg-[#00ff41]/20 text-[#00ff41] border border-[#00ff41]/60",
-    HOLD: "bg-yellow-400/10 text-yellow-300 border border-yellow-400/50",
-    SELL: "bg-red-500/10 text-red-400 border border-red-500/50",
-  };
-  const cls = styles[s] ?? "bg-gray-800 text-gray-400 border border-gray-600";
-  return (
-    <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold tracking-widest ${cls}`}>
-      {s || "—"}
-    </span>
-  );
-}
-
-function ScoreCell({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-gray-600">—</span>;
-  const color =
-    value >= 70 ? "text-[#00ff41]" : value >= 45 ? "text-yellow-300" : "text-red-400";
-  return <span className={`font-mono font-bold ${color}`}>{value.toFixed(1)}</span>;
-}
-
-function CagrCell({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-gray-600">—</span>;
-  const color = value >= 0.2 ? "text-[#00ff41]" : value >= 0.1 ? "text-yellow-300" : "text-red-400";
-  return <span className={`font-mono font-bold ${color}`}>{(value * 100).toFixed(1)}%</span>;
-}
-
-function ReturnCell({ blended, current }: { blended: number | null; current: number | null }) {
-  if (!blended || !current) return <span className="text-gray-600">—</span>;
-  const mult = blended / current;
-  const color = mult >= 2 ? "text-[#00ff41]" : mult >= 1.5 ? "text-yellow-300" : "text-red-400";
-  return <span className={`font-mono font-bold ${color}`}>{mult.toFixed(1)}x</span>;
-}
-
-function LockedRow({ ticker }: { ticker: string }) {
-  return (
-    <tr className="border-t border-[#00ff41]/10 blur-[3px] select-none pointer-events-none">
-      <td className="px-4 py-3 font-mono font-bold text-[#00ff41]/40">{ticker}</td>
-      <td className={`px-4 py-3 text-gray-600 ${divider}`}>████████████</td>
-      <td className="px-4 py-3 text-gray-600 text-right">██████</td>
-      <td className={`px-4 py-3 text-gray-600 text-right ${divider}`}>████</td>
-      <td className="px-4 py-3 text-gray-600 text-right">██</td>
-      <td className="px-4 py-3 text-gray-600 text-right">██</td>
-      <td className="px-4 py-3 text-gray-600 text-right">██</td>
-      <td className={`px-4 py-3 text-gray-600 text-right ${divider}`}>██</td>
-      <td className="px-4 py-3 text-center">
-        <span className="inline-block px-2 py-0.5 rounded text-xs bg-gray-800 text-gray-600 border border-gray-700">████</span>
-      </td>
-    </tr>
-  );
-}
 
 export default async function ScreenerPage({
   searchParams,
@@ -203,88 +133,12 @@ export default async function ScreenerPage({
       {/* Table */}
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto">
-          <div className="relative overflow-x-auto rounded border border-[#00ff41]/20">
-            <table className="w-full min-w-[800px] text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-[#00ff41]/30 bg-[#00ff41]/5">
-                  <th className="px-4 py-3 text-left   text-xs font-bold tracking-widest text-[#00ff41]/70">TICKER</th>
-                  <th className={`px-4 py-3 text-left   text-xs font-bold tracking-widest text-[#00ff41]/70 ${divider}`}>COMPANY</th>
-                  <th className="px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70">CAGR</th>
-                  <th className={`px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 ${divider}`}>5Y RETURN</th>
-                  <th className="px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70">PPM</th>
-                  <th className="px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70">GROWTH</th>
-                  <th className="px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70">HEALTH</th>
-                  <th className={`px-4 py-3 text-right  text-xs font-bold tracking-widest text-[#00ff41]/70 ${divider}`}>FINAL</th>
-                  <th className="px-4 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70">SIGNAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleStocks.map((stock, i) => (
-                  <ClickableRow
-                    key={stock.ticker}
-                    href={`/screener/${stock.ticker}`}
-                    className={`border-t border-[#00ff41]/10 transition-colors hover:bg-[#00ff41]/5 ${
-                      i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""
-                    }`}
-                  >
-                    <td className="px-4 py-3">
-                      <span className="font-mono font-bold text-[#00ff41] tracking-wider">{stock.ticker}</span>
-                    </td>
-                    <td className={`px-4 py-3 text-[#00ff41]/80 max-w-[180px] truncate ${divider}`}>
-                      {stock.name ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <CagrCell value={stock.ppm_cagr} />
-                    </td>
-                    <td className={`px-4 py-3 text-right ${divider}`}>
-                      <ReturnCell blended={stock.ppm_blended_price} current={stock.current_price} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <ScoreCell value={stock.ppm_score} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <ScoreCell value={stock.growth_score} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <ScoreCell value={stock.health_score} />
-                    </td>
-                    <td className={`px-4 py-3 text-right ${divider}`}>
-                      <ScoreCell value={stock.final_score} />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <SignalBadge signal={stock.signal} />
-                    </td>
-                  </ClickableRow>
-                ))}
-
-                {lockedStocks.map((stock) => (
-                  <LockedRow key={stock.ticker} ticker={stock.ticker} />
-                ))}
-              </tbody>
-            </table>
-
-            {!isPro && lockedStocks.length > 0 && (
-              <div className="relative">
-                <div className="absolute inset-x-0 -top-32 h-32 bg-gradient-to-b from-transparent to-black/80 pointer-events-none" />
-                <div className="border-t border-[#00ff41]/20 bg-black px-6 py-8 text-center">
-                  <p className="text-[#00ff41] font-bold tracking-widest text-sm mb-1">
-                    {lockedStocks.length} MORE STOCKS LOCKED
-                  </p>
-                  <p className="text-[#00ff41]/50 text-xs mb-5 tracking-wide">
-                    Upgrade to Pro to unlock all {stocks.length} stocks with full scoring data
-                  </p>
-                  <UpgradeButton />
-                  {!session && (
-                    <p className="mt-3 text-xs text-[#00ff41]/30">
-                      Already have an account?{" "}
-                      <a href="/login" className="text-[#00ff41]/60 hover:text-[#00ff41] underline">Sign in</a>
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
+          <ScreenerTable
+            visibleStocks={visibleStocks}
+            lockedStocks={lockedStocks}
+            freeLimit={FREE_LIMIT}
+            hasSession={!!session}
+          />
           <p className="mt-4 text-xs text-[#00ff41]/20 text-center tracking-wide">
             DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
           </p>

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase";
 import UpgradeButton from "@/components/ui/UpgradeButton";
 import ClickableRow from "@/components/ui/ClickableRow";
+import InfoTooltip from "@/components/ui/InfoTooltip";
 
 const FREE_LIMIT = 5;
 
@@ -176,15 +177,18 @@ export default async function ScreenerPage({
       {/* Header */}
       <div className="border-b border-[#00ff41]/20 px-6 py-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-baseline justify-between flex-wrap gap-4">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-[0.15em] sm:tracking-[0.3em] text-[#00ff41]">
-              STOCKSNACK SCREENER
-            </h1>
-            <div className="text-right">
+          <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1 md:gap-4">
+            <div className="flex items-center">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-[0.15em] sm:tracking-[0.3em] text-[#00ff41]">
+                STOCKSNACK SCREENER
+              </h1>
+              <InfoTooltip text="Scores are 0–100. ≥70 Strong · 45–69 Moderate · <45 Weak" />
+            </div>
+            <div className="text-left md:text-right">
               {updatedAt && (
-                <p className="text-xs text-[#00ff41]/40">UPDATED {updatedAt.toUpperCase()}</p>
+                <p className="text-[10px] md:text-xs text-[#00ff41]/40">UPDATED {updatedAt.toUpperCase()}</p>
               )}
-              <p className="text-xs text-[#00ff41]/40 mt-0.5">
+              <p className="text-[10px] md:text-xs text-[#00ff41]/40 md:mt-0.5">
                 {isPro ? (
                   <span className="text-[#00ff41]">● PRO · ALL {stocks.length} STOCKS</span>
                 ) : (
@@ -193,16 +197,6 @@ export default async function ScreenerPage({
               </p>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Score key */}
-      <div className="px-6 py-3 border-b border-[#00ff41]/10 bg-[#00ff41]/[0.02]">
-        <div className="max-w-7xl mx-auto flex gap-6 text-xs text-[#00ff41]/40 flex-wrap">
-          <span>SCORES 0–100</span>
-          <span className="text-[#00ff41]">■ ≥70 STRONG</span>
-          <span className="text-yellow-300">■ 45–69 MODERATE</span>
-          <span className="text-red-400">■ &lt;45 WEAK</span>
         </div>
       </div>
 

@@ -62,22 +62,42 @@ export default function ScreenerTable({
   const [insightsOpen, setInsightsOpen] = useState(false);
   const router = useRouter();
 
-  // bg-[#001200] used for header cells — opaque so sticky works correctly
+  // bg-[#001200] keeps sticky cells opaque so data doesn't bleed through on scroll
   const stickyTh = "sticky top-0 z-10 bg-[#001200]";
   const cornerTh = "sticky top-0 left-0 z-20 bg-[#001200]";
   const stickyTd = "sticky left-0 z-[5] bg-black";
   const ins = insightsOpen ? "" : "hidden";
-
-  // 5 default cols + 4 insight cols + 1 toggle col = 10; 5 + 1 = 6 when closed
-  const totalCols = insightsOpen ? 10 : 6;
 
   return (
     // overflow-y:clip avoids creating a scroll container so sticky th works against the viewport
     <div className="overflow-x-auto [overflow-y:clip]">
       <table className="w-full text-sm border-collapse">
         <thead>
+          {/* SCORES group label — appears above score columns when insights are open */}
+          {insightsOpen && (
+            <tr className="bg-[#001200] border-b border-[#00ff41]/10">
+              <th className="sticky left-0 z-20 bg-[#001200] px-3 py-1" />
+              {/* COMPANY — desktop only */}
+              <th className="hidden md:table-cell bg-[#001200] px-2 py-1" />
+              <th className="bg-[#001200] px-2 py-1" />
+              <th className="bg-[#001200] px-2 py-1" />
+              <th
+                colSpan={4}
+                className="bg-[#001200] px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30"
+              >
+                SCORES
+              </th>
+              <th className="bg-[#001200] px-2 py-1" />
+              <th className="bg-[#001200] px-2 py-1" />
+              <th className="bg-[#001200] px-2 py-1" />
+            </tr>
+          )}
+
+          {/* Main column header row — sticky */}
           <tr className="border-b border-[#00ff41]/60 bg-[#001200]">
             <th className={`px-3 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70 ${cornerTh}`}>TICKER</th>
+            {/* COMPANY — desktop only */}
+            <th className={`hidden md:table-cell px-3 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>COMPANY</th>
             <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>CAGR</th>
             <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>
               <span className="hidden sm:inline">5Y </span>RETURN
@@ -88,7 +108,6 @@ export default function ScreenerTable({
             <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${ins}`}>OVERALL</th>
             <th className={`px-2 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>SIGNAL</th>
             <th className={`px-2 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>RANK</th>
-            {/* Inline toggle — last header cell */}
             <th className={`px-2 py-3 text-center ${stickyTh}`}>
               <button
                 onClick={() => setInsightsOpen((o) => !o)}
@@ -112,6 +131,12 @@ export default function ScreenerTable({
             >
               <td className={`px-3 py-3 ${stickyTd}`}>
                 <span className="font-mono font-bold text-[#00ff41] tracking-wider">{stock.ticker}</span>
+              </td>
+              {/* COMPANY — desktop only, truncated at ~20 chars */}
+              <td className="hidden md:table-cell px-3 py-3 text-left">
+                <span className="block max-w-[10rem] truncate text-[#00ff41]/50 text-xs">
+                  {stock.name ?? ""}
+                </span>
               </td>
               <td className="px-2 py-3 text-right">
                 <CagrCell value={stock.ppm_cagr} />
@@ -144,7 +169,8 @@ export default function ScreenerTable({
           {/* Locked rows: blurred content + CTA overlay */}
           {lockedStocks.length > 0 && (
             <tr className="border-t border-[#00ff41]/10">
-              <td colSpan={totalCols} className="p-0">
+              {/* colSpan=11 covers max columns (desktop+insights open); browser clamps to available */}
+              <td colSpan={11} className="p-0">
                 <div className="relative">
                   <table className="w-full text-sm border-collapse blur-sm select-none pointer-events-none opacity-60">
                     <tbody>
@@ -155,6 +181,11 @@ export default function ScreenerTable({
                         >
                           <td className="px-3 py-3">
                             <span className="font-mono font-bold text-[#00ff41] tracking-wider">{stock.ticker}</span>
+                          </td>
+                          <td className="hidden md:table-cell px-3 py-3">
+                            <span className="block max-w-[10rem] truncate text-[#00ff41]/50 text-xs">
+                              {stock.name ?? ""}
+                            </span>
                           </td>
                           <td className="px-2 py-3 text-right">
                             <CagrCell value={stock.ppm_cagr} />

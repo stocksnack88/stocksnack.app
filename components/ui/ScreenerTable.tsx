@@ -55,12 +55,10 @@ function ReturnCell({ blended, current }: { blended: number | null; current: num
 export default function ScreenerTable({
   visibleStocks,
   lockedStocks,
-  freeLimit,
   hasSession,
 }: {
   visibleStocks: ScreenerRow[];
   lockedStocks: ScreenerRow[];
-  freeLimit: number;
   hasSession: boolean;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -71,12 +69,10 @@ export default function ScreenerTable({
     e.preventDefault();
     setExpanded((prev) => {
       const next = new Set(prev);
-      next.has(ticker) ? next.delete(ticker) : next.add(ticker);
+      if (next.has(ticker)) { next.delete(ticker); } else { next.add(ticker); }
       return next;
     });
   }
-
-  const totalStocks = visibleStocks.length + lockedStocks.length;
 
   // Shared classes for sticky-header cells (bottom row)
   const stickyTh = "sticky top-0 z-10 bg-black";

@@ -143,7 +143,6 @@ export default async function ScreenerPage({
           <ScreenerTable
             visibleStocks={visibleStocks}
             lockedStocks={lockedStocks}
-            freeLimit={FREE_LIMIT}
             hasSession={!!session}
           />
           <p className="mt-4 text-xs text-[#00ff41]/20 text-center tracking-wide">

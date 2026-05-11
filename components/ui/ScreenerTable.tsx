@@ -14,6 +14,7 @@ export type ScreenerRow = {
   health_score: number | null;
   final_score: number | null;
   signal: string | null;
+  updated_at: string | null;
 };
 
 // Dotted group divider applied as border-right on last column of each group

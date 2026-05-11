@@ -17,7 +17,6 @@ export type ScreenerRow = {
   updated_at: string | null;
 };
 
-const D = "border-r border-dashed border-[#00ff41]/20";
 
 function SignalBadge({ signal }: { signal: string | null }) {
   const s = (signal ?? "").toUpperCase();
@@ -70,12 +69,12 @@ export default function ScreenerTable({
   const sc = scoresOpen ? "" : "hidden"; // score column visibility
 
   return (
-    <div className="relative overflow-x-auto rounded border border-[#00ff41]/20">
+    <div className="relative overflow-x-auto">
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="border-b border-[#00ff41]/30">
             {/* TICKER + SCORES toggle */}
-            <th className={`px-4 py-3 ${cornerTh} ${D}`}>
+            <th className={`px-4 py-3 ${cornerTh}`}>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold tracking-widest text-[#00ff41]/70">TICKER</span>
                 <button
@@ -87,12 +86,12 @@ export default function ScreenerTable({
               </div>
             </th>
             <th className={`px-4 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>5Y RETURN</th>
-            <th className={`px-4 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${D} ${sc}`}>CAGR</th>
+            <th className={`px-4 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${sc}`}>CAGR</th>
             <th className={`px-4 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${sc}`}>VALUE</th>
             <th className={`px-4 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${sc}`}>GROWTH</th>
             <th className={`px-4 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${sc}`}>HEALTH</th>
-            <th className={`px-4 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${D} ${sc}`}>OVERALL</th>
-            <th className={`px-4 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${D}`}>SIGNAL</th>
+            <th className={`px-4 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh} ${sc}`}>OVERALL</th>
+            <th className={`px-4 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>SIGNAL</th>
             <th className={`px-4 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyTh}`}>RANK</th>
           </tr>
         </thead>
@@ -106,13 +105,13 @@ export default function ScreenerTable({
                 i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""
               }`}
             >
-              <td className={`px-4 py-3 ${stickyTd} ${D}`}>
+              <td className={`px-4 py-3 ${stickyTd}`}>
                 <span className="font-mono font-bold text-[#00ff41] tracking-wider">{stock.ticker}</span>
               </td>
               <td className="px-4 py-3 text-right">
                 <ReturnCell blended={stock.ppm_blended_price} current={stock.current_price} />
               </td>
-              <td className={`px-4 py-3 text-right ${D} ${sc}`}>
+              <td className={`px-4 py-3 text-right ${sc}`}>
                 <CagrCell value={stock.ppm_cagr} />
               </td>
               <td className={`px-4 py-3 text-right ${sc}`}>
@@ -124,10 +123,10 @@ export default function ScreenerTable({
               <td className={`px-4 py-3 text-right ${sc}`}>
                 <ScoreCell value={stock.health_score} />
               </td>
-              <td className={`px-4 py-3 text-right ${D} ${sc}`}>
+              <td className={`px-4 py-3 text-right ${sc}`}>
                 <ScoreCell value={stock.final_score} />
               </td>
-              <td className={`px-4 py-3 text-center ${D}`}>
+              <td className="px-4 py-3 text-center">
                 <SignalBadge signal={stock.signal} />
               </td>
               <td className="px-4 py-3 text-center">
@@ -149,7 +148,7 @@ export default function ScreenerTable({
                           key={stock.ticker}
                           className={`border-t border-[#00ff41]/10 ${i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""}`}
                         >
-                          <td className={`px-4 py-3 ${D}`}>
+                          <td className="px-4 py-3">
                             <span className="font-mono font-bold text-[#00ff41] tracking-wider">{stock.ticker}</span>
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -157,14 +156,14 @@ export default function ScreenerTable({
                           </td>
                           {scoresOpen && (
                             <>
-                              <td className={`px-4 py-3 text-right ${D}`}><CagrCell value={stock.ppm_cagr} /></td>
+                              <td className="px-4 py-3 text-right"><CagrCell value={stock.ppm_cagr} /></td>
                               <td className="px-4 py-3 text-right"><ScoreCell value={stock.ppm_score} /></td>
                               <td className="px-4 py-3 text-right"><ScoreCell value={stock.growth_score} /></td>
                               <td className="px-4 py-3 text-right"><ScoreCell value={stock.health_score} /></td>
-                              <td className={`px-4 py-3 text-right ${D}`}><ScoreCell value={stock.final_score} /></td>
+                              <td className="px-4 py-3 text-right"><ScoreCell value={stock.final_score} /></td>
                             </>
                           )}
-                          <td className={`px-4 py-3 text-center ${D}`}><SignalBadge signal={stock.signal} /></td>
+                          <td className="px-4 py-3 text-center"><SignalBadge signal={stock.signal} /></td>
                           <td className="px-4 py-3 text-center">
                             <span className="text-[#00ff41]/40 font-mono text-xs">#{visibleStocks.length + i + 1}</span>
                           </td>

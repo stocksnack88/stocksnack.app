@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
-import InfoTooltip from "@/components/ui/InfoTooltip";
 
 export type ScreenerRow = {
   ticker: string;
@@ -10,10 +9,8 @@ export type ScreenerRow = {
   ppm_cagr: number | null;
   ppm_blended_price: number | null;
   current_price: number | null;
-  ppm_score: number | null;
   growth_score: number | null;
-  health_score: number | null;
-  final_score: number | null;
+  health_passes: number | null;
   signal: string | null;
   updated_at: string | null;
 };
@@ -32,10 +29,19 @@ function SignalBadge({ signal }: { signal: string | null }) {
   );
 }
 
-function ScoreCell({ value }: { value: number | null }) {
+function GrowthStarsCell({ value }: { value: number | null }) {
   if (value === null) return <span className="text-gray-600">—</span>;
-  const color = value >= 70 ? "text-[#00ff41]" : value >= 45 ? "text-yellow-300" : "text-red-400";
-  return <span className={`font-mono font-bold ${color}`}>{value.toFixed(1)}</span>;
+  if (value >= 80) return <span className="text-[#00ff41]">⭐⭐⭐⭐</span>;
+  if (value >= 60) return <span className="text-[#00ff41]">⭐⭐⭐</span>;
+  if (value >= 40) return <span className="text-yellow-300">⭐⭐</span>;
+  if (value >= 20) return <span className="text-yellow-300">⭐</span>;
+  return <span className="text-red-400 font-mono font-bold">—</span>;
+}
+
+function HealthPassesCell({ value }: { value: number | null }) {
+  if (value === null) return <span className="text-gray-600">—</span>;
+  const color = value >= 18 ? "text-[#00ff41]" : value >= 12 ? "text-yellow-300" : "text-red-400";
+  return <span className={`font-mono font-bold ${color}`}>{value}/24</span>;
 }
 
 function CagrCell({ value }: { value: number | null }) {
@@ -60,89 +66,35 @@ export default function ScreenerTable({
   lockedStocks: ScreenerRow[];
   hasSession: boolean;
 }) {
-  const [insightsOpen, setInsightsOpen] = useState(false);
   const router = useRouter();
 
-  const stickyThBD = "sticky top-0 z-10 bg-[#001a00]/40"; // 5Y RETURN + VERDICT groups
-  const stickyThC  = "sticky top-0 z-10 bg-[#001200]"; // SCORES group — no tint
-  const stickyTd = "sticky left-0 z-[5] bg-[#000]";
-  const ins = insightsOpen ? "" : "hidden";
+  // bg-[#001200] keeps sticky cells opaque so data doesn't bleed through on scroll
+  const stickyThTint = "sticky top-0 z-10 bg-[#001a00]/40"; // tinted: 5Y RETURN + VERDICT
+  const stickyThBase = "sticky top-0 z-10 bg-[#001200]";    // no tint: QUALITY
+  const stickyTd    = "sticky left-0 z-[5] bg-[#000]";
 
   return (
     // overflow-y:clip avoids creating a scroll container so sticky th works against the viewport
     <div className="overflow-x-auto [overflow-y:clip]">
       <table className="w-full text-sm border-collapse">
         <thead>
-          {/* Group label row — always visible */}
+          {/* Group label row */}
           <tr className="bg-[#001200]">
-            {/* TICKER — spans both header rows */}
             <th rowSpan={2} className="sticky left-0 z-20 bg-[#001200] px-3 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">TICKER</th>
-            {/* COMPANY — desktop only, spans both header rows */}
             <th rowSpan={2} className="hidden md:table-cell bg-[#001200] px-3 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">COMPANY</th>
-            {/* 5Y RETURN spans CAGR + RETURN */}
-            <th
-              colSpan={2}
-              className="bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30"
-            >
-              5Y RETURN
-            </th>
-            {/* SCORES spans VALUE, GROWTH, HEALTH, OVERALL — only when open */}
-            {insightsOpen && (
-              <th
-                colSpan={4}
-                className="bg-[#001200] px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30"
-              >
-                <span className="inline-flex items-center">
-                  SCORES (0–100)
-                  <InfoTooltip>
-                    <div className="flex flex-col gap-2 text-[11px] tracking-widest">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[#00ff41]">■</span>
-                        <span className="text-[#00ff41]">≥70 STRONG</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-yellow-300">■</span>
-                        <span className="text-yellow-300">45–69 MODERATE</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-red-400">■</span>
-                        <span className="text-red-400">&lt;45 WEAK</span>
-                      </div>
-                    </div>
-                  </InfoTooltip>
-                </span>
-              </th>
-            )}
-            {/* VERDICT spans SIGNAL + RANK */}
-            <th
-              colSpan={2}
-              className="bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30"
-            >
-              VERDICT
-            </th>
-            {/* [+] column — no group label */}
-            <th className="sticky right-0 z-20 bg-[#001200] px-2 py-1" />
+            <th colSpan={2} className="bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">5Y RETURN</th>
+            <th colSpan={2} className="bg-[#001200] px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">QUALITY</th>
+            <th colSpan={2} className="bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">VERDICT</th>
           </tr>
 
           {/* Main column header row — sticky */}
           <tr className="border-b border-[#00ff41]/60 bg-[#001200]">
-            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBD}`}>CAGR</th>
-            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBD}`}>RETURN</th>
-            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThC} ${ins}`}>VALUE</th>
-            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThC} ${ins}`}>GROWTH</th>
-            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThC} ${ins}`}>HEALTH</th>
-            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThC} ${ins}`}>OVERALL</th>
-            <th className={`px-2 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBD}`}>SIGNAL</th>
-            <th className={`px-2 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBD}`}>RANK</th>
-            <th className="sticky top-0 right-0 z-30 bg-[#001200] px-2 py-3 text-center">
-              <button
-                onClick={() => setInsightsOpen((o) => !o)}
-                className="text-[#00ff41]/40 hover:text-[#00ff41] border border-[#00ff41]/25 rounded px-1.5 py-0.5 font-mono text-xs transition-colors leading-none"
-                aria-label={insightsOpen ? "Hide score columns" : "Show score columns"}
-              >
-                {insightsOpen ? "−" : "+"}
-              </button>
-            </th>
+            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>CAGR</th>
+            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>RETURN</th>
+            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBase}`}>GROWTH</th>
+            <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBase}`}>HEALTH</th>
+            <th className={`px-2 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>SIGNAL</th>
+            <th className={`px-2 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>RANK</th>
           </tr>
         </thead>
 
@@ -158,7 +110,6 @@ export default function ScreenerTable({
               <td className={`px-3 py-3 ${stickyTd}`}>
                 <span className="font-mono font-bold text-[#00ff41] tracking-wider">{stock.ticker}</span>
               </td>
-              {/* COMPANY — desktop only, truncated at ~20 chars */}
               <td className="hidden md:table-cell px-3 py-3 text-left">
                 <span className="block max-w-[10rem] truncate text-[#00ff41]/50 text-xs">
                   {stock.name ?? ""}
@@ -170,17 +121,11 @@ export default function ScreenerTable({
               <td className="px-2 py-3 text-right bg-[#001a00]/40">
                 <ReturnCell blended={stock.ppm_blended_price} current={stock.current_price} />
               </td>
-              <td className={`px-2 py-3 text-right ${ins}`}>
-                <ScoreCell value={stock.ppm_score} />
+              <td className="px-2 py-3 text-right">
+                <GrowthStarsCell value={stock.growth_score} />
               </td>
-              <td className={`px-2 py-3 text-right ${ins}`}>
-                <ScoreCell value={stock.growth_score} />
-              </td>
-              <td className={`px-2 py-3 text-right ${ins}`}>
-                <ScoreCell value={stock.health_score} />
-              </td>
-              <td className={`px-2 py-3 text-right ${ins}`}>
-                <ScoreCell value={stock.final_score} />
+              <td className="px-2 py-3 text-right">
+                <HealthPassesCell value={stock.health_passes} />
               </td>
               <td className="px-2 py-3 text-center bg-[#001a00]/40">
                 <SignalBadge signal={stock.signal} />
@@ -188,15 +133,14 @@ export default function ScreenerTable({
               <td className="px-2 py-3 text-center bg-[#001a00]/40">
                 <span className="text-[#00ff41]/40 font-mono text-xs">#{i + 1}</span>
               </td>
-              <td className="px-2 py-3" />
             </tr>
           ))}
 
           {/* Locked rows: blurred content + CTA overlay */}
           {lockedStocks.length > 0 && (
             <tr className="border-t border-[#00ff41]/10">
-              {/* colSpan=11 covers max columns (desktop+insights open); browser clamps to available */}
-              <td colSpan={11} className="p-0">
+              {/* colSpan=9 covers max desktop columns (TICKER, COMPANY, CAGR, RETURN, GROWTH, HEALTH, SIGNAL, RANK) */}
+              <td colSpan={9} className="p-0">
                 <div className="relative">
                   <table className="w-full text-sm border-collapse blur-sm select-none pointer-events-none opacity-60">
                     <tbody>
@@ -219,19 +163,18 @@ export default function ScreenerTable({
                           <td className="px-2 py-3 text-right bg-[#001a00]/40">
                             <ReturnCell blended={stock.ppm_blended_price} current={stock.current_price} />
                           </td>
-                          {insightsOpen && (
-                            <>
-                              <td className="px-2 py-3 text-right"><ScoreCell value={stock.ppm_score} /></td>
-                              <td className="px-2 py-3 text-right"><ScoreCell value={stock.growth_score} /></td>
-                              <td className="px-2 py-3 text-right"><ScoreCell value={stock.health_score} /></td>
-                              <td className="px-2 py-3 text-right"><ScoreCell value={stock.final_score} /></td>
-                            </>
-                          )}
-                          <td className="px-2 py-3 text-center bg-[#001a00]/40"><SignalBadge signal={stock.signal} /></td>
+                          <td className="px-2 py-3 text-right">
+                            <GrowthStarsCell value={stock.growth_score} />
+                          </td>
+                          <td className="px-2 py-3 text-right">
+                            <HealthPassesCell value={stock.health_passes} />
+                          </td>
+                          <td className="px-2 py-3 text-center bg-[#001a00]/40">
+                            <SignalBadge signal={stock.signal} />
+                          </td>
                           <td className="px-2 py-3 text-center bg-[#001a00]/40">
                             <span className="text-[#00ff41]/40 font-mono text-xs">#{visibleStocks.length + i + 1}</span>
                           </td>
-                          <td className="px-2 py-3" />
                         </tr>
                       ))}
                     </tbody>

@@ -42,11 +42,10 @@ export default async function ScreenerPage({
       .from("stock_scores")
       .select(`
         ticker,
-        ppm_score,
         ppm_cagr,
         ppm_blended_price,
         growth_score,
-        health_score,
+        health_passes,
         final_score,
         signal,
         updated_at,
@@ -66,10 +65,8 @@ export default async function ScreenerPage({
     ppm_cagr: r.ppm_cagr,
     ppm_blended_price: r.ppm_blended_price,
     current_price: priceMap.get(r.ticker) ?? null,
-    ppm_score: r.ppm_score,
     growth_score: r.growth_score,
-    health_score: r.health_score,
-    final_score: r.final_score,
+    health_passes: r.health_passes,
     signal: r.signal,
     updated_at: r.updated_at,
   }));

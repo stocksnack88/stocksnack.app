@@ -85,10 +85,10 @@ export default function ScreenerTable({
             <th rowSpan={2} className="hidden md:table-cell bg-[#001200] px-3 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">COMPANY</th>
             {/* 5Y RETURN group label — only when insights open */}
             {insightsOpen && (
-              <th colSpan={2} className="bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">5Y RETURN</th>
+              <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">5Y RETURN</th>
             )}
-            <th colSpan={2} className="bg-[#001200] px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">QUALITY</th>
-            <th colSpan={2} className="bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">VERDICT</th>
+            <th colSpan={2} className="border-0 bg-[#001200] px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">QUALITY</th>
+            <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">VERDICT</th>
             <th rowSpan={2} className="sticky top-0 right-0 z-30 bg-[#001200] px-2 py-3 text-center align-middle">
               <button
                 onClick={() => setInsightsOpen((o) => !o)}
@@ -117,13 +117,12 @@ export default function ScreenerTable({
             <tr
               key={stock.ticker}
               onClick={() => router.push(`/screener/${stock.ticker}`)}
-              className={`group cursor-pointer border-t border-[#00ff41]/10 transition-colors hover:bg-[#00ff41]/5 ${
+              className={`cursor-pointer border-t border-[#00ff41]/10 transition-colors hover:bg-[#00ff41]/5 ${
                 i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""
               }`}
             >
               <td className={`px-3 py-3 ${stickyTd}`}>
-                {/* underline always on mobile, on hover on desktop */}
-                <span className="font-mono font-bold text-[#00ff41] tracking-wider underline underline-offset-2 decoration-[#00ff41]/40 md:no-underline md:group-hover:underline">
+                <span className="font-mono font-bold text-[#00ff41] tracking-wider underline decoration-[#00ff41]">
                   {stock.ticker}
                 </span>
               </td>
@@ -149,15 +148,15 @@ export default function ScreenerTable({
                 <HealthPassesCell value={stock.health_passes} />
               </td>
               <td className="px-2 py-3 text-center bg-[#001a00]/40">
-                <SignalBadge signal={stock.signal} />
+                <span className="inline-flex items-center gap-1.5">
+                  <SignalBadge signal={stock.signal} />
+                  <span className="font-mono text-[#00ff41]/40 text-xs">→</span>
+                </span>
               </td>
               <td className="px-2 py-3 text-center bg-[#001a00]/40">
                 <span className="text-[#00ff41]/40 font-mono text-xs">#{i + 1}</span>
               </td>
-              {/* Arrow — always visible on mobile, hover-only on desktop */}
-              <td className="sticky right-0 z-[5] bg-[#000] px-2 py-3 text-center">
-                <span className="font-mono text-[#00ff41]/40 text-xs opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">→</span>
-              </td>
+              <td className="px-2" />
             </tr>
           ))}
 
@@ -199,14 +198,15 @@ export default function ScreenerTable({
                             <HealthPassesCell value={stock.health_passes} />
                           </td>
                           <td className="px-2 py-3 text-center bg-[#001a00]/40">
-                            <SignalBadge signal={stock.signal} />
+                            <span className="inline-flex items-center gap-1.5">
+                              <SignalBadge signal={stock.signal} />
+                              <span className="font-mono text-[#00ff41]/40 text-xs">→</span>
+                            </span>
                           </td>
                           <td className="px-2 py-3 text-center bg-[#001a00]/40">
                             <span className="text-[#00ff41]/40 font-mono text-xs">#{visibleStocks.length + i + 1}</span>
                           </td>
-                          <td className="px-2 py-3 text-center">
-                            <span className="font-mono text-[#00ff41]/40 text-xs">→</span>
-                          </td>
+                          <td className="px-2" />
                         </tr>
                       ))}
                     </tbody>

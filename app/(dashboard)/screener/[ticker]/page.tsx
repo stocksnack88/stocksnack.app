@@ -180,10 +180,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
   const currentPrice: number | null = price?.current_price ?? null;
   const blendedPrice: number | null = score?.ppm_blended_price ?? null;
-  const upside =
-    currentPrice && blendedPrice
-      ? ((blendedPrice - currentPrice) / currentPrice) * 100
-      : null;
 
   return (
     <div className="bg-black" style={mono}>
@@ -259,46 +255,71 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── Layer 1: PPM ─────────────────────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
+              LAYER 1 — HOW WE PROJECT THE PRICE
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
+              3 independent methods blended into a single 5-year price target
+            </p>
+          </div>
+
+          {/* 3 method cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
+            {([
+              { method: "METHOD 1", name: "Earnings Growth", price: score?.ppm_m1_price },
+              { method: "METHOD 2", name: "Free Cash Flow", price: score?.ppm_m2_price },
+              { method: "METHOD 3", name: "Dividends",      price: score?.ppm_m3_price },
+            ] as const).map(({ method, name, price }, idx) => {
+              const isNA = idx === 2 && (!price || Number(price) === 0);
+              return (
+                <div
+                  key={method}
+                  className={`px-5 py-5${idx < 2 ? " border-b border-[#00ff41]/10 sm:border-b-0 sm:border-r" : ""}`}
+                >
+                  <p className="text-[9px] font-bold tracking-[0.3em] mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>{method}</p>
+                  <p className="text-xs mb-3" style={{ color: "rgba(0,255,65,0.55)" }}>{name}</p>
+                  {isNA ? (
+                    <p className="text-sm font-mono" style={{ color: "rgba(0,255,65,0.25)" }}>Not applicable</p>
+                  ) : (
+                    <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(price)}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Blended projection */}
+          <div className="px-5 py-6 text-center" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
+            <p className="text-[9px] font-bold tracking-[0.3em] mb-2" style={{ color: "rgba(0,255,65,0.3)" }}>BLENDED PROJECTION</p>
+            <p className="text-4xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(blendedPrice)}</p>
+            <p className="text-[9px] tracking-widest mt-1.5" style={{ color: "rgba(0,255,65,0.3)" }}>5-YEAR PRICE TARGET</p>
+          </div>
+
+          {/* Return summary */}
+          <div className="px-5 py-4 flex flex-wrap items-center justify-center gap-6 text-center">
             <div>
-              <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
-                LAYER 1 — PRICE PROJECTION MODEL
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
-                Blended fair value from 3 independent methods · 5-year horizon
+              <p className="text-[9px] tracking-[0.3em] mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>CURRENT</p>
+              <p className="text-sm font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
+            </div>
+            <span style={{ color: "rgba(0,255,65,0.25)" }}>→</span>
+            <div>
+              <p className="text-[9px] tracking-[0.3em] mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>PROJECTED</p>
+              <p className="text-sm font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(blendedPrice)}</p>
+            </div>
+            <span style={{ color: "rgba(0,255,65,0.25)" }}>·</span>
+            <div>
+              <p className="text-[9px] tracking-[0.3em] mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>IMPLIED RETURN</p>
+              <p className="text-sm font-bold font-mono" style={{ color: "#00ff41" }}>
+                {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x` : "—"}
               </p>
             </div>
-            <ScoreBar value={score?.ppm_score} />
-          </div>
-          <div className="px-5 py-5 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-            {[
-              { label: "M1 · EBITDA MULTIPLE", value: fmtDollar(score?.ppm_m1_price) },
-              { label: "M2 · FCF YIELD", value: fmtDollar(score?.ppm_m2_price) },
-              { label: "M3 · TOTAL RETURN", value: fmtDollar(score?.ppm_m3_price) },
-              { label: "BLENDED FAIR VALUE", value: fmtDollar(blendedPrice) },
-              { label: "CURRENT PRICE", value: fmtDollar(currentPrice) },
-              {
-                label: "UPSIDE / DOWNSIDE",
-                value: upside !== null ? (upside >= 0 ? "+" : "") + fmtPct(upside) : "—",
-                highlight: upside !== null ? (upside >= 10 ? "#00ff41" : upside < 0 ? "#f87171" : "#fbbf24") : undefined,
-              },
-            ].map(({ label, value, highlight }) => (
-              <div key={label}>
-                <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>{label}</p>
-                <p className="text-sm font-bold font-mono" style={{ color: highlight ?? "#00ff41" }}>{value}</p>
-              </div>
-            ))}
-          </div>
-          {score?.ppm_cagr !== null && score?.ppm_cagr !== undefined && (
-            <div className="px-5 py-3" style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
-              <p className="text-xs" style={{ color: "rgba(0,255,65,0.4)" }}>
-                IMPLIED 5-YEAR CAGR TO FAIR VALUE{" "}
-                <span className="font-bold" style={{ color: "#00ff41" }}>
-                  {fmtCagr(score.ppm_cagr)}
-                </span>
-              </p>
+            <span style={{ color: "rgba(0,255,65,0.25)" }}>·</span>
+            <div>
+              <p className="text-[9px] tracking-[0.3em] mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>5Y CAGR</p>
+              <p className="text-sm font-bold font-mono" style={{ color: "#00ff41" }}>{fmtCagr(score?.ppm_cagr)}</p>
             </div>
-          )}
+          </div>
         </section>
 
         {/* ── Layer 2: Growth ──────────────────────────────────────────────────── */}

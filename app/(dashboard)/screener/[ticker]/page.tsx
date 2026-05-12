@@ -244,7 +244,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── Layer 1: PPM ─────────────────────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
+          <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
             <div>
               <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
                 LAYER 1 — PRICE PROJECTION MODEL
@@ -288,7 +288,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── Layer 2: Growth ──────────────────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
+          <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
             <div>
               <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
                 LAYER 2 — GROWTH
@@ -331,7 +331,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── Layer 3: Health — 24 checks ──────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
+          <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
             <div>
               <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
                 LAYER 3 — FINANCIAL HEALTH
@@ -390,7 +390,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── Layer 4: Final ───────────────────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 4 — FINAL SCORE
             </p>

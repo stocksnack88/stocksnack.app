@@ -65,7 +65,9 @@ function stockSummary(stock: ScreenerRow, rank: number): string {
     ? `${(stock.ppm_cagr * 100).toFixed(1)}%`
     : "—";
   const health = stock.health_passes !== null ? `${stock.health_passes}/24` : "—";
-  return `${stock.ticker} is ranked #${rank} — projected ${ret} return over 5 years at ${cagr} CAGR, with ${health} financial health metrics passed.`;
+  const g = stock.growth_score;
+  const stars = g === null ? "—" : g >= 80 ? "⭐⭐⭐⭐" : g >= 60 ? "⭐⭐⭐" : g >= 40 ? "⭐⭐" : g >= 20 ? "⭐" : "—";
+  return `${stock.ticker} is ranked #${rank} — projected ${ret} return over 5 years at ${cagr} CAGR, ${stars} growth quality, with ${health} financial health metrics passed.`;
 }
 
 export default function ScreenerTable({

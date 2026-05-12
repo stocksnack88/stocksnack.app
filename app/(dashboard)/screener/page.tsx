@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase";
-import InfoTooltip from "@/components/ui/InfoTooltip";
 import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
 
 const FREE_LIMIT = 5;
@@ -112,25 +111,6 @@ export default async function ScreenerPage({
               <h1 className="text-xl sm:text-2xl font-bold tracking-[0.15em] sm:tracking-[0.3em] text-[#00ff41]">
                 STOCK SCREENER
               </h1>
-              <div className="flex items-center mt-1">
-                <span className="text-[10px] text-[#00ff41]/40 tracking-widest font-bold">SCORES (0–100)</span>
-                <InfoTooltip>
-                  <div className="flex flex-col gap-2 text-[11px] tracking-widest">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#00ff41]">■</span>
-                      <span className="text-[#00ff41]">≥70 STRONG</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-300">■</span>
-                      <span className="text-yellow-300">45–69 MODERATE</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-red-400">■</span>
-                      <span className="text-red-400">&lt;45 WEAK</span>
-                    </div>
-                  </div>
-                </InfoTooltip>
-              </div>
             </div>
             <div className="text-left md:text-right">
               {updatedAt && (

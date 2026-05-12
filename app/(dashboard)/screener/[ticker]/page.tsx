@@ -22,9 +22,24 @@ type HealthCheck = {
 };
 
 
+function fmtPct(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "—";
+  const abs = Math.abs(n);
+  const decimals = abs < 10 ? 2 : abs < 100 ? 1 : 0;
+  return `${n.toFixed(decimals)}%`;
+}
+
+function fmtDollar(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "—";
+  const abs = Math.abs(n);
+  if (abs < 10) return `$${n.toFixed(2)}`;
+  if (abs < 100) return `$${n.toFixed(1)}`;
+  return `$${Math.round(n).toLocaleString("en-US")}`;
+}
+
 function fmtCagr(n: number | null | undefined): string {
   if (n === null || n === undefined) return "—";
-  return `${(n * 100).toFixed(1)}%`;
+  return fmtPct(n * 100);
 }
 
 function scoreColor(v: number | null | undefined): string {
@@ -204,7 +219,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           {currentPrice && (
             <div className="text-right">
               <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-                ${currentPrice.toFixed(2)}
+                {fmtDollar(currentPrice)}
               </p>
               <p className="text-xs mt-0.5 tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>
                 CURRENT PRICE
@@ -218,14 +233,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           <div className="flex-1 text-center">
             <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>CURRENT PRICE</p>
             <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-              {currentPrice ? `$${currentPrice.toFixed(2)}` : "—"}
+              {fmtDollar(currentPrice)}
             </p>
           </div>
           <div className="text-2xl font-mono shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>→</div>
           <div className="flex-1 text-center">
             <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>PROJECTED (5Y)</p>
             <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-              {blendedPrice ? `$${blendedPrice.toFixed(2)}` : "—"}
+              {fmtDollar(blendedPrice)}
             </p>
           </div>
         </div>
@@ -257,14 +272,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </div>
           <div className="px-5 py-5 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
             {[
-              { label: "M1 · EBITDA MULTIPLE", value: score?.ppm_m1_price ? `$${Number(score.ppm_m1_price).toFixed(2)}` : "—" },
-              { label: "M2 · FCF YIELD", value: score?.ppm_m2_price ? `$${Number(score.ppm_m2_price).toFixed(2)}` : "—" },
-              { label: "M3 · TOTAL RETURN", value: score?.ppm_m3_price ? `$${Number(score.ppm_m3_price).toFixed(2)}` : "—" },
-              { label: "BLENDED FAIR VALUE", value: blendedPrice ? `$${blendedPrice.toFixed(2)}` : "—" },
-              { label: "CURRENT PRICE", value: currentPrice ? `$${currentPrice.toFixed(2)}` : "—" },
+              { label: "M1 · EBITDA MULTIPLE", value: fmtDollar(score?.ppm_m1_price) },
+              { label: "M2 · FCF YIELD", value: fmtDollar(score?.ppm_m2_price) },
+              { label: "M3 · TOTAL RETURN", value: fmtDollar(score?.ppm_m3_price) },
+              { label: "BLENDED FAIR VALUE", value: fmtDollar(blendedPrice) },
+              { label: "CURRENT PRICE", value: fmtDollar(currentPrice) },
               {
                 label: "UPSIDE / DOWNSIDE",
-                value: upside !== null ? `${upside >= 0 ? "+" : ""}${upside.toFixed(1)}%` : "—",
+                value: upside !== null ? (upside >= 0 ? "+" : "") + fmtPct(upside) : "—",
                 highlight: upside !== null ? (upside >= 10 ? "#00ff41" : upside < 0 ? "#f87171" : "#fbbf24") : undefined,
               },
             ].map(({ label, value, highlight }) => (

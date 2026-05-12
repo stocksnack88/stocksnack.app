@@ -65,7 +65,7 @@ export default function ScreenerTable({
 
   const stickyThBD = "sticky top-0 z-10 bg-[#001a00]/40"; // 5Y RETURN + VERDICT groups
   const stickyThC  = "sticky top-0 z-10 bg-[#001200]/60"; // SCORES group
-  const stickyTd = "sticky left-0 z-[5] bg-black";
+  const stickyTd = "sticky left-0 z-[5] bg-[#000]";
   const ins = insightsOpen ? "" : "hidden";
 
   return (
@@ -170,25 +170,25 @@ export default function ScreenerTable({
               <td className="px-2 py-3 text-right bg-[#001a00]/40">
                 <ReturnCell blended={stock.ppm_blended_price} current={stock.current_price} />
               </td>
-              <td className={`px-2 py-3 text-right bg-[#001a00]/40 ${ins}`}>
+              <td className={`px-2 py-3 text-right bg-[#003300]/30 ${ins}`}>
                 <ScoreCell value={stock.ppm_score} />
               </td>
-              <td className={`px-2 py-3 text-right bg-[#001a00]/40 ${ins}`}>
+              <td className={`px-2 py-3 text-right bg-[#003300]/30 ${ins}`}>
                 <ScoreCell value={stock.growth_score} />
               </td>
-              <td className={`px-2 py-3 text-right bg-[#001a00]/40 ${ins}`}>
+              <td className={`px-2 py-3 text-right bg-[#003300]/30 ${ins}`}>
                 <ScoreCell value={stock.health_score} />
               </td>
-              <td className={`px-2 py-3 text-right bg-[#001a00]/40 ${ins}`}>
+              <td className={`px-2 py-3 text-right bg-[#003300]/30 ${ins}`}>
                 <ScoreCell value={stock.final_score} />
               </td>
-              <td className="px-2 py-3 text-center bg-[#001a00]/40">
+              <td className="px-2 py-3 text-center bg-[#001a00]/20">
                 <SignalBadge signal={stock.signal} />
               </td>
-              <td className="px-2 py-3 text-center bg-[#001a00]/40">
+              <td className="px-2 py-3 text-center bg-[#001a00]/20">
                 <span className="text-[#00ff41]/40 font-mono text-xs">#{i + 1}</span>
               </td>
-              <td className="sticky right-0 z-[5] bg-black px-2 py-3" />
+              <td className="px-2 py-3" />
             </tr>
           ))}
 
@@ -221,14 +221,14 @@ export default function ScreenerTable({
                           </td>
                           {insightsOpen && (
                             <>
-                              <td className="px-2 py-3 text-right bg-[#001a00]/40"><ScoreCell value={stock.ppm_score} /></td>
-                              <td className="px-2 py-3 text-right bg-[#001a00]/40"><ScoreCell value={stock.growth_score} /></td>
-                              <td className="px-2 py-3 text-right bg-[#001a00]/40"><ScoreCell value={stock.health_score} /></td>
-                              <td className="px-2 py-3 text-right bg-[#001a00]/40"><ScoreCell value={stock.final_score} /></td>
+                              <td className="px-2 py-3 text-right bg-[#003300]/30"><ScoreCell value={stock.ppm_score} /></td>
+                              <td className="px-2 py-3 text-right bg-[#003300]/30"><ScoreCell value={stock.growth_score} /></td>
+                              <td className="px-2 py-3 text-right bg-[#003300]/30"><ScoreCell value={stock.health_score} /></td>
+                              <td className="px-2 py-3 text-right bg-[#003300]/30"><ScoreCell value={stock.final_score} /></td>
                             </>
                           )}
-                          <td className="px-2 py-3 text-center bg-[#001a00]/40"><SignalBadge signal={stock.signal} /></td>
-                          <td className="px-2 py-3 text-center bg-[#001a00]/40">
+                          <td className="px-2 py-3 text-center bg-[#001a00]/20"><SignalBadge signal={stock.signal} /></td>
+                          <td className="px-2 py-3 text-center bg-[#001a00]/20">
                             <span className="text-[#00ff41]/40 font-mono text-xs">#{visibleStocks.length + i + 1}</span>
                           </td>
                           <td className="px-2 py-3" />

@@ -9,8 +9,8 @@ export default function InfoTooltip({ children }: { children: React.ReactNode })
   return (
     <span className="relative inline-flex items-center">
       <button
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
+        onPointerEnter={(e) => { if (e.pointerType === "mouse") setOpen(true); }}
+        onPointerLeave={(e) => { if (e.pointerType === "mouse") setOpen(false); }}
         onClick={() => setOpen((o) => !o)}
         className="text-[#00ff41]/30 hover:text-[#00ff41]/60 transition-colors leading-none ml-2 text-base"
         aria-label="Score legend"

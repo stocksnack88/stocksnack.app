@@ -170,16 +170,16 @@ export default function ScreenerTable({
               <td className="px-2 py-3 text-right bg-[#001a00]/40">
                 <ReturnCell blended={stock.ppm_blended_price} current={stock.current_price} />
               </td>
-              <td className={`px-2 py-3 text-right bg-[#001200]/60 ${ins}`}>
+              <td className={`px-2 py-3 text-right bg-[#001a00]/40 ${ins}`}>
                 <ScoreCell value={stock.ppm_score} />
               </td>
-              <td className={`px-2 py-3 text-right bg-[#001200]/60 ${ins}`}>
+              <td className={`px-2 py-3 text-right bg-[#001a00]/40 ${ins}`}>
                 <ScoreCell value={stock.growth_score} />
               </td>
-              <td className={`px-2 py-3 text-right bg-[#001200]/60 ${ins}`}>
+              <td className={`px-2 py-3 text-right bg-[#001a00]/40 ${ins}`}>
                 <ScoreCell value={stock.health_score} />
               </td>
-              <td className={`px-2 py-3 text-right bg-[#001200]/60 ${ins}`}>
+              <td className={`px-2 py-3 text-right bg-[#001a00]/40 ${ins}`}>
                 <ScoreCell value={stock.final_score} />
               </td>
               <td className="px-2 py-3 text-center bg-[#001a00]/40">
@@ -221,10 +221,10 @@ export default function ScreenerTable({
                           </td>
                           {insightsOpen && (
                             <>
-                              <td className="px-2 py-3 text-right bg-[#001200]/60"><ScoreCell value={stock.ppm_score} /></td>
-                              <td className="px-2 py-3 text-right bg-[#001200]/60"><ScoreCell value={stock.growth_score} /></td>
-                              <td className="px-2 py-3 text-right bg-[#001200]/60"><ScoreCell value={stock.health_score} /></td>
-                              <td className="px-2 py-3 text-right bg-[#001200]/60"><ScoreCell value={stock.final_score} /></td>
+                              <td className="px-2 py-3 text-right bg-[#001a00]/40"><ScoreCell value={stock.ppm_score} /></td>
+                              <td className="px-2 py-3 text-right bg-[#001a00]/40"><ScoreCell value={stock.growth_score} /></td>
+                              <td className="px-2 py-3 text-right bg-[#001a00]/40"><ScoreCell value={stock.health_score} /></td>
+                              <td className="px-2 py-3 text-right bg-[#001a00]/40"><ScoreCell value={stock.final_score} /></td>
                             </>
                           )}
                           <td className="px-2 py-3 text-center bg-[#001a00]/40"><SignalBadge signal={stock.signal} /></td>

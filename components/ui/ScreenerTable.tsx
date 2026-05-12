@@ -57,6 +57,17 @@ function ReturnCell({ blended, current }: { blended: number | null; current: num
   return <span className={`font-mono font-bold ${color}`}>{mult.toFixed(1)}x</span>;
 }
 
+function stockSummary(stock: ScreenerRow, rank: number): string {
+  const ret = (stock.ppm_blended_price && stock.current_price)
+    ? `${(stock.ppm_blended_price / stock.current_price).toFixed(1)}x`
+    : "—";
+  const cagr = stock.ppm_cagr !== null
+    ? `${(stock.ppm_cagr * 100).toFixed(1)}%`
+    : "—";
+  const health = stock.health_passes !== null ? `${stock.health_passes}/24` : "—";
+  return `${stock.ticker} is ranked #${rank} — projected ${ret} return over 5 years at ${cagr} CAGR, with ${health} financial health metrics passed.`;
+}
+
 export default function ScreenerTable({
   visibleStocks,
   lockedStocks,
@@ -66,8 +77,22 @@ export default function ScreenerTable({
   lockedStocks: ScreenerRow[];
   hasSession: boolean;
 }) {
-  const [insightsOpen, setInsightsOpen] = useState(false);
+  // 0 = compact, 1 = compact + summaries, 2 = summaries + GROWTH/HEALTH columns
+  const [detailLevel, setDetailLevel] = useState(0);
   const router = useRouter();
+
+  const showSummaries = detailLevel >= 1;
+  const showQuality   = detailLevel >= 2;
+
+  // Total column count for summary row colSpan (includes spacer for [+])
+  const totalCols = showQuality ? 9 : 7;
+
+  const btnLabel    = detailLevel === 0 ? "+" : detailLevel === 1 ? "++" : "−";
+  const btnAriaLabel = detailLevel === 0
+    ? "Show summaries"
+    : detailLevel === 1
+    ? "Show quality columns"
+    : "Reset view";
 
   // bg-[#001200] keeps sticky cells opaque so data doesn't bleed through on scroll
   const stickyThTint = "sticky top-0 z-10 bg-[#001a00]/40"; // tinted: 5Y RETURN + VERDICT
@@ -84,17 +109,17 @@ export default function ScreenerTable({
             <th rowSpan={2} className="border-0 sticky left-0 z-20 bg-[#001200] px-3 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">TICKER</th>
             <th rowSpan={2} className="border-0 hidden md:table-cell bg-[#001200] px-3 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">COMPANY</th>
             <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">5Y RETURN</th>
-            {insightsOpen && (
+            {showQuality && (
               <th colSpan={2} className="border-0 bg-[#001200] px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">QUALITY</th>
             )}
             <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">VERDICT</th>
             <th rowSpan={2} className="border-0 sticky top-0 right-0 z-30 bg-[#001200] px-2 py-3 text-center align-middle">
               <button
-                onClick={() => setInsightsOpen((o) => !o)}
+                onClick={() => setDetailLevel((l) => (l + 1) % 3)}
                 className="text-[#00ff41]/40 hover:text-[#00ff41] border border-[#00ff41]/25 rounded px-1.5 py-0.5 font-mono text-xs transition-colors leading-none"
-                aria-label={insightsOpen ? "Hide quality columns" : "Show quality columns"}
+                aria-label={btnAriaLabel}
               >
-                {insightsOpen ? "−" : "+"}
+                {btnLabel}
               </button>
             </th>
           </tr>
@@ -103,8 +128,8 @@ export default function ScreenerTable({
           <tr className="border-b border-[#00ff41]/60 bg-[#001200]">
             <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>CAGR</th>
             <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>RETURN</th>
-            {insightsOpen && <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBase}`}>GROWTH</th>}
-            {insightsOpen && <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBase}`}>HEALTH</th>}
+            {showQuality && <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBase}`}>GROWTH</th>}
+            {showQuality && <th className={`px-2 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBase}`}>HEALTH</th>}
             <th className={`px-2 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>SIGNAL</th>
             <th className={`px-2 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>RANK</th>
           </tr>
@@ -112,50 +137,61 @@ export default function ScreenerTable({
 
         <tbody>
           {visibleStocks.map((stock, i) => (
-            <tr
-              key={stock.ticker}
-              onClick={() => router.push(`/screener/${stock.ticker}`)}
-              className={`cursor-pointer border-t border-[#00ff41]/10 transition-colors hover:bg-[#00ff41]/5 ${
-                i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""
-              }`}
-            >
-              <td className={`px-3 py-3 ${stickyTd}`}>
-                <span className="font-mono font-bold text-[#00ff41] tracking-wider underline decoration-[#00ff41]">
-                  {stock.ticker}
-                </span>
-              </td>
-              <td className="hidden md:table-cell px-3 py-3 text-left">
-                <span className="block max-w-[10rem] truncate text-[#00ff41]/50 text-xs">
-                  {stock.name ?? ""}
-                </span>
-              </td>
-              <td className="px-2 py-3 text-right bg-[#001a00]/40">
-                <CagrCell value={stock.ppm_cagr} />
-              </td>
-              <td className="px-2 py-3 text-right bg-[#001a00]/40">
-                <ReturnCell blended={stock.ppm_blended_price} current={stock.current_price} />
-              </td>
-              {insightsOpen && (
-                <td className="px-2 py-3 text-right">
-                  <GrowthStarsCell value={stock.growth_score} />
+            <React.Fragment key={stock.ticker}>
+              <tr
+                onClick={() => router.push(`/screener/${stock.ticker}`)}
+                className={`cursor-pointer border-t border-[#00ff41]/10 transition-colors hover:bg-[#00ff41]/5 ${
+                  i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""
+                }`}
+              >
+                <td className={`px-3 py-3 ${stickyTd}`}>
+                  <span className="font-mono font-bold text-[#00ff41] tracking-wider underline decoration-[#00ff41]">
+                    {stock.ticker}
+                  </span>
                 </td>
-              )}
-              {insightsOpen && (
-                <td className="px-2 py-3 text-right">
-                  <HealthPassesCell value={stock.health_passes} />
+                <td className="hidden md:table-cell px-3 py-3 text-left">
+                  <span className="block max-w-[10rem] truncate text-[#00ff41]/50 text-xs">
+                    {stock.name ?? ""}
+                  </span>
                 </td>
+                <td className="px-2 py-3 text-right bg-[#001a00]/40">
+                  <CagrCell value={stock.ppm_cagr} />
+                </td>
+                <td className="px-2 py-3 text-right bg-[#001a00]/40">
+                  <ReturnCell blended={stock.ppm_blended_price} current={stock.current_price} />
+                </td>
+                {showQuality && (
+                  <td className="px-2 py-3 text-right">
+                    <GrowthStarsCell value={stock.growth_score} />
+                  </td>
+                )}
+                {showQuality && (
+                  <td className="px-2 py-3 text-right">
+                    <HealthPassesCell value={stock.health_passes} />
+                  </td>
+                )}
+                <td className="px-2 py-3 text-center bg-[#001a00]/40">
+                  <span className="inline-flex items-center gap-1.5">
+                    <SignalBadge signal={stock.signal} />
+                    <span className="font-mono text-[#00ff41]/40 text-xs">→</span>
+                  </span>
+                </td>
+                <td className="px-2 py-3 text-center bg-[#001a00]/40">
+                  <span className="text-[#00ff41]/40 font-mono text-xs">#{i + 1}</span>
+                </td>
+                <td className="px-2" />
+              </tr>
+
+              {showSummaries && (
+                <tr>
+                  <td colSpan={totalCols} className="px-3 pb-2.5 pt-0">
+                    <span className="text-[10px] italic text-[#00ff41]/30 font-mono leading-snug">
+                      {stockSummary(stock, i + 1)}
+                    </span>
+                  </td>
+                </tr>
               )}
-              <td className="px-2 py-3 text-center bg-[#001a00]/40">
-                <span className="inline-flex items-center gap-1.5">
-                  <SignalBadge signal={stock.signal} />
-                  <span className="font-mono text-[#00ff41]/40 text-xs">→</span>
-                </span>
-              </td>
-              <td className="px-2 py-3 text-center bg-[#001a00]/40">
-                <span className="text-[#00ff41]/40 font-mono text-xs">#{i + 1}</span>
-              </td>
-              <td className="px-2" />
-            </tr>
+            </React.Fragment>
           ))}
 
           {/* Locked rows: blurred content + CTA overlay */}
@@ -185,12 +221,12 @@ export default function ScreenerTable({
                           <td className="px-2 py-3 text-right bg-[#001a00]/40">
                             <ReturnCell blended={stock.ppm_blended_price} current={stock.current_price} />
                           </td>
-                          {insightsOpen && (
+                          {showQuality && (
                             <td className="px-2 py-3 text-right">
                               <GrowthStarsCell value={stock.growth_score} />
                             </td>
                           )}
-                          {insightsOpen && (
+                          {showQuality && (
                             <td className="px-2 py-3 text-right">
                               <HealthPassesCell value={stock.health_passes} />
                             </td>

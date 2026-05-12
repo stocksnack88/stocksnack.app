@@ -21,13 +21,6 @@ type HealthCheck = {
   years_passed: number;
 };
 
-function fmtMktCap(n: number | null | undefined): string {
-  if (!n) return "—";
-  if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
-  if (n >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(0)}M`;
-  return `$${n.toFixed(0)}`;
-}
 
 function fmtCagr(n: number | null | undefined): string {
   if (n === null || n === undefined) return "—";
@@ -220,19 +213,21 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           )}
         </div>
 
-        {/* Price stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: "MARKET CAP", value: fmtMktCap(price?.market_cap) },
-            { label: "52W HIGH", value: price?.week_52_high ? `$${Number(price.week_52_high).toFixed(2)}` : "—" },
-            { label: "52W LOW", value: price?.week_52_low ? `$${Number(price.week_52_low).toFixed(2)}` : "—" },
-            { label: "BETA", value: price?.beta ? Number(price.beta).toFixed(2) : "—" },
-          ].map(({ label, value }) => (
-            <div key={label} className="rounded px-4 py-3" style={card}>
-              <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>{label}</p>
-              <p className="text-sm font-bold" style={{ color: "#00ff41" }}>{value}</p>
-            </div>
-          ))}
+        {/* Price projection */}
+        <div className="flex items-center gap-4 rounded px-5 py-4" style={card}>
+          <div className="flex-1 text-center">
+            <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>CURRENT PRICE</p>
+            <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
+              {currentPrice ? `$${currentPrice.toFixed(2)}` : "—"}
+            </p>
+          </div>
+          <div className="text-2xl font-mono shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>→</div>
+          <div className="flex-1 text-center">
+            <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>PROJECTED (5Y)</p>
+            <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
+              {blendedPrice ? `$${blendedPrice.toFixed(2)}` : "—"}
+            </p>
+          </div>
         </div>
 
         {/* Description */}
@@ -246,32 +241,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               : stock.description}
           </p>
         )}
-
-        {/* ── Score summary ────────────────────────────────────────────────────── */}
-        <div>
-          <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.5)" }}>
-            SCORE SUMMARY
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { label: "PPM", value: score?.ppm_score, sub: "Price Projection" },
-              { label: "GROWTH", value: score?.growth_score, sub: "Revenue & FCF" },
-              { label: "HEALTH", value: score?.health_score, sub: `${score?.health_passes ?? 0}/24 Checks` },
-              { label: "FINAL", value: score?.final_score, sub: score?.signal ?? "—" },
-            ].map(({ label, value, sub }) => {
-              const c = scoreColor(value);
-              return (
-                <div key={label} className="rounded px-4 py-4 text-center" style={card}>
-                  <p className="text-xs tracking-widest mb-2" style={{ color: "rgba(0,255,65,0.4)" }}>{label}</p>
-                  <p className="text-2xl font-bold font-mono" style={{ color: c }}>
-                    {value !== null && value !== undefined ? Number(value).toFixed(1) : "—"}
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: "rgba(0,255,65,0.3)" }}>{sub}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
         {/* ── Layer 1: PPM ─────────────────────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>

@@ -79,6 +79,12 @@ CREATE TABLE IF NOT EXISTS stock_scores (
     -- Layer 4: Final
     final_score         NUMERIC,
     signal              TEXT,
+    -- Benchmark
+    sp500_cagr          NUMERIC,
+    sp500_5y_return     NUMERIC,
+    -- Segments
+    product_segments    JSONB,
+    geo_segments        JSONB,
     updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 

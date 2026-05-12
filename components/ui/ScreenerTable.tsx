@@ -63,11 +63,8 @@ export default function ScreenerTable({
   const [insightsOpen, setInsightsOpen] = useState(false);
   const router = useRouter();
 
-  // bg-[#001200] keeps sticky cells opaque so data doesn't bleed through on scroll
-  const stickyTh   = "sticky top-0 z-10 bg-[#001200]";
   const stickyThBD = "sticky top-0 z-10 bg-[#001a00]/40"; // 5Y RETURN + VERDICT groups
   const stickyThC  = "sticky top-0 z-10 bg-[#001200]/60"; // SCORES group
-  const cornerTh = "sticky top-0 left-0 z-20 bg-[#001200]";
   const stickyTd = "sticky left-0 z-[5] bg-black";
   const ins = insightsOpen ? "" : "hidden";
 

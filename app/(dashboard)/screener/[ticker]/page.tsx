@@ -664,6 +664,31 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             <p className="text-[9px] tracking-widest mt-1.5" style={{ color: "rgba(0,255,65,0.3)" }}>Blending M1 + M2 (+ M3 if applicable) — averaged to one target price</p>
           </div>
 
+          {/* Return summary — reuse top price projection card layout */}
+          <div className="flex items-center gap-4 px-5 py-4">
+            <div className="flex-1 text-center">
+              <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>CURRENT PRICE</p>
+              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
+                {fmtDollar(currentPrice)}
+              </p>
+            </div>
+            <div className="flex flex-col items-center justify-center shrink-0 gap-0.5">
+              <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
+                {score?.ppm_cagr != null ? `CAGR ${fmtCagr(score.ppm_cagr)}` : ""}
+              </p>
+              <p className="text-2xl font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>→</p>
+              <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
+                {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x` : ""}
+              </p>
+            </div>
+            <div className="flex-1 text-center">
+              <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>PROJECTED (5Y)</p>
+              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
+                {fmtDollar(blendedPrice)}
+              </p>
+            </div>
+          </div>
+
         </section>
 
         {/* ── Layer 2: Growth ──────────────────────────────────────────────────── */}

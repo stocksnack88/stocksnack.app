@@ -693,16 +693,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── Layer 2: Growth ──────────────────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-            <div>
-              <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
-                LAYER 2 — GROWTH QUALITY
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
-                Historical financials and growth trajectory
-              </p>
-            </div>
-            <ScoreBar value={score?.growth_score} />
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
+              LAYER 2 — GROWTH QUALITY
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
+              Historical financials and growth trajectory
+            </p>
           </div>
           {/* Bar charts — 5-year actuals */}
           {(() => {
@@ -735,7 +732,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             return (
               <div className="px-5 pb-5" style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
                 <div className="pt-4 pb-2 mb-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.3)" }}>
-                  <p className="text-base font-bold leading-tight" style={{ color: "#00ff41" }}>HISTORICAL FINANCIALS</p>
+                  <p className="text-base font-bold leading-tight" style={{ color: "#00ff41" }}>HISTORICAL GROWTH TREND</p>
                   <p className="text-xs tracking-widest mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>REVENUE · EBITDA · FREE CASH FLOW</p>
                 </div>
                 <div className="space-y-6">

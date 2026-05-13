@@ -409,7 +409,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── Layer 1: PPM ─────────────────────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>
-          {/* Header + headline row */}
+          {/* Header */}
           <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 1 — HOW WE PROJECT THE PRICE
@@ -417,35 +417,30 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
               3 independent methods blended into a single 5-year price target
             </p>
-            <div className="flex flex-wrap gap-8 mt-4">
-              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-                {score?.ppm_cagr != null
-                  ? `~${(Number(score.ppm_cagr) * 100).toFixed(1)}% PER YEAR`
-                  : "—"}
-              </p>
-              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-                {currentPrice && blendedPrice
-                  ? `~${(blendedPrice / currentPrice).toFixed(1)}x RETURN IN 5 YEARS`
-                  : "—"}
-              </p>
-            </div>
           </div>
 
-          {/* 3 method cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
+          {/* Compact summary row */}
+          <p className="text-center text-[9px] font-mono tracking-widest py-2.5" style={{ color: "rgba(0,255,65,0.45)", borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
+            {score?.ppm_cagr != null ? `~${(Number(score.ppm_cagr) * 100).toFixed(1)}% PER YEAR` : "—"}
+            {" · "}
+            {currentPrice && blendedPrice ? `~${(blendedPrice / currentPrice).toFixed(1)}x RETURN` : "—"}
+          </p>
+
+          {/* 3 method cards — always 3 columns */}
+          <div className="grid grid-cols-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
 
             {/* M1 — Earnings Growth */}
-            <div className="px-5 py-5 border-b border-[#00ff41]/10 sm:border-b-0 sm:border-r border-[#00ff41]/10">
+            <div className="px-4 py-5 border-r border-[#00ff41]/10">
               <p className="text-[9px] font-bold tracking-[0.3em] mb-4" style={{ color: "rgba(0,255,65,0.3)" }}>
                 METHOD 1 — EARNINGS GROWTH
               </p>
               <div className="mb-1">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CURRENT PRICE</p>
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>1 · IDENTIFY CURRENT PRICE</p>
                 <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
               </div>
               <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
               <div className="mb-0.5">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CURRENT EBITDA</p>
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>2 · IDENTIFY CURRENT EBITDA</p>
                 <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_current)}</p>
               </div>
               <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
@@ -453,31 +448,31 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </p>
               <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
               <div className="mb-0.5">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>PROJECTED 5Y EBITDA</p>
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>3 · PROJECT 5Y EBITDA</p>
                 <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_projected)}</p>
               </div>
               <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
                 At {scoreEx?.m1_ev_ebitda_multiple != null ? `${Number(scoreEx.m1_ev_ebitda_multiple).toFixed(0)}x` : "—"} earnings multiple
               </p>
               <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-              <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.35)" }}>ESTIMATED FUTURE PRICE</p>
+              <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.3)" }}>4 · ESTIMATED FUTURE PRICE</p>
               <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
                 <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price)}</p>
               </div>
             </div>
 
             {/* M2 — Free Cash Flow */}
-            <div className="px-5 py-5 border-b border-[#00ff41]/10 sm:border-b-0 sm:border-r border-[#00ff41]/10">
+            <div className="px-4 py-5 border-r border-[#00ff41]/10">
               <p className="text-[9px] font-bold tracking-[0.3em] mb-4" style={{ color: "rgba(0,255,65,0.3)" }}>
                 METHOD 2 — FREE CASH FLOW
               </p>
               <div className="mb-1">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CURRENT PRICE</p>
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>1 · IDENTIFY CURRENT PRICE</p>
                 <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
               </div>
               <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
               <div className="mb-0.5">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CURRENT FCF</p>
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>2 · IDENTIFY CURRENT FCF</p>
                 <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m2_fcf_current)}</p>
               </div>
               <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
@@ -485,21 +480,21 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </p>
               <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
               <div className="mb-0.5">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>PROJECTED 5Y FCF</p>
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>3 · PROJECT 5Y FCF</p>
                 <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m2_fcf_projected)}</p>
               </div>
               <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
                 At {scoreEx?.m2_fcf_yield != null ? `${(Number(scoreEx.m2_fcf_yield) * 100).toFixed(1)}%` : "—"} cash flow yield
               </p>
               <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-              <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.35)" }}>ESTIMATED FUTURE PRICE</p>
+              <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.3)" }}>4 · ESTIMATED FUTURE PRICE</p>
               <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
                 <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price)}</p>
               </div>
             </div>
 
             {/* M3 — Dividends & Buybacks */}
-            <div className="px-5 py-5">
+            <div className="px-4 py-5">
               <p className="text-[9px] font-bold tracking-[0.3em] mb-4" style={{ color: "rgba(0,255,65,0.3)" }}>
                 METHOD 3 — DIVIDENDS &amp; BUYBACKS
               </p>
@@ -513,12 +508,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               ) : (
                 <>
                   <div className="mb-1">
-                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CURRENT PRICE</p>
+                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>1 · IDENTIFY CURRENT PRICE</p>
                     <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
                   </div>
                   <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
                   <div className="mb-0.5">
-                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>SHAREHOLDER YIELD</p>
+                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>2 · IDENTIFY SHAREHOLDER YIELD</p>
                     <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>
                       {scoreEx?.m3_div_yield != null ? `${(Number(scoreEx.m3_div_yield) * 100).toFixed(1)}%` : "—"} div
                       {" + "}
@@ -530,7 +525,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   </p>
                   <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
                   <div className="mb-0.5">
-                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>PRICE APPRECIATION</p>
+                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>3 · IDENTIFY PRICE GROWTH</p>
                     <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>
                       {scoreEx?.m3_growth_rate != null ? `${(Number(scoreEx.m3_growth_rate) * 100).toFixed(1)}%` : "—"} p.a.
                     </p>
@@ -541,7 +536,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     </p>
                   )}
                   <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-                  <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.35)" }}>ESTIMATED FUTURE PRICE</p>
+                  <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.3)" }}>4 · ESTIMATED FUTURE PRICE</p>
                   <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
                     <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price)}</p>
                   </div>

@@ -692,43 +692,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
             <div>
               <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
-                LAYER 2 — GROWTH
+                LAYER 2 — GROWTH QUALITY
               </p>
               <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
-                Compound annual growth rates — revenue, net income & free cash flow
+                Historical financials and growth trajectory
               </p>
             </div>
             <ScoreBar value={score?.growth_score} />
           </div>
-          <div className="px-5 py-4 overflow-x-auto">
-            <table className="w-full min-w-[280px] text-sm">
-              <thead>
-                <tr>
-                  <th className="text-left pb-3 text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>METRIC</th>
-                  <th className="text-right pb-3 text-xs tracking-widest whitespace-nowrap pl-4" style={{ color: "rgba(0,255,65,0.4)" }}>3-YR CAGR</th>
-                  <th className="text-right pb-3 text-xs tracking-widest whitespace-nowrap pl-4" style={{ color: "rgba(0,255,65,0.4)" }}>5-YR CAGR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { label: "Revenue", c3: score?.revenue_cagr_3y, c5: score?.revenue_cagr_5y },
-                  { label: "Net Income", c3: score?.net_income_cagr_3y, c5: score?.net_income_cagr_5y },
-                  { label: "Free Cash Flow", c3: score?.fcf_cagr_3y, c5: score?.fcf_cagr_5y },
-                ].map(({ label, c3, c5 }, i, arr) => (
-                  <tr key={label} style={i < arr.length - 1 ? { borderBottom: "1px solid rgba(0,255,65,0.08)" } : {}}>
-                    <td className="py-3" style={{ color: "rgba(0,255,65,0.7)" }}>{label}</td>
-                    <td className="py-3 text-right font-mono font-bold" style={{ color: c3 != null ? (Number(c3) >= 0 ? "#00ff41" : "#f87171") : "rgba(0,255,65,0.3)" }}>
-                      {fmtCagr(c3)}
-                    </td>
-                    <td className="py-3 text-right font-mono font-bold" style={{ color: c5 != null ? (Number(c5) >= 0 ? "#00ff41" : "#f87171") : "rgba(0,255,65,0.3)" }}>
-                      {fmtCagr(c5)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
           {/* Bar charts — 5-year actuals */}
           {(() => {
             type FundRow = { fiscal_year: number; revenue: number | null; ebitda: number | null; free_cash_flow: number | null };
@@ -776,12 +747,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             {label}
                           </span>
                           {cagrNum != null && (
-                            <span className="text-[8px] font-bold font-mono px-1.5 py-0.5 rounded" style={{
+                            <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded" style={{
                               background: cagrNum >= 0 ? "rgba(0,255,65,0.08)" : "rgba(248,113,113,0.08)",
                               color:      cagrNum >= 0 ? "rgba(0,255,65,0.7)"  : "#f87171",
                               border:     `1px solid ${cagrNum >= 0 ? "rgba(0,255,65,0.2)" : "rgba(248,113,113,0.3)"}`,
                             }}>
-                              {fmtCagr(cagr)} 5Y
+                              {fmtCagr(cagr)} CAGR
                             </span>
                           )}
                         </div>

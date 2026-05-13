@@ -231,17 +231,76 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </div>
         </div>
 
-        {/* Description */}
-        {stock?.description && (
-          <p
-            className="text-xs leading-relaxed border-l-2 pl-4"
-            style={{ color: "rgba(0,255,65,0.4)", borderColor: "rgba(0,255,65,0.2)" }}
-          >
-            {stock.description.length > 320
-              ? stock.description.slice(0, 320) + "..."
-              : stock.description}
-          </p>
-        )}
+        {/* ── About the Business ──────────────────────────────────────────────── */}
+        {(() => {
+          type Segment = { name: string; pct: number; cagr: number | null; value: number };
+          const productSegs: Segment[] = Array.isArray((score as any)?.product_segments) ? (score as any).product_segments : [];
+          const geoSegs: Segment[]     = Array.isArray((score as any)?.geo_segments)     ? (score as any).geo_segments     : [];
+          if (!stock?.description && !productSegs.length && !geoSegs.length) return null;
+          return (
+            <section className="rounded overflow-hidden" style={card}>
+              <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
+                <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>ABOUT THE BUSINESS</p>
+              </div>
+
+              {/* Company Description */}
+              {stock?.description && (
+                <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
+                  <p className="text-[9px] font-bold tracking-[0.3em] mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>COMPANY DESCRIPTION</p>
+                  <p className="text-xs leading-relaxed border-l-2 pl-4" style={{ color: "rgba(0,255,65,0.4)", borderColor: "rgba(0,255,65,0.2)" }}>
+                    {stock.description.length > 320 ? stock.description.slice(0, 320) + "..." : stock.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Product Revenue */}
+              {productSegs.length > 0 && (
+                <div className="px-5 py-4" style={{ borderBottom: geoSegs.length > 0 ? "1px solid rgba(0,255,65,0.1)" : undefined }}>
+                  <p className="text-[9px] font-bold tracking-[0.3em] mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>PRODUCT BREAKDOWN</p>
+                  <div className="space-y-3">
+                    {productSegs.map((seg) => (
+                      <div key={seg.name}>
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="text-xs flex-1 min-w-0 truncate" style={{ color: "rgba(0,255,65,0.7)" }}>{seg.name}</span>
+                          <span className="text-xs font-mono shrink-0" style={{ color: "#00ff41" }}>{seg.pct.toFixed(1)}%</span>
+                          <span className="text-xs font-mono shrink-0 w-16 text-right" style={{ color: seg.cagr == null ? "#666" : seg.cagr >= 0 ? "#00ff41" : "#f87171" }}>
+                            {seg.cagr == null ? "—" : fmtCagr(seg.cagr)}
+                          </span>
+                        </div>
+                        <div className="h-1.5 rounded-full w-full" style={{ background: "rgba(0,255,65,0.1)" }}>
+                          <div className="h-full rounded-full" style={{ width: `${seg.pct}%`, background: "#00ff41" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Geographic Revenue */}
+              {geoSegs.length > 0 && (
+                <div className="px-5 py-4">
+                  <p className="text-[9px] font-bold tracking-[0.3em] mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>GEOGRAPHIC BREAKDOWN</p>
+                  <div className="space-y-3">
+                    {geoSegs.map((seg) => (
+                      <div key={seg.name}>
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="text-xs flex-1 min-w-0 truncate" style={{ color: "rgba(0,255,65,0.7)" }}>{seg.name}</span>
+                          <span className="text-xs font-mono shrink-0" style={{ color: "#00ff41" }}>{seg.pct.toFixed(1)}%</span>
+                          <span className="text-xs font-mono shrink-0 w-16 text-right" style={{ color: seg.cagr == null ? "#666" : seg.cagr >= 0 ? "#00ff41" : "#f87171" }}>
+                            {seg.cagr == null ? "—" : fmtCagr(seg.cagr)}
+                          </span>
+                        </div>
+                        <div className="h-1.5 rounded-full w-full" style={{ background: "rgba(0,255,65,0.1)" }}>
+                          <div className="h-full rounded-full" style={{ width: `${seg.pct}%`, background: "#00ff41" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          );
+        })()}
 
         {/* ── Layer 1: PPM ─────────────────────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>

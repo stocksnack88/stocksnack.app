@@ -733,9 +733,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
             return (
               <div className="px-5 pb-5" style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
-                <p className="text-base font-bold pt-4 pb-1 mb-3" style={{ color: "rgba(0,255,65,0.7)", borderBottom: "1px solid rgba(0,255,65,0.3)" }}>
-                  HISTORICAL REVENUE, EBITDA &amp; FREE CASH FLOW
-                </p>
+                <div className="pt-4 pb-2 mb-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.3)" }}>
+                  <p className="text-base font-bold leading-tight" style={{ color: "#00ff41" }}>HISTORICAL FINANCIALS</p>
+                  <p className="text-xs tracking-widest mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>REVENUE · EBITDA · FREE CASH FLOW</p>
+                </div>
                 <div className="space-y-6">
                   {metrics.map(({ key, label, cagr, signal }) => {
                     const vals = rows.map(r => {

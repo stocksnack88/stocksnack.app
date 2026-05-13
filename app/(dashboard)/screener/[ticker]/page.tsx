@@ -212,16 +212,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {[stock?.sector, stock?.industry, stock?.exchange].filter(Boolean).join(" · ")}
             </p>
           </div>
-          {currentPrice && (
-            <div className="text-right">
-              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-                {fmtDollar(currentPrice)}
-              </p>
-              <p className="text-xs mt-0.5 tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>
-                CURRENT PRICE
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Price projection */}

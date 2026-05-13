@@ -459,15 +459,15 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 {/* ROW 1 — Method headers */}
                 <div className={`px-3 pt-2 pb-1 text-center ${r}`}>
                   <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 1</p>
-                  <p className="text-base font-bold tracking-wider" style={{ color: "#00ff41" }}>EARNINGS GROWTH</p>
+                  <p className="text-sm font-bold tracking-wider" style={{ color: "#00ff41" }}>EARNINGS GROWTH</p>
                 </div>
                 <div className={`px-3 pt-2 pb-1 text-center ${r}`}>
                   <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 2</p>
-                  <p className="text-base font-bold tracking-wider" style={{ color: "#00ff41" }}>FREE CASH FLOW</p>
+                  <p className="text-sm font-bold tracking-wider" style={{ color: "#00ff41" }}>FREE CASH FLOW</p>
                 </div>
                 <div className={m3("px-3 pt-2 pb-1 text-center")}>
                   <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 3</p>
-                  <p className="text-base font-bold tracking-wider" style={{ color: "#00ff41" }}>DIVIDENDS</p>
+                  <p className="text-sm font-bold tracking-wider" style={{ color: "#00ff41" }}>DIVIDENDS</p>
                 </div>
 
                 {/* ROW 2 — Step ①: Current Price */}
@@ -586,7 +586,32 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
                 <div className={m3("text-center text-[9px] leading-none py-0")} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
 
-                {/* ROW 4.75 — Step [4]: 5Y Dividends Received */}
+                {/* ROW 4 — Step [4]: Estimated Future Price */}
+                <div className={`px-3 pt-1 pb-2 text-center ${r}`}>
+                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> ESTIMATED FUTURE PRICE</p>
+                  <div className="inline-block px-3 py-1 rounded" style={{ background: "rgba(0,255,65,0.1)", border: "1px solid rgba(0,255,65,0.3)" }}>
+                    <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price)}</p>
+                  </div>
+                </div>
+                <div className={`px-3 pt-1 pb-2 text-center ${r}`}>
+                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> ESTIMATED FUTURE PRICE</p>
+                  <div className="inline-block px-3 py-1 rounded" style={{ background: "rgba(0,255,65,0.1)", border: "1px solid rgba(0,255,65,0.3)" }}>
+                    <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price)}</p>
+                  </div>
+                </div>
+                <div className={m3("px-3 pt-1 pb-2 text-center")}>
+                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> ESTIMATED FUTURE PRICE</p>
+                  <div className="inline-block px-3 py-1 rounded" style={{ background: "rgba(0,255,65,0.1)", border: "1px solid rgba(0,255,65,0.3)" }}>
+                    <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price)}</p>
+                  </div>
+                </div>
+
+                {/* Arrow row */}
+                <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                <div className={m3("text-center text-[9px] leading-none py-0")} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+
+                {/* ROW 5 — Step [5]: 5Y Dividends Received  |  ROW 6 — Step [6]: Total Return Price */}
                 {(() => {
                   const cumDivPs = scoreEx?.m_cumulative_div_ps != null ? Number(scoreEx.m_cumulative_div_ps) : 0;
                   const isNoDividend = cumDivPs === 0;
@@ -594,7 +619,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   return (
                     <>
                       <div className={`px-3 py-1 ${r}`}><div className={divBox}>
-                        <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> 5Y DIVIDENDS RECEIVED PER SHARE</p>
+                        <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[5]</span> 5Y DIVIDENDS RECEIVED PER SHARE</p>
                         {isNoDividend ? (
                           <><p className="text-[13px] font-bold font-mono" style={{ color: "rgba(251,191,36,0.4)" }}>$0.00</p><p className="text-[8px]" style={{ color: "rgba(251,191,36,0.3)" }}>No dividend</p></>
                         ) : (
@@ -602,7 +627,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         )}
                       </div></div>
                       <div className={`px-3 py-1 ${r}`}><div className={divBox}>
-                        <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> 5Y DIVIDENDS RECEIVED PER SHARE</p>
+                        <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[5]</span> 5Y DIVIDENDS RECEIVED PER SHARE</p>
                         {isNoDividend ? (
                           <><p className="text-[13px] font-bold font-mono" style={{ color: "rgba(251,191,36,0.4)" }}>$0.00</p><p className="text-[8px]" style={{ color: "rgba(251,191,36,0.3)" }}>No dividend</p></>
                         ) : (
@@ -610,41 +635,41 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         )}
                       </div></div>
                       <div className={m3("px-3 py-1")}><div className={divBox}>
-                        <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> 5Y DIVIDENDS RECEIVED PER SHARE</p>
+                        <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[5]</span> 5Y DIVIDENDS RECEIVED PER SHARE</p>
                         {isNoDividend ? (
                           <><p className="text-[13px] font-bold font-mono" style={{ color: "rgba(251,191,36,0.4)" }}>$0.00</p><p className="text-[8px]" style={{ color: "rgba(251,191,36,0.3)" }}>No dividend</p></>
                         ) : (
                           <p className="text-[13px] font-bold font-mono" style={{ color: "#fbbf24" }}>{fmtDollar(cumDivPs)}</p>
                         )}
                       </div></div>
+
+                      {/* Arrow row */}
+                      <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                      <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                      <div className={m3("text-center text-[9px] leading-none py-0")} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+
+                      {/* ROW 6 — Step [6]: Total Return Price (price + dividends) */}
+                      <div className={`px-3 pt-1 pb-2 text-center ${r}`}>
+                        <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}><span className="text-xs font-bold">[6]</span> TOTAL RETURN PRICE</p>
+                        <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.18)", border: "1px solid rgba(0,255,65,0.55)" }}>
+                          <p className="text-lg font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price != null ? Number(score.ppm_m1_price) + cumDivPs : null)}</p>
+                        </div>
+                      </div>
+                      <div className={`px-3 pt-1 pb-2 text-center ${r}`}>
+                        <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}><span className="text-xs font-bold">[6]</span> TOTAL RETURN PRICE</p>
+                        <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.18)", border: "1px solid rgba(0,255,65,0.55)" }}>
+                          <p className="text-lg font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price != null ? Number(score.ppm_m2_price) + cumDivPs : null)}</p>
+                        </div>
+                      </div>
+                      <div className={m3("px-3 pt-1 pb-2 text-center")}>
+                        <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}><span className="text-xs font-bold">[6]</span> TOTAL RETURN PRICE</p>
+                        <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.18)", border: "1px solid rgba(0,255,65,0.55)" }}>
+                          <p className="text-lg font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price != null ? Number(score.ppm_m3_price) + cumDivPs : null)}</p>
+                        </div>
+                      </div>
                     </>
                   );
                 })()}
-
-                {/* Arrow row */}
-                <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-                <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-                <div className={m3("text-center text-[9px] leading-none py-0")} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-
-                {/* ROW 5 — Step [5]: Total Return Price */}
-                <div className={`px-3 pt-1 pb-2 text-center ${r}`}>
-                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[5]</span> TOTAL RETURN PRICE</p>
-                  <div className="inline-block px-3 py-1 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
-                    <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price)}</p>
-                  </div>
-                </div>
-                <div className={`px-3 pt-1 pb-2 text-center ${r}`}>
-                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[5]</span> TOTAL RETURN PRICE</p>
-                  <div className="inline-block px-3 py-1 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
-                    <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price)}</p>
-                  </div>
-                </div>
-                <div className={m3("px-3 pt-1 pb-2 text-center")}>
-                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[5]</span> TOTAL RETURN PRICE</p>
-                  <div className="inline-block px-3 py-1 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
-                    <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price)}</p>
-                  </div>
-                </div>
 
               </div>
             );
@@ -747,8 +772,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
             return (
               <div className="px-5 pb-5" style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
-                <p className="text-[9px] font-bold tracking-[0.2em] py-4" style={{ color: "rgba(0,255,65,0.3)" }}>
-                  5-YEAR ACTUALS
+                <p className="text-base font-bold pt-4 pb-1 mb-3" style={{ color: "rgba(0,255,65,0.7)", borderBottom: "1px solid rgba(0,255,65,0.3)" }}>
+                  HISTORICAL REVENUE, EBITDA &amp; FREE CASH FLOW
                 </p>
                 <div className="space-y-6">
                   {metrics.map(({ key, label, cagr }) => {

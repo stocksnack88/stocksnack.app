@@ -529,12 +529,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 {/* ROW 3.5 — Annotation */}
                 <div className={`px-3 py-0.5 text-center ${r}`}>
                   <p className="text-[9px] italic" style={{ color: "rgba(0,255,65,0.35)" }}>
-                    Growing at {scoreEx?.m1_growth_rate != null ? `${(Number(scoreEx.m1_growth_rate) * 100).toFixed(1)}%` : "—"} p.a.
+                    Growing at {scoreEx?.m1_growth_rate != null ? `${(Number(scoreEx.m1_growth_rate) * 100).toFixed(1)}%` : "—"}
                   </p>
                 </div>
                 <div className={`px-3 py-0.5 text-center ${r}`}>
                   <p className="text-[9px] italic" style={{ color: "rgba(0,255,65,0.35)" }}>
-                    Growing at {scoreEx?.m2_growth_rate != null ? `${(Number(scoreEx.m2_growth_rate) * 100).toFixed(1)}%` : "—"} p.a.
+                    Growing at {scoreEx?.m2_growth_rate != null ? `${(Number(scoreEx.m2_growth_rate) * 100).toFixed(1)}%` : "—"}
                   </p>
                 </div>
                 <div className={m3("px-3 py-1")} />
@@ -556,7 +556,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <div className={m3("px-3 py-1")}><div className={stepBox}>
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[3]</span> PRICE GROWTH</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>
-                    {scoreEx?.m3_growth_rate != null ? `${(Number(scoreEx.m3_growth_rate) * 100).toFixed(1)}%` : "—"} p.a.
+                    {scoreEx?.m3_growth_rate != null ? `${(Number(scoreEx.m3_growth_rate) * 100).toFixed(1)}%` : "—"}
                   </p>
                 </div></div>
 
@@ -579,7 +579,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <div className={m3("px-3 py-0.5 text-center")}>
                   {!m3na && scoreEx?.m3_div_yield != null && scoreEx?.m3_growth_rate != null && (
                     <p className="text-[9px] italic" style={{ color: "rgba(0,255,65,0.35)" }}>
-                      Combined: {((Number(scoreEx.m3_div_yield) + Number(scoreEx.m3_growth_rate)) * 100).toFixed(1)}% annual return
+                      Combined: {((Number(scoreEx.m3_div_yield) + Number(scoreEx.m3_growth_rate)) * 100).toFixed(1)}% return
                     </p>
                   )}
                 </div>
@@ -659,35 +659,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
           {/* Blended projection */}
           <div className="px-5 py-6 text-center" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
-            <p className="text-[9px] font-bold tracking-[0.3em] mb-2" style={{ color: "rgba(0,255,65,0.3)" }}>BLENDED PROJECTION</p>
+            <p className="text-[9px] font-bold tracking-[0.3em] mb-2" style={{ color: "rgba(0,255,65,0.3)" }}>AVERAGE OF ALL METHODS</p>
             <p className="text-4xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(blendedPrice)}</p>
-            <p className="text-[9px] tracking-widest mt-1.5" style={{ color: "rgba(0,255,65,0.3)" }}>5-YEAR PRICE TARGET</p>
+            <p className="text-[9px] tracking-widest mt-1.5" style={{ color: "rgba(0,255,65,0.3)" }}>Blending M1 + M2 (+ M3 if applicable) — averaged to one target price</p>
           </div>
 
-          {/* Return summary */}
-          <div className="px-5 py-4 flex flex-wrap items-center justify-center gap-6 text-center">
-            <div>
-              <p className="text-[9px] tracking-[0.3em] mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>CURRENT</p>
-              <p className="text-sm font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
-            </div>
-            <span style={{ color: "rgba(0,255,65,0.25)" }}>→</span>
-            <div>
-              <p className="text-[9px] tracking-[0.3em] mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>PROJECTED</p>
-              <p className="text-sm font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(blendedPrice)}</p>
-            </div>
-            <span style={{ color: "rgba(0,255,65,0.25)" }}>·</span>
-            <div>
-              <p className="text-[9px] tracking-[0.3em] mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>IMPLIED RETURN</p>
-              <p className="text-sm font-bold font-mono" style={{ color: "#00ff41" }}>
-                {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x` : "—"}
-              </p>
-            </div>
-            <span style={{ color: "rgba(0,255,65,0.25)" }}>·</span>
-            <div>
-              <p className="text-[9px] tracking-[0.3em] mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>5Y CAGR</p>
-              <p className="text-sm font-bold font-mono" style={{ color: "#00ff41" }}>{fmtCagr(score?.ppm_cagr)}</p>
-            </div>
-          </div>
         </section>
 
         {/* ── Layer 2: Growth ──────────────────────────────────────────────────── */}

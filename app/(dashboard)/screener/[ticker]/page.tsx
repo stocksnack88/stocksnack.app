@@ -310,8 +310,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── About the Business ──────────────────────────────────────────────── */}
         {(() => {
-          const productSegs: Segment[] = Array.isArray(scoreEx?.product_segments) ? (scoreEx.product_segments ?? []) : [];
-          const geoSegs: Segment[]     = Array.isArray(scoreEx?.geo_segments)     ? (scoreEx.geo_segments     ?? []) : [];
+          const rawProduct = scoreEx != null ? scoreEx.product_segments : undefined;
+          const rawGeo     = scoreEx != null ? scoreEx.geo_segments     : undefined;
+          const productSegs: Segment[] = Array.isArray(rawProduct) ? rawProduct : [];
+          const geoSegs: Segment[]     = Array.isArray(rawGeo)     ? rawGeo     : [];
           if (!stock?.description && !productSegs.length && !geoSegs.length) return null;
           return (
             <section className="rounded overflow-hidden" style={card}>
@@ -322,7 +324,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {/* Company Description */}
               {stock?.description && (
                 <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
-                  <p className="text-[9px] font-bold tracking-[0.3em] mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>COMPANY DESCRIPTION</p>
+                  <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>COMPANY DESCRIPTION</p>
                   <p className="text-xs leading-relaxed border-l-2 pl-4" style={{ color: "rgba(0,255,65,0.4)", borderColor: "rgba(0,255,65,0.2)" }}>
                     {stock.description.length > 320 ? stock.description.slice(0, 320) + "..." : stock.description}
                   </p>
@@ -332,7 +334,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {/* Product Revenue */}
               {productSegs.length > 0 && (
                 <div className="px-5 py-4" style={{ borderBottom: geoSegs.length > 0 ? "1px solid rgba(0,255,65,0.1)" : undefined }}>
-                  <p className="text-[9px] font-bold tracking-[0.3em] mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>PRODUCT BREAKDOWN</p>
+                  <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>PRODUCT BREAKDOWN</p>
                   <div className="space-y-3">
                     {productSegs.map((seg) => (
                       <div key={seg.name}>
@@ -355,7 +357,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {/* Geographic Revenue */}
               {geoSegs.length > 0 && (
                 <div className="px-5 py-4">
-                  <p className="text-[9px] font-bold tracking-[0.3em] mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>GEOGRAPHIC BREAKDOWN</p>
+                  <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>GEOGRAPHIC BREAKDOWN</p>
                   <div className="space-y-3">
                     {geoSegs.map((seg) => (
                       <div key={seg.name}>

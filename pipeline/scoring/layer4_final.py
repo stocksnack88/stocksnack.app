@@ -19,6 +19,7 @@ Signal logic — two-gate approach:
 
     Fallback (sp500_cagr unavailable): score-based thresholds.
 """
+from __future__ import annotations
 from config import PPM_WEIGHT, GROWTH_WEIGHT, HEALTH_WEIGHT, BUY_THRESHOLD, HOLD_THRESHOLD
 
 

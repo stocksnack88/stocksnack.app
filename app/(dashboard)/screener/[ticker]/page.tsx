@@ -248,7 +248,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         {/* Price projection */}
         <div className="rounded overflow-hidden" style={card}>
           <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>PRICE PROJECTION</p>
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>{ticker} Stock Price In 5 Years (Projected)</p>
           </div>
           <div className="flex items-center gap-4 px-5 py-4">
             <div className="flex-1 text-center">
@@ -278,7 +278,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         {/* ── Scorecard ───────────────────────────────────────────────────────── */}
         <div className="rounded overflow-hidden" style={card}>
           <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>AT A GLANCE</p>
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>WHAT YOU ARE BUYING</p>
           </div>
           {([
             {

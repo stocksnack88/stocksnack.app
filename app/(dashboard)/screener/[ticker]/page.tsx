@@ -263,7 +263,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </p>
               <p className="text-2xl font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>→</p>
               <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
-                {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x IN 5Y` : ""}
+                {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x` : ""}
               </p>
             </div>
             <div className="flex-1 text-center">

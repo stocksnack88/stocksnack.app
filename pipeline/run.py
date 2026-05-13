@@ -12,6 +12,7 @@ Run:
 from __future__ import annotations
 
 import sys
+import time
 import logging
 import argparse
 
@@ -46,7 +47,7 @@ def process(ticker: str, fmp: FMPClient, writer: SupabaseWriter, spy: dict) -> b
         ppm      = score_ppm(data)
         growth   = score_growth(data)
         health   = score_health(data)
-        final    = score_final(ppm, growth, health)
+        final    = score_final(ppm, growth, health, spy.get("sp500_cagr"))
         segments = compute_segments(data.get("product_segments", []), data.get("geo_segments", []))
 
         writer.upsert_scores(ticker, ppm, growth, health, final, spy, segments)
@@ -94,6 +95,7 @@ def main() -> None:
     for ticker in tickers:
         ok = process(ticker, fmp, writer, spy)
         (processed if ok else failed).append(ticker)
+        time.sleep(2)
 
     writer.complete_pipeline_run(run_id, processed, failed)
 

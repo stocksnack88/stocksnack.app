@@ -1,32 +1,64 @@
 """
 Layer 4 — Final Score & Signal
 
-Weighted average:
+Weighted average (unchanged):
     PPM    40%
     Growth 30%
     Health 30%
 
-Signal thresholds:
-    BUY   ≥ 65
-    HOLD  40–64
-    SELL  < 40
+Signal logic — two-gate approach:
+    PRICE GATE (ppm_cagr vs sp500_cagr):
+        < 1.0× S&P 500 CAGR          → SELL
+        1.0×–1.5× S&P 500 CAGR       → HOLD
+        ≥ 1.5× S&P 500 CAGR          → SECOND GATE
+
+    SECOND GATE (quality check):
+        health_passes ≥ 16 AND growth_score ≥ 40  → BUY
+        exactly one passes                          → HOLD
+        both fail                                   → SELL
+
+    Fallback (sp500_cagr unavailable): score-based thresholds.
 """
 from config import PPM_WEIGHT, GROWTH_WEIGHT, HEALTH_WEIGHT, BUY_THRESHOLD, HOLD_THRESHOLD
 
 
-def score_final(ppm: dict, growth: dict, health: dict) -> dict:
-    final = (
+def score_final(
+    ppm: dict,
+    growth: dict,
+    health: dict,
+    sp500_cagr: float | None = None,
+) -> dict:
+    final = round(
         ppm["score"]    * PPM_WEIGHT
         + growth["score"] * GROWTH_WEIGHT
-        + health["score"] * HEALTH_WEIGHT
+        + health["score"] * HEALTH_WEIGHT,
+        2,
     )
-    final = round(final, 2)
 
-    if final >= BUY_THRESHOLD:
-        signal = "BUY"
-    elif final >= HOLD_THRESHOLD:
-        signal = "HOLD"
+    ppm_cagr      = ppm.get("cagr")
+    health_passes = health.get("passes", 0) or 0
+    growth_score  = growth.get("score", 0) or 0
+
+    if sp500_cagr and ppm_cagr is not None:
+        if ppm_cagr < sp500_cagr:
+            signal = "SELL"
+        elif ppm_cagr < sp500_cagr * 1.5:
+            signal = "HOLD"
+        else:
+            h_ok = health_passes >= 16
+            g_ok = growth_score  >= 40
+            if h_ok and g_ok:
+                signal = "BUY"
+            elif h_ok or g_ok:
+                signal = "HOLD"
+            else:
+                signal = "SELL"
     else:
-        signal = "SELL"
+        if final >= BUY_THRESHOLD:
+            signal = "BUY"
+        elif final >= HOLD_THRESHOLD:
+            signal = "HOLD"
+        else:
+            signal = "SELL"
 
     return {"score": final, "signal": signal}

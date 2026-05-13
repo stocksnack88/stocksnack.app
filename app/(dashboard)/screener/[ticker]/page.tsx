@@ -181,6 +181,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   const currentPrice: number | null = price?.current_price ?? null;
   const blendedPrice: number | null = score?.ppm_blended_price ?? null;
 
+  type Segment = { name: string; pct: number; cagr: number | null; value: number };
+  type ScoreExtras = { sp500_cagr?: number | null; sp500_5y_return?: number | null; product_segments?: Segment[]; geo_segments?: Segment[] };
+  const scoreEx = score as (NonNullable<typeof score> & ScoreExtras) | null;
+
   return (
     <div className="bg-black" style={mono}>
       {/* Breadcrumb */}
@@ -251,7 +255,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   </span>
                   <span className="mx-2" style={{ color: "rgba(0,255,65,0.3)" }}>vs</span>
                   <span style={{ color: "rgba(0,255,65,0.5)" }}>
-                    {(score as any)?.sp500_5y_return != null ? `${Number((score as any).sp500_5y_return).toFixed(1)}x` : "—"}
+                    {scoreEx?.sp500_5y_return != null ? `${Number(scoreEx.sp500_5y_return).toFixed(1)}x` : "—"}
                   </span>
                 </span>
               ),
@@ -263,7 +267,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   <span style={{ color: "#00ff41" }}>{fmtCagr(score?.ppm_cagr)}</span>
                   <span className="mx-2" style={{ color: "rgba(0,255,65,0.3)" }}>vs</span>
                   <span style={{ color: "rgba(0,255,65,0.5)" }}>
-                    {(score as any)?.sp500_cagr != null ? fmtCagr((score as any).sp500_cagr) : "—"}
+                    {scoreEx?.sp500_cagr != null ? fmtCagr(scoreEx.sp500_cagr) : "—"}
                   </span>
                 </span>
               ),
@@ -302,9 +306,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── About the Business ──────────────────────────────────────────────── */}
         {(() => {
-          type Segment = { name: string; pct: number; cagr: number | null; value: number };
-          const productSegs: Segment[] = Array.isArray((score as any)?.product_segments) ? (score as any).product_segments : [];
-          const geoSegs: Segment[]     = Array.isArray((score as any)?.geo_segments)     ? (score as any).geo_segments     : [];
+          const productSegs: Segment[] = Array.isArray(scoreEx?.product_segments) ? (scoreEx.product_segments ?? []) : [];
+          const geoSegs: Segment[]     = Array.isArray(scoreEx?.geo_segments)     ? (scoreEx.geo_segments     ?? []) : [];
           if (!stock?.description && !productSegs.length && !geoSegs.length) return null;
           return (
             <section className="rounded overflow-hidden" style={card}>

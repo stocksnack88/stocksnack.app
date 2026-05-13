@@ -127,10 +127,15 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
       profile?.subscription_status === "trialing";
   }
 
-  const [stockRes, priceRes, scoreRes] = await Promise.all([
+  const [stockRes, priceRes, scoreRes, fundRes] = await Promise.all([
     supabaseAdmin.from("stocks").select("*").eq("ticker", ticker).single(),
     supabaseAdmin.from("stock_prices").select("*").eq("ticker", ticker).single(),
     supabaseAdmin.from("stock_scores").select("*").eq("ticker", ticker).single(),
+    supabaseAdmin.from("stock_fundamentals")
+      .select("fiscal_year,revenue,ebitda,free_cash_flow")
+      .eq("ticker", ticker)
+      .order("fiscal_year", { ascending: true })
+      .limit(5),
   ]);
 
   if (stockRes.error && scoreRes.error) return notFound();
@@ -138,6 +143,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   const stock = stockRes.data;
   const price = priceRes.data;
   const score = scoreRes.data;
+  const fundamentals = fundRes.data ?? [];
   const canAccess = isPro || freeTickers.has(ticker);
 
   // ── Paywall ──────────────────────────────────────────────────────────────────
@@ -718,6 +724,108 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </tbody>
             </table>
           </div>
+
+          {/* Bar charts — 5-year actuals */}
+          {(() => {
+            type FundRow = { fiscal_year: number; revenue: number | null; ebitda: number | null; free_cash_flow: number | null };
+            type MetricKey = "revenue" | "ebitda" | "free_cash_flow";
+            const rows = fundamentals as FundRow[];
+            if (!rows.length) return null;
+            const CHART_H = 80;
+
+            const eFirst = rows[0]?.ebitda;
+            const eLast  = rows[rows.length - 1]?.ebitda;
+            const nyrs   = rows.length - 1;
+            const ebitdaCagr = (eFirst && eLast && eFirst > 0 && eLast > 0 && nyrs > 0)
+              ? Math.pow(eLast / eFirst, 1 / nyrs) - 1 : null;
+
+            const metrics: { key: MetricKey; label: string; cagr: number | null | undefined }[] = [
+              { key: "revenue",        label: "REVENUE",        cagr: score?.revenue_cagr_5y },
+              { key: "ebitda",         label: "EBITDA",         cagr: ebitdaCagr },
+              { key: "free_cash_flow", label: "FREE CASH FLOW", cagr: score?.fcf_cagr_5y },
+            ];
+
+            return (
+              <div className="px-5 pb-5" style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
+                <p className="text-[9px] font-bold tracking-[0.2em] py-4" style={{ color: "rgba(0,255,65,0.3)" }}>
+                  5-YEAR ACTUALS
+                </p>
+                <div className="space-y-6">
+                  {metrics.map(({ key, label, cagr }) => {
+                    const vals = rows.map(r => {
+                      const v = r[key];
+                      return { year: r.fiscal_year, v, isNeg: v != null && v < 0 };
+                    });
+                    const nonNull = vals.filter(x => x.v != null).map(x => x.v as number);
+                    if (!nonNull.length) return null;
+                    const maxPos     = Math.max(0, ...nonNull);
+                    const maxNeg     = Math.min(0, ...nonNull);
+                    const totalRange = maxPos - maxNeg || 1;
+                    const negH       = Math.abs(maxNeg) / totalRange * CHART_H;
+                    const zeroY      = maxPos            / totalRange * CHART_H;
+                    const cagrNum    = cagr != null ? Number(cagr) : null;
+                    return (
+                      <div key={key}>
+                        {/* Label + CAGR badge */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[9px] font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>
+                            {label}
+                          </span>
+                          {cagrNum != null && (
+                            <span className="text-[8px] font-bold font-mono px-1.5 py-0.5 rounded" style={{
+                              background: cagrNum >= 0 ? "rgba(0,255,65,0.08)" : "rgba(248,113,113,0.08)",
+                              color:      cagrNum >= 0 ? "rgba(0,255,65,0.7)"  : "#f87171",
+                              border:     `1px solid ${cagrNum >= 0 ? "rgba(0,255,65,0.2)" : "rgba(248,113,113,0.3)"}`,
+                            }}>
+                              {fmtCagr(cagr)} 5Y
+                            </span>
+                          )}
+                        </div>
+                        {/* Bar area */}
+                        <div className="relative" style={{ height: CHART_H }}>
+                          {maxNeg < 0 && (
+                            <div className="absolute inset-x-0 z-10 pointer-events-none" style={{ top: zeroY, height: 1, background: "rgba(0,255,65,0.2)" }} />
+                          )}
+                          <div className="absolute inset-0 flex gap-1.5">
+                            {vals.map(({ year, v, isNeg }) => {
+                              const barH = v != null ? Math.max(2, Math.round(Math.abs(v) / totalRange * CHART_H)) : 0;
+                              return (
+                                <div key={year} className="group flex-1 relative" style={{ minWidth: 0 }}>
+                                  {v != null && (
+                                    <div
+                                      className={`absolute inset-x-0 ${isNeg ? "rounded-b-sm" : "rounded-t-sm"} opacity-40 group-hover:opacity-100 transition-opacity duration-100`}
+                                      style={{
+                                        height: barH,
+                                        [isNeg ? "top" : "bottom"]: `${isNeg ? zeroY : negH}px`,
+                                        background: isNeg ? "#f87171" : "#00ff41",
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        {/* Value + year labels */}
+                        <div className="flex gap-1.5 mt-1.5">
+                          {vals.map(({ year, v, isNeg }) => (
+                            <div key={year} className="flex-1 text-center" style={{ minWidth: 0 }}>
+                              <span className="block text-[7px] font-mono font-bold leading-tight truncate" style={{ color: isNeg ? "rgba(248,113,113,0.6)" : "rgba(0,255,65,0.5)" }}>
+                                {v != null ? fmtBn(Math.abs(v)) : "—"}
+                              </span>
+                              <span className="block text-[7px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.2)" }}>
+                                {year}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </section>
 
         {/* ── Layer 3: Health — 24 checks ──────────────────────────────────────── */}

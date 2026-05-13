@@ -455,22 +455,22 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const m3na = scoreEx?.m3_applicable === false || !score?.ppm_m3_price || Number(score.ppm_m3_price) === 0;
             const m3 = (cls: string) => `${cls}${m3na ? " opacity-40" : ""}`;
             const r = "border-r border-[rgba(0,255,65,0.1)]";
-            const stepBox = "border border-[rgba(0,255,65,0.1)] rounded p-2 text-center";
+            const stepBox = "border border-[rgba(0,255,65,0.1)] rounded p-1.5 text-center";
             return (
               <div className="grid grid-cols-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
 
                 {/* ROW 1 — Method headers */}
                 <div className={`px-3 pt-2 pb-1 text-center ${r}`}>
                   <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 1</p>
-                  <p className="text-sm font-bold tracking-wider" style={{ color: "#00ff41" }}>EARNINGS GROWTH</p>
+                  <p className="text-xs font-bold tracking-wider" style={{ color: "#00ff41" }}>EARNINGS GROWTH</p>
                 </div>
                 <div className={`px-3 pt-2 pb-1 text-center ${r}`}>
                   <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 2</p>
-                  <p className="text-sm font-bold tracking-wider" style={{ color: "#00ff41" }}>FREE CASH FLOW</p>
+                  <p className="text-xs font-bold tracking-wider" style={{ color: "#00ff41" }}>FREE CASH FLOW</p>
                 </div>
                 <div className={m3("px-3 pt-2 pb-1 text-center")}>
                   <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 3</p>
-                  <p className="text-sm font-bold tracking-wider" style={{ color: "#00ff41" }}>DIVIDENDS</p>
+                  <p className="text-xs font-bold tracking-wider" style={{ color: "#00ff41" }}>DIVIDENDS</p>
                 </div>
 
                 {/* ROW 2 — Step ①: Current Price */}
@@ -632,21 +632,21 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
                       {/* ROW 5 — Step [5]: Total Return Price (hero box) */}
                       <div className={`px-3 pt-1 pb-2 ${r}`}>
-                        <div className="rounded p-4 text-center" style={{ background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)" }}>
+                        <div className="rounded p-2 text-center" style={{ background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)" }}>
                           <p className="text-[8px] tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.4)" }}><span className="font-bold">[5]</span> TOTAL RETURN PRICE</p>
-                          <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price != null ? Number(score.ppm_m1_price) + cumDivPs : null)}</p>
+                          <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price != null ? Number(score.ppm_m1_price) + cumDivPs : null)}</p>
                         </div>
                       </div>
                       <div className={`px-3 pt-1 pb-2 ${r}`}>
-                        <div className="rounded p-4 text-center" style={{ background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)" }}>
+                        <div className="rounded p-2 text-center" style={{ background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)" }}>
                           <p className="text-[8px] tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.4)" }}><span className="font-bold">[5]</span> TOTAL RETURN PRICE</p>
-                          <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price != null ? Number(score.ppm_m2_price) + cumDivPs : null)}</p>
+                          <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price != null ? Number(score.ppm_m2_price) + cumDivPs : null)}</p>
                         </div>
                       </div>
                       <div className={m3("px-3 pt-1 pb-2")}>
-                        <div className="rounded p-4 text-center" style={{ background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)" }}>
+                        <div className="rounded p-2 text-center" style={{ background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)" }}>
                           <p className="text-[8px] tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.4)" }}><span className="font-bold">[5]</span> TOTAL RETURN PRICE</p>
-                          <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price != null ? Number(score.ppm_m3_price) + cumDivPs : null)}</p>
+                          <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price != null ? Number(score.ppm_m3_price) + cumDivPs : null)}</p>
                         </div>
                       </div>
                     </>

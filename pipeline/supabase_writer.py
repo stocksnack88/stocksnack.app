@@ -148,6 +148,8 @@ class SupabaseWriter:
         growth: dict,
         health: dict,
         final: dict,
+        spy: dict,
+        segments: dict,
     ) -> None:
         self.client.table("stock_scores").upsert({
             "ticker":             ticker,
@@ -173,6 +175,12 @@ class SupabaseWriter:
             # Layer 4
             "final_score":        final.get("score"),
             "signal":             final.get("signal"),
+            # Benchmark
+            "sp500_cagr":         spy.get("sp500_cagr"),
+            "sp500_5y_return":    spy.get("sp500_5y_return"),
+            # Segments
+            "product_segments":   segments.get("product_segments"),
+            "geo_segments":       segments.get("geo_segments"),
             "updated_at":         _now(),
         }).execute()
 

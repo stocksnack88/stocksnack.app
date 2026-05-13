@@ -42,6 +42,14 @@ function fmtCagr(n: number | null | undefined): string {
   return fmtPct(n * 100);
 }
 
+function fmtBn(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "—";
+  const bn = n / 1_000_000_000;
+  if (Math.abs(bn) >= 100) return `$${Math.round(bn)}bn`;
+  if (Math.abs(bn) >= 10)  return `$${bn.toFixed(1)}bn`;
+  return `$${bn.toFixed(2)}bn`;
+}
+
 function scoreColor(v: number | null | undefined): string {
   if (!v && v !== 0) return "#666";
   return v >= 70 ? "#00ff41" : v >= 45 ? "#fbbf24" : "#f87171";
@@ -182,7 +190,26 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   const blendedPrice: number | null = score?.ppm_blended_price ?? null;
 
   type Segment = { name: string; pct: number; cagr: number | null; value: number };
-  type ScoreExtras = { sp500_cagr?: number | null; sp500_5y_return?: number | null; product_segments?: Segment[]; geo_segments?: Segment[] };
+  type ScoreExtras = {
+    sp500_cagr?: number | null;
+    sp500_5y_return?: number | null;
+    product_segments?: Segment[];
+    geo_segments?: Segment[];
+    m1_ebitda_current?: number | null;
+    m1_ebitda_projected?: number | null;
+    m1_growth_rate?: number | null;
+    m1_ev_ebitda_multiple?: number | null;
+    m1_net_debt?: number | null;
+    m1_shares?: number | null;
+    m2_fcf_current?: number | null;
+    m2_fcf_projected?: number | null;
+    m2_growth_rate?: number | null;
+    m2_fcf_yield?: number | null;
+    m3_div_yield?: number | null;
+    m3_buyback_yield?: number | null;
+    m3_shareholder_yield?: number | null;
+    m3_growth_rate?: number | null;
+  };
   const scoreEx = score as (NonNullable<typeof score> & ScoreExtras) | null;
 
   return (
@@ -382,6 +409,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── Layer 1: PPM ─────────────────────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>
+          {/* Header + headline row */}
           <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 1 — HOW WE PROJECT THE PRICE
@@ -389,31 +417,137 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
               3 independent methods blended into a single 5-year price target
             </p>
+            <div className="flex flex-wrap gap-8 mt-4">
+              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
+                {score?.ppm_cagr != null
+                  ? `~${(Number(score.ppm_cagr) * 100).toFixed(1)}% PER YEAR`
+                  : "—"}
+              </p>
+              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
+                {currentPrice && blendedPrice
+                  ? `~${(blendedPrice / currentPrice).toFixed(1)}x RETURN IN 5 YEARS`
+                  : "—"}
+              </p>
+            </div>
           </div>
 
           {/* 3 method cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
-            {([
-              { method: "METHOD 1", name: "Earnings Growth", price: score?.ppm_m1_price },
-              { method: "METHOD 2", name: "Free Cash Flow", price: score?.ppm_m2_price },
-              { method: "METHOD 3", name: "Dividends",      price: score?.ppm_m3_price },
-            ] as const).map(({ method, name, price }, idx) => {
-              const isNA = idx === 2 && (!price || Number(price) === 0);
-              return (
-                <div
-                  key={method}
-                  className={`px-5 py-5${idx < 2 ? " border-b border-[#00ff41]/10 sm:border-b-0 sm:border-r" : ""}`}
-                >
-                  <p className="text-[9px] font-bold tracking-[0.3em] mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>{method}</p>
-                  <p className="text-xs mb-3" style={{ color: "rgba(0,255,65,0.55)" }}>{name}</p>
-                  {isNA ? (
-                    <p className="text-sm font-mono" style={{ color: "rgba(0,255,65,0.25)" }}>Not applicable</p>
-                  ) : (
-                    <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(price)}</p>
-                  )}
+
+            {/* M1 — Earnings Growth */}
+            <div className="px-5 py-5 border-b border-[#00ff41]/10 sm:border-b-0 sm:border-r border-[#00ff41]/10">
+              <p className="text-[9px] font-bold tracking-[0.3em] mb-4" style={{ color: "rgba(0,255,65,0.3)" }}>
+                METHOD 1 — EARNINGS GROWTH
+              </p>
+              <div className="mb-1">
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CURRENT PRICE</p>
+                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
+              </div>
+              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <div className="mb-0.5">
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CURRENT EBITDA</p>
+                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_current)}</p>
+              </div>
+              <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+                Growing at {scoreEx?.m1_growth_rate != null ? `${(Number(scoreEx.m1_growth_rate) * 100).toFixed(1)}%` : "—"} p.a.
+              </p>
+              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <div className="mb-0.5">
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>PROJECTED 5Y EBITDA</p>
+                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_projected)}</p>
+              </div>
+              <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+                At {scoreEx?.m1_ev_ebitda_multiple != null ? `${Number(scoreEx.m1_ev_ebitda_multiple).toFixed(0)}x` : "—"} earnings multiple
+              </p>
+              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.35)" }}>ESTIMATED FUTURE PRICE</p>
+              <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
+                <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price)}</p>
+              </div>
+            </div>
+
+            {/* M2 — Free Cash Flow */}
+            <div className="px-5 py-5 border-b border-[#00ff41]/10 sm:border-b-0 sm:border-r border-[#00ff41]/10">
+              <p className="text-[9px] font-bold tracking-[0.3em] mb-4" style={{ color: "rgba(0,255,65,0.3)" }}>
+                METHOD 2 — FREE CASH FLOW
+              </p>
+              <div className="mb-1">
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CURRENT PRICE</p>
+                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
+              </div>
+              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <div className="mb-0.5">
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CURRENT FCF</p>
+                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m2_fcf_current)}</p>
+              </div>
+              <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+                Growing at {scoreEx?.m2_growth_rate != null ? `${(Number(scoreEx.m2_growth_rate) * 100).toFixed(1)}%` : "—"} p.a.
+              </p>
+              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <div className="mb-0.5">
+                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>PROJECTED 5Y FCF</p>
+                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m2_fcf_projected)}</p>
+              </div>
+              <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+                At {scoreEx?.m2_fcf_yield != null ? `${(Number(scoreEx.m2_fcf_yield) * 100).toFixed(1)}%` : "—"} cash flow yield
+              </p>
+              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.35)" }}>ESTIMATED FUTURE PRICE</p>
+              <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
+                <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price)}</p>
+              </div>
+            </div>
+
+            {/* M3 — Dividends & Buybacks */}
+            <div className="px-5 py-5">
+              <p className="text-[9px] font-bold tracking-[0.3em] mb-4" style={{ color: "rgba(0,255,65,0.3)" }}>
+                METHOD 3 — DIVIDENDS &amp; BUYBACKS
+              </p>
+              {(!score?.ppm_m3_price || Number(score.ppm_m3_price) === 0) ? (
+                <div className="py-4">
+                  <p className="text-sm font-mono font-bold mb-2" style={{ color: "rgba(0,255,65,0.4)" }}>Too low to consider</p>
+                  <p className="text-[9px] leading-relaxed" style={{ color: "rgba(0,255,65,0.25)" }}>
+                    Dividend yield below risk-free rate of 4.5%
+                  </p>
                 </div>
-              );
-            })}
+              ) : (
+                <>
+                  <div className="mb-1">
+                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CURRENT PRICE</p>
+                    <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
+                  </div>
+                  <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                  <div className="mb-0.5">
+                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>SHAREHOLDER YIELD</p>
+                    <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>
+                      {scoreEx?.m3_div_yield != null ? `${(Number(scoreEx.m3_div_yield) * 100).toFixed(1)}%` : "—"} div
+                      {" + "}
+                      {scoreEx?.m3_buyback_yield != null ? `${(Number(scoreEx.m3_buyback_yield) * 100).toFixed(1)}%` : "—"} buyback
+                    </p>
+                  </div>
+                  <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+                    Total: {scoreEx?.m3_shareholder_yield != null ? `${(Number(scoreEx.m3_shareholder_yield) * 100).toFixed(1)}%` : "—"} shareholder yield
+                  </p>
+                  <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                  <div className="mb-0.5">
+                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>PRICE APPRECIATION</p>
+                    <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>
+                      {scoreEx?.m3_growth_rate != null ? `${(Number(scoreEx.m3_growth_rate) * 100).toFixed(1)}%` : "—"} p.a.
+                    </p>
+                  </div>
+                  {scoreEx?.m3_shareholder_yield != null && scoreEx?.m3_growth_rate != null && (
+                    <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+                      Combined: {((Number(scoreEx.m3_shareholder_yield) + Number(scoreEx.m3_growth_rate)) * 100).toFixed(1)}% annual return
+                    </p>
+                  )}
+                  <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                  <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.35)" }}>ESTIMATED FUTURE PRICE</p>
+                  <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
+                    <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price)}</p>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Blended projection */}

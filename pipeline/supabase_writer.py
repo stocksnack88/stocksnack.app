@@ -176,6 +176,7 @@ class SupabaseWriter:
             "m3_buyback_yield":     ppm.get("m3_buyback_yield"),
             "m3_shareholder_yield": ppm.get("m3_shareholder_yield"),
             "m3_growth_rate":       ppm.get("m3_growth_rate"),
+            "m_cumulative_div_ps":  ppm.get("m_cumulative_div_ps"),
             # Layer 2
             "growth_score":       growth.get("score"),
             "revenue_cagr_3y":    growth.get("revenue_cagr_3y"),

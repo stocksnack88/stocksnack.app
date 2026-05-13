@@ -210,6 +210,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
     m3_buyback_yield?: number | null;
     m3_shareholder_yield?: number | null;
     m3_growth_rate?: number | null;
+    m_cumulative_div_ps?: number | null;
   };
   const scoreEx = score as (NonNullable<typeof score> & ScoreExtras) | null;
 
@@ -579,21 +580,61 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <div className={`text-center text-xs py-1 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
                 <div className={m3("text-center text-xs py-1")} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
 
-                {/* ROW 5 — Step ④: Future Price */}
+                {/* ROW 4.75 — Step [4]: 5Y Dividends Received */}
+                {(() => {
+                  const cumDivPs = scoreEx?.m_cumulative_div_ps != null ? Number(scoreEx.m_cumulative_div_ps) : 0;
+                  const isNoDividend = cumDivPs === 0;
+                  const divBox = "border border-yellow-400/30 rounded p-2 text-center";
+                  return (
+                    <>
+                      <div className={`px-3 py-2 ${r}`}><div className={divBox}>
+                        <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> 5Y DIVIDENDS RECEIVED PER SHARE</p>
+                        {isNoDividend ? (
+                          <><p className="text-[13px] font-bold font-mono" style={{ color: "rgba(251,191,36,0.4)" }}>$0.00</p><p className="text-[8px]" style={{ color: "rgba(251,191,36,0.3)" }}>No dividend</p></>
+                        ) : (
+                          <p className="text-[13px] font-bold font-mono" style={{ color: "#fbbf24" }}>{fmtDollar(cumDivPs)}</p>
+                        )}
+                      </div></div>
+                      <div className={`px-3 py-2 ${r}`}><div className={divBox}>
+                        <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> 5Y DIVIDENDS RECEIVED PER SHARE</p>
+                        {isNoDividend ? (
+                          <><p className="text-[13px] font-bold font-mono" style={{ color: "rgba(251,191,36,0.4)" }}>$0.00</p><p className="text-[8px]" style={{ color: "rgba(251,191,36,0.3)" }}>No dividend</p></>
+                        ) : (
+                          <p className="text-[13px] font-bold font-mono" style={{ color: "#fbbf24" }}>{fmtDollar(cumDivPs)}</p>
+                        )}
+                      </div></div>
+                      <div className={m3("px-3 py-2")}><div className={divBox}>
+                        <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> 5Y DIVIDENDS RECEIVED PER SHARE</p>
+                        {isNoDividend ? (
+                          <><p className="text-[13px] font-bold font-mono" style={{ color: "rgba(251,191,36,0.4)" }}>$0.00</p><p className="text-[8px]" style={{ color: "rgba(251,191,36,0.3)" }}>No dividend</p></>
+                        ) : (
+                          <p className="text-[13px] font-bold font-mono" style={{ color: "#fbbf24" }}>{fmtDollar(cumDivPs)}</p>
+                        )}
+                      </div></div>
+                    </>
+                  );
+                })()}
+
+                {/* Arrow row */}
+                <div className={`text-center text-xs py-1 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                <div className={`text-center text-xs py-1 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                <div className={m3("text-center text-xs py-1")} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+
+                {/* ROW 5 — Step [5]: Total Return Price */}
                 <div className={`px-3 pt-2 pb-4 text-center ${r}`}>
-                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> FUTURE PRICE</p>
+                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[5]</span> TOTAL RETURN PRICE</p>
                   <div className="inline-block px-3 py-2 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
                     <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price)}</p>
                   </div>
                 </div>
                 <div className={`px-3 pt-2 pb-4 text-center ${r}`}>
-                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> FUTURE PRICE</p>
+                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[5]</span> TOTAL RETURN PRICE</p>
                   <div className="inline-block px-3 py-2 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
                     <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price)}</p>
                   </div>
                 </div>
                 <div className={m3("px-3 pt-2 pb-4 text-center")}>
-                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[4]</span> FUTURE PRICE</p>
+                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-xs font-bold">[5]</span> TOTAL RETURN PRICE</p>
                   <div className="inline-block px-3 py-2 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
                     <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price)}</p>
                   </div>

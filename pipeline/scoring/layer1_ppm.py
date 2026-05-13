@@ -130,6 +130,7 @@ def _m3_shareholder_return(data: dict, current_price: float) -> float | None:
         "buyback_yield":     buyback_yield,
         "shareholder_yield": div_yield + buyback_yield,
         "growth_rate":       price_growth,
+        "annual_div_ps":     _div,
     }
 
 
@@ -166,6 +167,7 @@ def score_ppm(data: dict) -> dict:
         "m3_buyback_yield":      round(r3["buyback_yield"],    4) if r3 else None,
         "m3_shareholder_yield":  round(r3["shareholder_yield"],4) if r3 else None,
         "m3_growth_rate":        round(r3["growth_rate"],      4) if r3 else None,
+        "m_cumulative_div_ps":   round(r3["annual_div_ps"] * _YEARS, 4) if r3 else 0.0,
     }
 
     if not valid or current_price <= 0:

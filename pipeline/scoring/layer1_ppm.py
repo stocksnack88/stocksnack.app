@@ -36,7 +36,7 @@ def _safe_growth(values: list, years: int = 4) -> float:
 
 # ── M1: EBITDA Multiple ────────────────────────────────────────────────────────
 
-def _m1_ebitda(data: dict, shares: float) -> float | None:
+def _m1_ebitda(data: dict, shares: float) -> dict | None:
     income  = data.get("income", [])
     balance = data.get("balance", [])
     metrics = data.get("metrics", [])
@@ -58,12 +58,19 @@ def _m1_ebitda(data: dict, shares: float) -> float | None:
 
     if future_equity <= 0 or shares <= 0:
         return None
-    return future_equity / shares
+    return {
+        "price":            future_equity / shares,
+        "ebitda_current":   ebitda_vals[0],
+        "ebitda_projected": ebitda_5y,
+        "growth_rate":      growth_rate,
+        "ev_ebitda":        ev_ebitda,
+        "net_debt":         net_debt,
+    }
 
 
 # ── M2: FCF Yield ──────────────────────────────────────────────────────────────
 
-def _m2_fcf(data: dict, shares: float) -> float | None:
+def _m2_fcf(data: dict, shares: float) -> dict | None:
     cashflow = data.get("cashflow", [])
 
     fcf_vals = [safe_float(r.get("freeCashFlow")) for r in cashflow]
@@ -76,7 +83,13 @@ def _m2_fcf(data: dict, shares: float) -> float | None:
     future_mkt_cap = fcf_5y / _TARGET_FCF_YIELD
     if shares <= 0:
         return None
-    return future_mkt_cap / shares
+    return {
+        "price":         future_mkt_cap / shares,
+        "fcf_current":   fcf_vals[0],
+        "fcf_projected": fcf_5y,
+        "growth_rate":   growth_rate,
+        "fcf_yield":     _TARGET_FCF_YIELD,
+    }
 
 
 # ── M3: Dividend + Buyback Total Return ────────────────────────────────────────
@@ -111,7 +124,13 @@ def _m3_shareholder_return(data: dict, current_price: float) -> float | None:
 
     total_annual_return = price_growth + div_yield + buyback_yield
     future_price = current_price * (1 + total_annual_return) ** _YEARS
-    return future_price
+    return {
+        "price":             future_price,
+        "div_yield":         div_yield,
+        "buyback_yield":     buyback_yield,
+        "shareholder_yield": div_yield + buyback_yield,
+        "growth_rate":       price_growth,
+    }
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────
@@ -121,16 +140,38 @@ def score_ppm(data: dict) -> dict:
     current_price = safe_float(profile.get("price"))
     shares        = _shares(profile)
 
-    m1 = _m1_ebitda(data, shares or 0) if shares else None
-    m2 = _m2_fcf(data, shares or 0)    if shares else None
-    m3 = _m3_shareholder_return(data, current_price)
+    r1 = _m1_ebitda(data, shares or 0) if shares else None
+    r2 = _m2_fcf(data, shares or 0)    if shares else None
+    r3 = _m3_shareholder_return(data, current_price)
+
+    m1 = r1["price"] if r1 else None
+    m2 = r2["price"] if r2 else None
+    m3 = r3["price"] if r3 else None
 
     valid = [p for p in [m1, m2, m3] if p and p > 0]
+
+    intermediates = {
+        "m1_ebitda_current":     round(r1["ebitda_current"],   2) if r1 else None,
+        "m1_ebitda_projected":   round(r1["ebitda_projected"], 2) if r1 else None,
+        "m1_growth_rate":        round(r1["growth_rate"],      4) if r1 else None,
+        "m1_ev_ebitda_multiple": round(r1["ev_ebitda"],        2) if r1 else None,
+        "m1_net_debt":           round(r1["net_debt"],         2) if r1 else None,
+        "m1_shares":             round(shares,                 2) if shares else None,
+        "m2_fcf_current":        round(r2["fcf_current"],      2) if r2 else None,
+        "m2_fcf_projected":      round(r2["fcf_projected"],    2) if r2 else None,
+        "m2_growth_rate":        round(r2["growth_rate"],      4) if r2 else None,
+        "m2_fcf_yield":          round(r2["fcf_yield"],        4) if r2 else None,
+        "m3_div_yield":          round(r3["div_yield"],        4) if r3 else None,
+        "m3_buyback_yield":      round(r3["buyback_yield"],    4) if r3 else None,
+        "m3_shareholder_yield":  round(r3["shareholder_yield"],4) if r3 else None,
+        "m3_growth_rate":        round(r3["growth_rate"],      4) if r3 else None,
+    }
 
     if not valid or current_price <= 0:
         return {
             "score": 50.0, "m1_price": m1, "m2_price": m2,
             "m3_price": m3, "blended_price": None, "cagr": None,
+            **intermediates,
         }
 
     blended = sum(valid) / len(valid)
@@ -144,4 +185,5 @@ def score_ppm(data: dict) -> dict:
         "m3_price":      round(m3, 2) if m3 else None,
         "blended_price": round(blended, 2),
         "cagr":          round(ppm_cagr, 4) if ppm_cagr is not None else None,
+        **intermediates,
     }

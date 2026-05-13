@@ -222,7 +222,15 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {fmtDollar(currentPrice)}
             </p>
           </div>
-          <div className="text-2xl font-mono shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>→</div>
+          <div className="flex flex-col items-center justify-center shrink-0 gap-0.5">
+            <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
+              {score?.ppm_cagr != null ? `CAGR ${fmtCagr(score.ppm_cagr)}` : ""}
+            </p>
+            <p className="text-2xl font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>→</p>
+            <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
+              {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x` : ""}
+            </p>
+          </div>
           <div className="flex-1 text-center">
             <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>PROJECTED (5Y)</p>
             <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>

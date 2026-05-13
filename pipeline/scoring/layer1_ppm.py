@@ -161,6 +161,7 @@ def score_ppm(data: dict) -> dict:
         "m2_fcf_projected":      round(r2["fcf_projected"],    2) if r2 else None,
         "m2_growth_rate":        round(r2["growth_rate"],      4) if r2 else None,
         "m2_fcf_yield":          round(r2["fcf_yield"],        4) if r2 else None,
+        "m3_applicable":         r3 is not None,
         "m3_div_yield":          round(r3["div_yield"],        4) if r3 else None,
         "m3_buyback_yield":      round(r3["buyback_yield"],    4) if r3 else None,
         "m3_shareholder_yield":  round(r3["shareholder_yield"],4) if r3 else None,

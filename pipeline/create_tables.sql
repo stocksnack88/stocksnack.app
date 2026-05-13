@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS stock_scores (
     m2_fcf_projected     NUMERIC,
     m2_growth_rate       NUMERIC,
     m2_fcf_yield         NUMERIC,
+    m3_applicable        BOOLEAN,
     m3_div_yield         NUMERIC,
     m3_buyback_yield     NUMERIC,
     m3_shareholder_yield NUMERIC,

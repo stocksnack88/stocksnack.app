@@ -171,6 +171,7 @@ class SupabaseWriter:
             "m2_fcf_projected":     ppm.get("m2_fcf_projected"),
             "m2_growth_rate":       ppm.get("m2_growth_rate"),
             "m2_fcf_yield":         ppm.get("m2_fcf_yield"),
+            "m3_applicable":        ppm.get("m3_applicable"),
             "m3_div_yield":         ppm.get("m3_div_yield"),
             "m3_buyback_yield":     ppm.get("m3_buyback_yield"),
             "m3_shareholder_yield": ppm.get("m3_shareholder_yield"),

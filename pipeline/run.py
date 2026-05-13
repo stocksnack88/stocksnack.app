@@ -18,10 +18,12 @@ import argparse
 from config import TICKERS, SUPABASE_URL, SUPABASE_KEY
 from fmp_client import FMPClient
 from supabase_writer import SupabaseWriter
-from scoring.layer1_ppm    import score_ppm
-from scoring.layer2_growth import score_growth
-from scoring.layer3_health import score_health
-from scoring.layer4_final  import score_final
+from scoring.layer1_ppm       import score_ppm
+from scoring.layer2_growth    import score_growth
+from scoring.layer3_health    import score_health
+from scoring.layer4_final     import score_final
+from scoring.spy_benchmark    import compute_spy_benchmark
+from scoring.segment_analysis import compute_segments
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,7 +33,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-def process(ticker: str, fmp: FMPClient, writer: SupabaseWriter) -> bool:
+def process(ticker: str, fmp: FMPClient, writer: SupabaseWriter, spy: dict) -> bool:
     try:
         data = fmp.fetch_all(ticker)
 
@@ -41,12 +43,13 @@ def process(ticker: str, fmp: FMPClient, writer: SupabaseWriter) -> bool:
 
         writer.upsert_stock(ticker, data)
 
-        ppm    = score_ppm(data)
-        growth = score_growth(data)
-        health = score_health(data)
-        final  = score_final(ppm, growth, health)
+        ppm      = score_ppm(data)
+        growth   = score_growth(data)
+        health   = score_health(data)
+        final    = score_final(ppm, growth, health)
+        segments = compute_segments(data.get("product_segments", []), data.get("geo_segments", []))
 
-        writer.upsert_scores(ticker, ppm, growth, health, final)
+        writer.upsert_scores(ticker, ppm, growth, health, final, spy, segments)
 
         log.info(
             "%-6s  PPM=%5.1f  Growth=%5.1f  Health=%5.1f  Final=%5.1f  [%s]",
@@ -78,13 +81,18 @@ def main() -> None:
     fmp    = FMPClient()
     writer = SupabaseWriter(SUPABASE_URL, SUPABASE_KEY)
 
+    log.info("Fetching SPY benchmark data")
+    spy = compute_spy_benchmark(fmp.get_spy_quote(), fmp.get_spy_dividends())
+    log.info("SPY benchmark: cagr=%.4f  5y_return=%.4f",
+             spy["sp500_cagr"] or 0, spy["sp500_5y_return"] or 0)
+
     run_id = writer.start_pipeline_run(tickers)
 
     processed: list[str] = []
     failed:    list[str] = []
 
     for ticker in tickers:
-        ok = process(ticker, fmp, writer)
+        ok = process(ticker, fmp, writer, spy)
         (processed if ok else failed).append(ticker)
 
     writer.complete_pipeline_run(run_id, processed, failed)

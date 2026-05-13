@@ -353,7 +353,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
                   <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>COMPANY DESCRIPTION</p>
                   <p className="text-xs leading-relaxed border-l-2 pl-4" style={{ color: "rgba(0,255,65,0.4)", borderColor: "rgba(0,255,65,0.2)" }}>
-                    {stock.description.length > 320 ? stock.description.slice(0, 320) + "..." : stock.description}
+                    {stock.description.slice(0, 120) + "...[+]"}
                   </p>
                 </div>
               )}

@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
 import UpgradeButton from "@/components/ui/UpgradeButton";
+import DescriptionToggle from "@/components/ui/DescriptionToggle";
 
 const FREE_LIMIT = 5;
 
@@ -318,7 +319,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             {
               label: "FINANCIAL HEALTH",
               value: (
-                <span className="font-mono font-bold text-sm text-right" style={{ color: "#00ff41" }}>
+                <span className="font-mono font-bold text-sm whitespace-nowrap" style={{ color: "#00ff41" }}>
                   {score?.health_passes != null ? `${score.health_passes} / 24 CHECKS PASSED` : "—"}
                 </span>
               ),
@@ -352,12 +353,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {stock?.description && (
                 <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
                   <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>COMPANY DESCRIPTION</p>
-                  <div className="relative border-l-2 pl-4" style={{ borderColor: "rgba(0,255,65,0.2)" }}>
-                    <p className="text-xs leading-relaxed" style={{ color: "rgba(0,255,65,0.4)" }}>
-                      {stock.description.slice(0, 80) + "..."}
-                    </p>
-                    <div className="absolute inset-x-0 bottom-0 h-5 pointer-events-none" style={{ background: "linear-gradient(to bottom, transparent, #000)" }} />
-                  </div>
+                  <DescriptionToggle text={stock.description} />
                 </div>
               )}
 
@@ -365,6 +361,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {productSegs.length > 0 && (
                 <div className="px-5 py-4" style={{ borderBottom: geoSegs.length > 0 ? "1px solid rgba(0,255,65,0.1)" : undefined }}>
                   <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>PRODUCT BREAKDOWN</p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[9px] tracking-widest flex-1" style={{ color: "rgba(0,255,65,0.3)" }}>REVENUE SHARE</span>
+                    <span className="text-[9px] tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>SHARE</span>
+                    <span className="text-[9px] tracking-widest shrink-0 w-16 text-right" style={{ color: "rgba(0,255,65,0.3)" }}>CAGR</span>
+                  </div>
                   <div className="space-y-3">
                     {productSegs.map((seg) => (
                       <div key={seg.name}>
@@ -388,6 +389,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {geoSegs.length > 0 && (
                 <div className="px-5 py-4">
                   <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>GEOGRAPHIC BREAKDOWN</p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[9px] tracking-widest flex-1" style={{ color: "rgba(0,255,65,0.3)" }}>REVENUE SHARE</span>
+                    <span className="text-[9px] tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>SHARE</span>
+                    <span className="text-[9px] tracking-widest shrink-0 w-16 text-right" style={{ color: "rgba(0,255,65,0.3)" }}>CAGR</span>
+                  </div>
                   <div className="space-y-3">
                     {geoSegs.map((seg) => (
                       <div key={seg.name}>

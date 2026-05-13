@@ -219,32 +219,40 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </div>
 
         {/* Price projection */}
-        <div className="flex items-center gap-4 rounded px-5 py-4" style={card}>
-          <div className="flex-1 text-center">
-            <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>CURRENT PRICE</p>
-            <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-              {fmtDollar(currentPrice)}
-            </p>
+        <div className="rounded overflow-hidden" style={card}>
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>PRICE PROJECTION</p>
           </div>
-          <div className="flex flex-col items-center justify-center shrink-0 gap-0.5">
-            <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
-              {score?.ppm_cagr != null ? `CAGR ${fmtCagr(score.ppm_cagr)}` : ""}
-            </p>
-            <p className="text-2xl font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>→</p>
-            <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
-              {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x` : ""}
-            </p>
-          </div>
-          <div className="flex-1 text-center">
-            <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>PROJECTED (5Y)</p>
-            <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-              {fmtDollar(blendedPrice)}
-            </p>
+          <div className="flex items-center gap-4 px-5 py-4">
+            <div className="flex-1 text-center">
+              <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>CURRENT PRICE</p>
+              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
+                {fmtDollar(currentPrice)}
+              </p>
+            </div>
+            <div className="flex flex-col items-center justify-center shrink-0 gap-0.5">
+              <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
+                {score?.ppm_cagr != null ? `CAGR ${fmtCagr(score.ppm_cagr)}` : ""}
+              </p>
+              <p className="text-2xl font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>→</p>
+              <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
+                {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x IN 5Y` : ""}
+              </p>
+            </div>
+            <div className="flex-1 text-center">
+              <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>PROJECTED (5Y)</p>
+              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
+                {fmtDollar(blendedPrice)}
+              </p>
+            </div>
           </div>
         </div>
 
         {/* ── Scorecard ───────────────────────────────────────────────────────── */}
         <div className="rounded overflow-hidden" style={card}>
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>AT A GLANCE</p>
+          </div>
           {([
             {
               label: "5Y RETURN VS S&P 500",
@@ -276,18 +284,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               label: "GROWTH QUALITY",
               value: (
                 <span className="font-mono font-bold text-sm" style={{ color: "#00ff41" }}>
-                  {score?.growth_score == null ? "—" :
-                    score.growth_score >= 80 ? "★★★★★" :
-                    score.growth_score >= 60 ? "★★★★☆" :
-                    score.growth_score >= 40 ? "★★★☆☆" :
-                    score.growth_score >= 20 ? "★★☆☆☆" : "★☆☆☆☆"}
+                  {score?.growth_score != null ? fmtPct(Number(score.growth_score)) : "—"}
                 </span>
               ),
             },
             {
               label: "FINANCIAL HEALTH",
               value: (
-                <span className="font-mono font-bold text-sm" style={{ color: "#00ff41" }}>
+                <span className="font-mono font-bold text-sm text-right" style={{ color: "#00ff41" }}>
                   {score?.health_passes != null ? `${score.health_passes} / 24 CHECKS PASSED` : "—"}
                 </span>
               ),

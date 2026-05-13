@@ -239,6 +239,67 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </div>
         </div>
 
+        {/* ── Scorecard ───────────────────────────────────────────────────────── */}
+        <div className="rounded overflow-hidden" style={card}>
+          {([
+            {
+              label: "5Y RETURN VS S&P 500",
+              value: (
+                <span className="font-mono font-bold text-sm">
+                  <span style={{ color: "#00ff41" }}>
+                    {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x` : "—"}
+                  </span>
+                  <span className="mx-2" style={{ color: "rgba(0,255,65,0.3)" }}>vs</span>
+                  <span style={{ color: "rgba(0,255,65,0.5)" }}>
+                    {(score as any)?.sp500_5y_return != null ? `${Number((score as any).sp500_5y_return).toFixed(1)}x` : "—"}
+                  </span>
+                </span>
+              ),
+            },
+            {
+              label: "CAGR VS S&P 500",
+              value: (
+                <span className="font-mono font-bold text-sm">
+                  <span style={{ color: "#00ff41" }}>{fmtCagr(score?.ppm_cagr)}</span>
+                  <span className="mx-2" style={{ color: "rgba(0,255,65,0.3)" }}>vs</span>
+                  <span style={{ color: "rgba(0,255,65,0.5)" }}>
+                    {(score as any)?.sp500_cagr != null ? fmtCagr((score as any).sp500_cagr) : "—"}
+                  </span>
+                </span>
+              ),
+            },
+            {
+              label: "GROWTH QUALITY",
+              value: (
+                <span className="font-mono font-bold text-sm" style={{ color: "#00ff41" }}>
+                  {score?.growth_score == null ? "—" :
+                    score.growth_score >= 80 ? "★★★★★" :
+                    score.growth_score >= 60 ? "★★★★☆" :
+                    score.growth_score >= 40 ? "★★★☆☆" :
+                    score.growth_score >= 20 ? "★★☆☆☆" : "★☆☆☆☆"}
+                </span>
+              ),
+            },
+            {
+              label: "FINANCIAL HEALTH",
+              value: (
+                <span className="font-mono font-bold text-sm" style={{ color: "#00ff41" }}>
+                  {score?.health_passes != null ? `${score.health_passes} / 24 CHECKS PASSED` : "—"}
+                </span>
+              ),
+            },
+          ] as const).map(({ label, value }, i) => (
+            <div
+              key={label}
+              className="flex items-center justify-between px-5 py-3 gap-4"
+              style={i < 3 ? { borderBottom: "1px solid rgba(0,255,65,0.1)" } : {}}
+            >
+              <p className="text-xs tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.4)" }}>{label}</p>
+              {value}
+            </div>
+          ))}
+        </div>
+
         {/* ── About the Business ──────────────────────────────────────────────── */}
         {(() => {
           type Segment = { name: string; pct: number; cagr: number | null; value: number };

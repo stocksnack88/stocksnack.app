@@ -352,9 +352,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {stock?.description && (
                 <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
                   <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>COMPANY DESCRIPTION</p>
-                  <p className="text-xs leading-relaxed border-l-2 pl-4" style={{ color: "rgba(0,255,65,0.4)", borderColor: "rgba(0,255,65,0.2)" }}>
-                    {stock.description.slice(0, 120) + "...[+]"}
-                  </p>
+                  <div className="relative border-l-2 pl-4" style={{ borderColor: "rgba(0,255,65,0.2)" }}>
+                    <p className="text-xs leading-relaxed" style={{ color: "rgba(0,255,65,0.4)" }}>
+                      {stock.description.slice(0, 80) + "..."}
+                    </p>
+                    <div className="absolute inset-x-0 bottom-0 h-5 pointer-events-none" style={{ background: "linear-gradient(to bottom, transparent, #000)" }} />
+                  </div>
                 </div>
               )}
 
@@ -430,72 +433,72 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           <div className="grid grid-cols-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
 
             {/* M1 — Earnings Growth */}
-            <div className="px-4 py-5 border-r border-[#00ff41]/10">
-              <p className="text-[9px] font-bold tracking-[0.3em] mb-4" style={{ color: "rgba(0,255,65,0.3)" }}>
+            <div className="px-3 py-4 border-r border-[#00ff41]/10">
+              <p className="text-[10px] font-bold tracking-wider whitespace-nowrap mb-3" style={{ color: "rgba(0,255,65,0.3)" }}>
                 METHOD 1 — EARNINGS GROWTH
               </p>
-              <div className="mb-1">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>1 · IDENTIFY CURRENT PRICE</p>
-                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
+              <div>
+                <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>1 · IDENTIFY CURRENT PRICE</p>
+                <p className="text-[13px] font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
               </div>
-              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-              <div className="mb-0.5">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>2 · IDENTIFY CURRENT EBITDA</p>
-                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_current)}</p>
+              <div className="text-center text-xs my-1" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <div>
+                <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>2 · IDENTIFY CURRENT EBITDA</p>
+                <p className="text-[13px] font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_current)}</p>
               </div>
-              <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+              <p className="text-[9px] italic mb-1" style={{ color: "rgba(0,255,65,0.35)" }}>
                 Growing at {scoreEx?.m1_growth_rate != null ? `${(Number(scoreEx.m1_growth_rate) * 100).toFixed(1)}%` : "—"} p.a.
               </p>
-              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-              <div className="mb-0.5">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>3 · PROJECT 5Y EBITDA</p>
-                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_projected)}</p>
+              <div className="text-center text-xs my-1" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <div>
+                <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>3 · PROJECT 5Y EBITDA</p>
+                <p className="text-[13px] font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_projected)}</p>
               </div>
-              <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+              <p className="text-[9px] italic mb-1" style={{ color: "rgba(0,255,65,0.35)" }}>
                 At {scoreEx?.m1_ev_ebitda_multiple != null ? `${Number(scoreEx.m1_ev_ebitda_multiple).toFixed(0)}x` : "—"} earnings multiple
               </p>
-              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-              <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.3)" }}>4 · ESTIMATED FUTURE PRICE</p>
-              <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
-                <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price)}</p>
+              <div className="text-center text-xs my-1" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>4 · ESTIMATED FUTURE PRICE</p>
+              <div className="inline-block px-3 py-2 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
+                <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price)}</p>
               </div>
             </div>
 
             {/* M2 — Free Cash Flow */}
-            <div className="px-4 py-5 border-r border-[#00ff41]/10">
-              <p className="text-[9px] font-bold tracking-[0.3em] mb-4" style={{ color: "rgba(0,255,65,0.3)" }}>
+            <div className="px-3 py-4 border-r border-[#00ff41]/10">
+              <p className="text-[10px] font-bold tracking-wider whitespace-nowrap mb-3" style={{ color: "rgba(0,255,65,0.3)" }}>
                 METHOD 2 — FREE CASH FLOW
               </p>
-              <div className="mb-1">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>1 · IDENTIFY CURRENT PRICE</p>
-                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
+              <div>
+                <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>1 · IDENTIFY CURRENT PRICE</p>
+                <p className="text-[13px] font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
               </div>
-              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-              <div className="mb-0.5">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>2 · IDENTIFY CURRENT FCF</p>
-                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m2_fcf_current)}</p>
+              <div className="text-center text-xs my-1" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <div>
+                <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>2 · IDENTIFY CURRENT FCF</p>
+                <p className="text-[13px] font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m2_fcf_current)}</p>
               </div>
-              <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+              <p className="text-[9px] italic mb-1" style={{ color: "rgba(0,255,65,0.35)" }}>
                 Growing at {scoreEx?.m2_growth_rate != null ? `${(Number(scoreEx.m2_growth_rate) * 100).toFixed(1)}%` : "—"} p.a.
               </p>
-              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-              <div className="mb-0.5">
-                <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>3 · PROJECT 5Y FCF</p>
-                <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m2_fcf_projected)}</p>
+              <div className="text-center text-xs my-1" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <div>
+                <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>3 · PROJECT 5Y FCF</p>
+                <p className="text-[13px] font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m2_fcf_projected)}</p>
               </div>
-              <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+              <p className="text-[9px] italic mb-1" style={{ color: "rgba(0,255,65,0.35)" }}>
                 At {scoreEx?.m2_fcf_yield != null ? `${(Number(scoreEx.m2_fcf_yield) * 100).toFixed(1)}%` : "—"} cash flow yield
               </p>
-              <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-              <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.3)" }}>4 · ESTIMATED FUTURE PRICE</p>
-              <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
-                <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price)}</p>
+              <div className="text-center text-xs my-1" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+              <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>4 · ESTIMATED FUTURE PRICE</p>
+              <div className="inline-block px-3 py-2 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
+                <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price)}</p>
               </div>
             </div>
 
             {/* M3 — Dividends & Buybacks */}
-            <div className="px-4 py-5">
-              <p className="text-[9px] font-bold tracking-[0.3em] mb-4" style={{ color: "rgba(0,255,65,0.3)" }}>
+            <div className="px-3 py-4">
+              <p className="text-[10px] font-bold tracking-wider whitespace-nowrap mb-3" style={{ color: "rgba(0,255,65,0.3)" }}>
                 METHOD 3 — DIVIDENDS &amp; BUYBACKS
               </p>
               {(!score?.ppm_m3_price || Number(score.ppm_m3_price) === 0) ? (
@@ -507,38 +510,38 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 </div>
               ) : (
                 <>
-                  <div className="mb-1">
-                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>1 · IDENTIFY CURRENT PRICE</p>
-                    <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
+                  <div>
+                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>1 · IDENTIFY CURRENT PRICE</p>
+                    <p className="text-[13px] font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
                   </div>
-                  <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-                  <div className="mb-0.5">
-                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>2 · IDENTIFY SHAREHOLDER YIELD</p>
-                    <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>
+                  <div className="text-center text-xs my-1" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                  <div>
+                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>2 · IDENTIFY SHAREHOLDER YIELD</p>
+                    <p className="text-[13px] font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>
                       {scoreEx?.m3_div_yield != null ? `${(Number(scoreEx.m3_div_yield) * 100).toFixed(1)}%` : "—"} div
                       {" + "}
                       {scoreEx?.m3_buyback_yield != null ? `${(Number(scoreEx.m3_buyback_yield) * 100).toFixed(1)}%` : "—"} buyback
                     </p>
                   </div>
-                  <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+                  <p className="text-[9px] italic mb-1" style={{ color: "rgba(0,255,65,0.35)" }}>
                     Total: {scoreEx?.m3_shareholder_yield != null ? `${(Number(scoreEx.m3_shareholder_yield) * 100).toFixed(1)}%` : "—"} shareholder yield
                   </p>
-                  <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-                  <div className="mb-0.5">
-                    <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>3 · IDENTIFY PRICE GROWTH</p>
-                    <p className="text-base font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>
+                  <div className="text-center text-xs my-1" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                  <div>
+                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>3 · IDENTIFY PRICE GROWTH</p>
+                    <p className="text-[13px] font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>
                       {scoreEx?.m3_growth_rate != null ? `${(Number(scoreEx.m3_growth_rate) * 100).toFixed(1)}%` : "—"} p.a.
                     </p>
                   </div>
                   {scoreEx?.m3_shareholder_yield != null && scoreEx?.m3_growth_rate != null && (
-                    <p className="text-[9px] italic mb-2" style={{ color: "rgba(0,255,65,0.35)" }}>
+                    <p className="text-[9px] italic mb-1" style={{ color: "rgba(0,255,65,0.35)" }}>
                       Combined: {((Number(scoreEx.m3_shareholder_yield) + Number(scoreEx.m3_growth_rate)) * 100).toFixed(1)}% annual return
                     </p>
                   )}
-                  <div className="text-center text-sm my-2" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-                  <p className="text-[9px] tracking-widest mb-1.5" style={{ color: "rgba(0,255,65,0.3)" }}>4 · ESTIMATED FUTURE PRICE</p>
-                  <div className="inline-block px-3 py-1.5 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
-                    <p className="text-xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price)}</p>
+                  <div className="text-center text-xs my-1" style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                  <p className="text-[8px] tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.3)" }}>4 · ESTIMATED FUTURE PRICE</p>
+                  <div className="inline-block px-3 py-2 rounded" style={{ background: "rgba(0,255,65,0.15)", border: "1px solid rgba(0,255,65,0.4)" }}>
+                    <p className="text-base font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price)}</p>
                   </div>
                 </>
               )}

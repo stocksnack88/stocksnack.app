@@ -31,11 +31,14 @@ function SignalBadge({ signal }: { signal: string | null }) {
 
 function GrowthStarsCell({ value }: { value: number | null }) {
   if (value === null) return <span className="text-gray-600">—</span>;
-  if (value >= 80) return <span className="text-[#00ff41]">⭐⭐⭐⭐</span>;
-  if (value >= 60) return <span className="text-[#00ff41]">⭐⭐⭐</span>;
-  if (value >= 40) return <span className="text-yellow-300">⭐⭐</span>;
-  if (value >= 20) return <span className="text-yellow-300">⭐</span>;
-  return <span className="text-red-400 font-mono font-bold">—</span>;
+  const filled = value >= 80 ? 5 : value >= 60 ? 4 : value >= 40 ? 3 : value >= 20 ? 2 : 1;
+  const color = filled >= 4 ? "#00ff41" : filled === 3 ? "#fbbf24" : "#f87171";
+  return (
+    <span className="font-mono">
+      <span style={{ color }}>{"★".repeat(filled)}</span>
+      <span style={{ color: "rgba(0,255,65,0.2)" }}>{"☆".repeat(5 - filled)}</span>
+    </span>
+  );
 }
 
 function HealthPassesCell({ value }: { value: number | null }) {
@@ -66,7 +69,8 @@ function stockSummary(stock: ScreenerRow, rank: number): string {
     : "—";
   const health = stock.health_passes !== null ? `${stock.health_passes}/24` : "—";
   const g = stock.growth_score;
-  const stars = g === null ? "—" : g >= 80 ? "⭐⭐⭐⭐" : g >= 60 ? "⭐⭐⭐" : g >= 40 ? "⭐⭐" : g >= 20 ? "⭐" : "—";
+  const filled = g === null ? 0 : g >= 80 ? 5 : g >= 60 ? 4 : g >= 40 ? 3 : g >= 20 ? 2 : 1;
+  const stars = g === null ? "—" : "★".repeat(filled) + "☆".repeat(5 - filled);
   return `${stock.ticker} is ranked #${rank} — projected ${ret} return over 5 years at ${cagr} CAGR, ${stars} growth quality, with ${health} financial health metrics passed.`;
 }
 

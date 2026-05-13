@@ -217,6 +217,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
     m3_shareholder_yield?: number | null;
     m3_growth_rate?: number | null;
     m_cumulative_div_ps?: number | null;
+    gq_signal_revenue?: string | null;
+    gq_signal_net_income?: string | null;
+    gq_signal_fcf?: string | null;
   };
   const scoreEx = score as (NonNullable<typeof score> & ScoreExtras) | null;
 
@@ -714,10 +717,18 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const ebitdaCagr = (eFirst && eLast && eFirst > 0 && eLast > 0 && nyrs > 0)
               ? Math.pow(eLast / eFirst, 1 / nyrs) - 1 : null;
 
-            const metrics: { key: MetricKey; label: string; cagr: number | null | undefined }[] = [
-              { key: "revenue",        label: "REVENUE",        cagr: score?.revenue_cagr_5y },
-              { key: "ebitda",         label: "EBITDA",         cagr: ebitdaCagr },
-              { key: "free_cash_flow", label: "FREE CASH FLOW", cagr: score?.fcf_cagr_5y },
+            const SIG_STARS: Record<string, number> = {
+              "Solid Growth": 5, "Slowing Growth": 4, "Decelerating": 3, "Deteriorating": 2, "Freefall": 1,
+            };
+            const SIG_COLOR: Record<string, string> = {
+              "Solid Growth": "#00ff41", "Slowing Growth": "#00ff41",
+              "Decelerating": "#fbbf24", "Deteriorating": "#fb923c", "Freefall": "#f87171",
+            };
+
+            const metrics: { key: MetricKey; label: string; cagr: number | null | undefined; signal: string | null | undefined }[] = [
+              { key: "revenue",        label: "REVENUE",        cagr: score?.revenue_cagr_5y,  signal: scoreEx?.gq_signal_revenue },
+              { key: "ebitda",         label: "EBITDA",         cagr: ebitdaCagr,               signal: scoreEx?.gq_signal_net_income },
+              { key: "free_cash_flow", label: "FREE CASH FLOW", cagr: score?.fcf_cagr_5y,      signal: scoreEx?.gq_signal_fcf },
             ];
 
             return (
@@ -726,7 +737,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   HISTORICAL REVENUE, EBITDA &amp; FREE CASH FLOW
                 </p>
                 <div className="space-y-6">
-                  {metrics.map(({ key, label, cagr }) => {
+                  {metrics.map(({ key, label, cagr, signal }) => {
                     const vals = rows.map(r => {
                       const v = r[key];
                       return { year: r.fiscal_year, v, isNeg: v != null && v < 0 };
@@ -742,7 +753,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     return (
                       <div key={key}>
                         {/* Label + CAGR badge */}
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
                           <span className="text-[9px] font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>
                             {label}
                           </span>
@@ -756,6 +767,21 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             </span>
                           )}
                         </div>
+                        {/* Growth quality signal */}
+                        {signal && (
+                          <div className="flex items-center gap-1 mb-2">
+                            <span className="text-[9px] tracking-widest font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>
+                              GROWTH QUALITY:
+                            </span>
+                            <span className="text-[9px] font-mono" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
+                              {signal}
+                            </span>
+                            <span className="text-[9px] font-mono" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
+                              {"★".repeat(SIG_STARS[signal] ?? 0)}
+                              <span style={{ color: "rgba(0,255,65,0.2)" }}>{"☆".repeat(5 - (SIG_STARS[signal] ?? 0))}</span>
+                            </span>
+                          </div>
+                        )}
                         {/* Bar area */}
                         <div className="relative" style={{ height: CHART_H }}>
                           {maxNeg < 0 && (

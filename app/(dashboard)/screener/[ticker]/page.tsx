@@ -319,8 +319,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             {
               label: "FINANCIAL HEALTH",
               value: (
-                <span className="font-mono font-bold text-sm whitespace-nowrap" style={{ color: "#00ff41" }}>
-                  {score?.health_passes != null ? `${score.health_passes} / 24 CHECKS PASSED` : "—"}
+                <span className="whitespace-nowrap">
+                  {score?.health_passes != null ? (
+                    <>
+                      <span className="font-mono font-bold text-sm" style={{ color: "#00ff41" }}>{score.health_passes} / 24</span>
+                      <span className="text-[9px]" style={{ color: "rgba(0,255,65,0.5)" }}> CHECKS PASSED</span>
+                    </>
+                  ) : "—"}
                 </span>
               ),
             },

@@ -458,15 +458,15 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
                 {/* ROW 1 — Method headers */}
                 <div className={`px-3 pt-2 pb-1 text-center ${r}`}>
-                  <p className="text-[8px] tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 1</p>
+                  <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 1</p>
                   <p className="text-base font-bold tracking-wider" style={{ color: "#00ff41" }}>EARNINGS GROWTH</p>
                 </div>
                 <div className={`px-3 pt-2 pb-1 text-center ${r}`}>
-                  <p className="text-[8px] tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 2</p>
+                  <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 2</p>
                   <p className="text-base font-bold tracking-wider" style={{ color: "#00ff41" }}>FREE CASH FLOW</p>
                 </div>
                 <div className={m3("px-3 pt-2 pb-1 text-center")}>
-                  <p className="text-[8px] tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 3</p>
+                  <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 3</p>
                   <p className="text-base font-bold tracking-wider" style={{ color: "#00ff41" }}>DIVIDENDS</p>
                 </div>
 

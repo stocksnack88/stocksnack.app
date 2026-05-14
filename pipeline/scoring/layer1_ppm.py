@@ -157,7 +157,7 @@ def _m3_shareholder_return(data: dict, current_price: float, fx_rate: float = 1.
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-def score_ppm(data: dict, ticker: str = "") -> dict:
+def score_ppm(data: dict, ticker: str = "", sp500_cagr: float | None = None) -> dict:
     profile       = data.get("profile", {})
     current_price = safe_float(profile.get("price"))
     shares        = _shares(profile)
@@ -206,7 +206,7 @@ def score_ppm(data: dict, ticker: str = "") -> dict:
 
     blended = sum(valid) / len(valid)
     ppm_cagr  = compute_cagr(current_price, blended, _YEARS)
-    ppm_score = cagr_to_score(ppm_cagr)
+    ppm_score = cagr_to_score(ppm_cagr, sp500_cagr or 0.10)
 
     return {
         "score":         round(ppm_score, 2),

@@ -44,8 +44,8 @@ def process(ticker: str, fmp: FMPClient, writer: SupabaseWriter, spy: dict) -> b
 
         writer.upsert_stock(ticker, data)
 
-        ppm      = score_ppm(data, ticker=ticker)
-        growth   = score_growth(data)
+        ppm      = score_ppm(data, ticker=ticker, sp500_cagr=spy.get("sp500_cagr"))
+        growth   = score_growth(data, sp500_cagr=spy.get("sp500_cagr"), ticker=ticker)
         health   = score_health(data)
         final    = score_final(ppm, growth, health, spy.get("sp500_cagr"))
         segments = compute_segments(data.get("product_segments", []), data.get("geo_segments", []))

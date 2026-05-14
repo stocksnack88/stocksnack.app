@@ -30,27 +30,32 @@ def list_cagr(values: list, n_years: int) -> float | None:
     return compute_cagr(clean[actual_years], clean[0], actual_years)
 
 
-def cagr_to_score(cagr_value: float | None) -> float:
+def cagr_to_score(cagr_value: float | None, sp500_cagr: float = 0.10) -> float:
     """
-    Map a CAGR (decimal) to a 0–100 score.
+    Map a CAGR (decimal) to a 0–100 score, benchmarked to S&P 500.
 
-    Calibration:
-        ≥ 25%  → 100
-          10%  →  65   (roughly market-beating)
-           0%  →  35
-         -15%  →   0
+    Breakpoints (example at sp500_cagr=13.9%):
+        cap      = sp500_cagr × 2  (27.8%) → 100
+        midpoint = sp500_cagr × 1  (13.9%) →  50
+        0%                         →  35
+        floor    = −sp500_cagr    (−13.9%) →   0
+        < floor                    →   0
     """
     if cagr_value is None:
         return 50.0
+    base = max(sp500_cagr, 0.01)   # guard against zero/negative sp500_cagr
+    cap      =  base * 2.0
+    midpoint =  base
+    floor    = -base
     c = cagr_value
-    if c >= 0.25:
+    if c >= cap:
         return 100.0
-    if c >= 0.10:
-        return 65.0 + (c - 0.10) / 0.15 * 35.0
+    if c >= midpoint:
+        return 50.0 + (c - midpoint) / (cap - midpoint) * 50.0
     if c >= 0.0:
-        return 35.0 + (c / 0.10) * 30.0
-    if c >= -0.15:
-        return max(0.0, (c + 0.15) / 0.15 * 35.0)
+        return 35.0 + (c / midpoint) * 15.0
+    if c >= floor:
+        return max(0.0, (c - floor) / (0.0 - floor) * 35.0)
     return 0.0
 
 

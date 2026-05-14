@@ -4,22 +4,22 @@ Layer 1 — Price Projection Model (PPM)
 Three independent valuation methods produce a 5-year projected price each.
 The blended price → CAGR vs today → score 0–100.
 
-M1  EBITDA Multiple  — project EBITDA forward, apply EV/EBITDA, solve for equity
-M2  FCF Yield        — project FCF forward, apply target yield, solve for market cap
-M3  Div + Buyback    — project price appreciation + shareholder yield compounded
+M1  EBITDA Multiple  — project EBITDA via compute_gq, trimmed-median EV/EBITDA
+M2  FCF Yield        — project FCF via compute_gq, trimmed-median P/FCF multiple
+M3  Div + FCF floor  — project dividends per share with FCF ceiling, trimmed P/giveback
 """
 from __future__ import annotations
 import logging
 import requests
-from scoring.utils import safe_float, compute_cagr, list_cagr, cagr_to_score, clamp
+from scoring.utils import safe_float, compute_cagr, cagr_to_score, clamp, compute_gq, trimmed_median
 
 log = logging.getLogger(__name__)
 
 
-_TARGET_FCF_YIELD   = 0.04   # 4% — assumed long-run market FCF yield
-_MAX_PROJ_GROWTH    = 0.22   # cap individual growth rates used in projections
-_EV_EBITDA_FALLBACK = 16.0   # sector-neutral fallback multiple
-_YEARS              = 5
+_EV_EBITDA_FALLBACK  = 16.0   # sector-neutral EV/EBITDA fallback
+_P_FCF_FALLBACK      = 25.0   # P/FCF fallback (≈ 4% FCF yield)
+_P_GIVEBACK_FALLBACK = 22.0   # P/giveback fallback for M3
+_YEARS               = 5
 
 
 def _fx_to_usd(currency: str, ticker: str = "") -> float:
@@ -47,17 +47,9 @@ def _shares(profile: dict) -> float | None:
     return None
 
 
-def _safe_growth(values: list, years: int = 4) -> float:
-    """Return a conservative growth rate from a list of historical values."""
-    cagr = list_cagr(values, years)
-    if cagr is None:
-        return 0.05  # fall back to 5 %
-    return clamp(cagr, 0.0, _MAX_PROJ_GROWTH)
-
-
 # ── M1: EBITDA Multiple ────────────────────────────────────────────────────────
 
-def _m1_ebitda(data: dict, shares: float, fx_rate: float = 1.0) -> dict | None:
+def _m1_ebitda(data: dict, shares: float, fx_rate: float = 1.0, sp500_cagr: float = 0.10) -> dict | None:
     income  = data.get("income", [])
     balance = data.get("balance", [])
     metrics = data.get("metrics", [])
@@ -66,16 +58,20 @@ def _m1_ebitda(data: dict, shares: float, fx_rate: float = 1.0) -> dict | None:
     if not ebitda_vals or ebitda_vals[0] <= 0:
         return None
 
-    growth_rate = _safe_growth(ebitda_vals)
-    ebitda_5y   = ebitda_vals[0] * (1 + growth_rate) ** _YEARS
+    gq         = compute_gq(list(reversed(ebitda_vals[:5])), sp500_cagr)
+    adj_growth = gq["weightedCAGR"]
 
-    ev_ebitda_raw = safe_float((metrics[0] if metrics else {}).get("evToEBITDA"))
-    ev_ebitda = clamp(ev_ebitda_raw, 8.0, 50.0) if ev_ebitda_raw > 0 else _EV_EBITDA_FALLBACK
+    ev_ebitda_hist = [safe_float(r.get("evToEBITDA")) for r in metrics]
+    ev_ebitda_med  = trimmed_median(ev_ebitda_hist)
+    ev_ebitda = clamp(ev_ebitda_med, 8.0, 50.0) if ev_ebitda_med > 0 else _EV_EBITDA_FALLBACK
 
-    future_ev = ebitda_5y * ev_ebitda
+    cur_ebitda = ebitda_vals[0]
+    for _ in range(_YEARS):
+        cur_ebitda *= (1 + adj_growth)
+    ebitda_5y = cur_ebitda
 
-    net_debt = safe_float((balance[0] if balance else {}).get("netDebt")) * fx_rate
-    future_equity = future_ev - net_debt
+    net_debt      = safe_float((balance[0] if balance else {}).get("netDebt")) * fx_rate
+    future_equity = ebitda_5y * ev_ebitda - net_debt
 
     if future_equity <= 0 or shares <= 0:
         return None
@@ -83,74 +79,113 @@ def _m1_ebitda(data: dict, shares: float, fx_rate: float = 1.0) -> dict | None:
         "price":            future_equity / shares,
         "ebitda_current":   ebitda_vals[0],
         "ebitda_projected": ebitda_5y,
-        "growth_rate":      growth_rate,
+        "growth_rate":      adj_growth,
         "ev_ebitda":        ev_ebitda,
         "net_debt":         net_debt,
     }
 
 
-# ── M2: FCF Yield ──────────────────────────────────────────────────────────────
+# ── M2: FCF Multiple ───────────────────────────────────────────────────────────
 
-def _m2_fcf(data: dict, shares: float, fx_rate: float = 1.0) -> dict | None:
+def _m2_fcf(data: dict, shares: float, fx_rate: float = 1.0, sp500_cagr: float = 0.10) -> dict | None:
     cashflow = data.get("cashflow", [])
+    metrics  = data.get("metrics", [])
 
     fcf_vals = [safe_float(r.get("freeCashFlow")) * fx_rate for r in cashflow]
     if not fcf_vals or fcf_vals[0] <= 0:
         return None
 
-    growth_rate = _safe_growth(fcf_vals)
-    fcf_5y      = fcf_vals[0] * (1 + growth_rate) ** _YEARS
+    gq         = compute_gq(list(reversed(fcf_vals[:5])), sp500_cagr)
+    adj_growth = gq["weightedCAGR"]
 
-    future_mkt_cap = fcf_5y / _TARGET_FCF_YIELD
+    p_fcf_hist = [safe_float(r.get("priceToFreeCashFlowsRatio")) for r in metrics]
+    p_fcf_med  = trimmed_median(p_fcf_hist)
+    p_fcf = clamp(p_fcf_med, 8.0, 60.0) if p_fcf_med > 0 else _P_FCF_FALLBACK
+
+    cur_fcf = fcf_vals[0]
+    for _ in range(_YEARS):
+        cur_fcf *= (1 + adj_growth)
+    fcf_5y = cur_fcf
+
     if shares <= 0:
         return None
     return {
-        "price":         future_mkt_cap / shares,
+        "price":         (fcf_5y * p_fcf) / shares,
         "fcf_current":   fcf_vals[0],
         "fcf_projected": fcf_5y,
-        "growth_rate":   growth_rate,
-        "fcf_yield":     _TARGET_FCF_YIELD,
+        "growth_rate":   adj_growth,
+        "fcf_yield":     1.0 / p_fcf,
     }
 
 
-# ── M3: Dividend + Buyback Total Return ────────────────────────────────────────
+# ── M3: Dividend + FCF Ceiling ─────────────────────────────────────────────────
 
-def _m3_shareholder_return(data: dict, current_price: float, fx_rate: float = 1.0) -> float | None:
-    if current_price <= 0:
+def _m3_shareholder_return(
+    data: dict,
+    current_price: float,
+    shares: float,
+    fx_rate: float = 1.0,
+    sp500_cagr: float = 0.10,
+) -> dict | None:
+    if current_price <= 0 or shares <= 0:
         return None
 
     income   = data.get("income", [])
     cashflow = data.get("cashflow", [])
     metrics  = data.get("metrics", [])
+    profile  = data.get("profile", {})
 
-    # Annual dividend yield: lastDividend (annual $) / price — profile values are in USD
-    _prof = data.get("profile", {})
-    _price = safe_float(_prof.get("price"))
-    _div = safe_float(_prof.get("lastDividend"))
-    div_yield = clamp(_div / _price if _price > 0 else 0.0, 0.0, 0.15)
+    div_current = safe_float(profile.get("lastDividend"))
 
-    # Buyback yield: buybacks from cashflow (native currency) / market cap (USD)
-    # Convert buybacks to USD; market cap is already in USD from profile
-    buybacks  = abs(safe_float((cashflow[0] if cashflow else {}).get("commonStockRepurchased"))) * fx_rate
-    mkt_cap   = safe_float(data.get("profile", {}).get("marketCap"))
-    buyback_yield = clamp(buybacks / mkt_cap, 0.0, 0.10) if mkt_cap > 0 else 0.0
-
-    # Price appreciation proxy: average of revenue growth and net-income growth
-    # CAGRs are scale-invariant — no currency conversion needed
+    # Revenue + NI blend → dividend growth rate with 0.9 haircut
     rev_vals = [safe_float(r.get("revenue")) for r in income]
     ni_vals  = [safe_float(r.get("netIncome")) for r in income]
-    rev_cagr = list_cagr(rev_vals, 4) or 0.05
-    ni_cagr  = list_cagr([v for v in ni_vals if v > 0], 4) or 0.05
-    price_growth = clamp((rev_cagr + ni_cagr) / 2, 0.0, _MAX_PROJ_GROWTH)
+    ni_pos   = [v for v in ni_vals if v and v > 0]
+    gq_rev   = compute_gq(list(reversed(rev_vals[:5])),   sp500_cagr)
+    gq_ni    = compute_gq(list(reversed(ni_pos[:5])),     sp500_cagr) if len(ni_pos) >= 2 else gq_rev
+    linear_growth  = (gq_rev["weightedCAGR"] + gq_ni["weightedCAGR"]) / 2
+    adj_div_growth = clamp(linear_growth * 0.9, -0.05, 0.20)
 
-    total_annual_return = price_growth + div_yield + buyback_yield
-    future_price = current_price * (1 + total_annual_return) ** _YEARS
+    # FCF growth rate for ceiling projection
+    fcf_vals = [safe_float(r.get("freeCashFlow")) * fx_rate for r in cashflow]
+    gq_fcf       = compute_gq(list(reversed(fcf_vals[:5])), sp500_cagr) if fcf_vals else {"weightedCAGR": 0.05}
+    adj_fcf_growth = gq_fcf["weightedCAGR"]
+
+    # Historical P/giveback multiple (1 / dividendYield)
+    div_yields    = [safe_float(r.get("dividendYield")) for r in metrics]
+    p_giveback_vals = [1.0 / y for y in div_yields if y and y > 0.001]
+    p_giveback = (
+        clamp(trimmed_median(p_giveback_vals), 5.0, 100.0)
+        if p_giveback_vals
+        else _P_GIVEBACK_FALLBACK
+    )
+
+    # Project dividends per share with FCF ceiling
+    cur_gps = div_current
+    cur_fcf = fcf_vals[0] if fcf_vals else 0.0
+    for _ in range(_YEARS):
+        cur_fcf   *= (1 + adj_fcf_growth)
+        target_gps = cur_gps * (1 + adj_div_growth)
+        ceiling    = (cur_fcf * 0.90) / shares
+        cur_gps    = min(target_gps, ceiling)
+
+    if cur_gps <= 0:
+        return None
+
+    # Keep div_yield / buyback_yield for backward-compatible intermediates
+    _price = safe_float(profile.get("price"))
+    _div   = div_current
+    div_yield     = clamp(_div / _price if _price > 0 else 0.0, 0.0, 0.15)
+    buybacks      = abs(safe_float((cashflow[0] if cashflow else {}).get("commonStockRepurchased"))) * fx_rate
+    mkt_cap       = safe_float(profile.get("marketCap"))
+    buyback_yield = clamp(buybacks / mkt_cap, 0.0, 0.10) if mkt_cap > 0 else 0.0
+
     return {
-        "price":             future_price,
+        "price":             cur_gps * p_giveback,
         "div_yield":         div_yield,
         "buyback_yield":     buyback_yield,
         "shareholder_yield": div_yield + buyback_yield,
-        "growth_rate":       price_growth,
+        "growth_rate":       adj_div_growth,
         "annual_div_ps":     _div,
     }
 
@@ -168,9 +203,10 @@ def score_ppm(data: dict, ticker: str = "", sp500_cagr: float | None = None) -> 
     reported_currency = data.get("reported_currency", "USD") or "USD"
     fx_rate = _fx_to_usd(reported_currency, ticker)
 
-    r1 = _m1_ebitda(data, shares or 0, fx_rate) if shares else None
-    r2 = _m2_fcf(data, shares or 0, fx_rate)    if shares else None
-    r3 = _m3_shareholder_return(data, current_price, fx_rate)
+    _sp500 = sp500_cagr or 0.10
+    r1 = _m1_ebitda(data, shares or 0, fx_rate, _sp500) if shares else None
+    r2 = _m2_fcf(data, shares or 0, fx_rate, _sp500)    if shares else None
+    r3 = _m3_shareholder_return(data, current_price, shares or 0, fx_rate, _sp500)
 
     m1 = r1["price"] if r1 else None
     m2 = r2["price"] if r2 else None
@@ -204,9 +240,9 @@ def score_ppm(data: dict, ticker: str = "", sp500_cagr: float | None = None) -> 
             **intermediates,
         }
 
-    blended = sum(valid) / len(valid)
+    blended   = sum(valid) / len(valid)
     ppm_cagr  = compute_cagr(current_price, blended, _YEARS)
-    ppm_score = cagr_to_score(ppm_cagr, sp500_cagr or 0.10)
+    ppm_score = cagr_to_score(ppm_cagr, _sp500)
 
     return {
         "score":         round(ppm_score, 2),

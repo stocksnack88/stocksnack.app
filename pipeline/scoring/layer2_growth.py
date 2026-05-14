@@ -2,13 +2,12 @@
 Layer 2 — Growth Trend Score (0–100)
 
 Revenue and Net Income: 3Y and 5Y CAGRs via cagr_to_score.
-FCF: linear regression on 5-year series, normalised slope → cagr_to_score.
+FCF: recency-weighted YoY via compute_gq on 5-year oldest-first series.
 Score = average of all component scores × worst-signal multiplier.
 """
 from __future__ import annotations
 import logging
-import numpy as np
-from scoring.utils import safe_float, list_cagr, cagr_to_score
+from scoring.utils import safe_float, list_cagr, cagr_to_score, compute_gq
 
 log = logging.getLogger(__name__)
 
@@ -84,16 +83,16 @@ def _worst_signal(*signals: str) -> str:
     return min(signals, key=lambda s: _SIGNAL_RANK.get(s, 3))
 
 
-def _fcf_regression_score(
+def _fcf_gq_score(
     fcf_vals: list[float],
     sp500_cagr: float,
     ticker: str = "",
-) -> tuple[float, float | None, float | None, float]:
+) -> tuple[float, float | None, str]:
     """
-    Score FCF trend via OLS regression on the 5-year series.
+    Score FCF trend via recency-weighted YoY (compute_gq).
 
     fcf_vals: newest-first (FMP order). Reversed internally to oldest-first.
-    Returns (score, normalised_growth, slope, sum_5y).
+    Returns (score, weighted_cagr, signal).
     """
     series = list(reversed(fcf_vals[:5]))
     sum_5y = sum(series)
@@ -101,22 +100,11 @@ def _fcf_regression_score(
     if sum_5y < 0:
         if ticker:
             log.info("[%s] FCF: 5Y sum negative → score 0", ticker)
-        return 0.0, None, None, sum_5y
+        return 0.0, None, "Freefall"
 
-    if len(series) < 2:
-        return 35.0, 0.0, 0.0, sum_5y
-
-    x = np.arange(len(series), dtype=float)
-    y = np.array(series, dtype=float)
-    slope, _ = np.polyfit(x, y, 1)
-
-    avg_abs = float(np.mean(np.abs(y)))
-    if avg_abs == 0.0:
-        return 35.0, 0.0, float(slope), sum_5y
-
-    normalised_growth = float(slope) / avg_abs
-    score = cagr_to_score(normalised_growth, sp500_cagr)
-    return score, normalised_growth, float(slope), sum_5y
+    gq = compute_gq(series, sp500_cagr)
+    score = cagr_to_score(gq["weightedCAGR"], sp500_cagr)
+    return score, gq["weightedCAGR"], gq["signal"]
 
 
 def _is_financial(profile: dict) -> bool:
@@ -169,10 +157,11 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
     if financial:
         if ticker:
             log.info("[%s] Financial sector — FCF excluded from growth scoring", ticker)
-        fcf_ng = None
+        fcf_ng  = None
+        sig_fcf_gq = None
         all_scores = rev_ni_scores
     else:
-        fcf_score, fcf_ng, _fcf_slope, _fcf_sum = _fcf_regression_score(fcf_vals, _base, ticker)
+        fcf_score, fcf_ng, sig_fcf_gq = _fcf_gq_score(fcf_vals, _base, ticker)
         all_scores = rev_ni_scores + [fcf_score]
 
     avg_score = sum(all_scores) / len(all_scores) if all_scores else 50.0
@@ -184,7 +173,8 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
 
     sig_rev = _growth_signal(rev_yoy)
     sig_ni  = _growth_signal(ni_yoy)
-    sig_fcf = _growth_signal(fcf_yoy)
+    # FCF signal comes from compute_gq when available; fall back to _growth_signal for display
+    sig_fcf = sig_fcf_gq if sig_fcf_gq is not None else _growth_signal(fcf_yoy)
 
     # FCF signal excluded from worst-signal for financial companies
     worst_signal = _worst_signal(sig_rev, sig_ni) if financial else _worst_signal(sig_rev, sig_ni, sig_fcf)

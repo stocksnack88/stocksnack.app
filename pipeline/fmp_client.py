@@ -62,12 +62,17 @@ class FMPClient:
 
     def fetch_all(self, ticker: str) -> dict:
         log.debug("Fetching FMP data for %s", ticker)
+        income = self.get_income_statements(ticker)
+        reported_currency = "USD"
+        if isinstance(income, list) and income:
+            reported_currency = income[0].get("reportedCurrency") or "USD"
         return {
-            "profile":          self.get_profile(ticker),
-            "income":           self.get_income_statements(ticker),
-            "balance":          self.get_balance_sheets(ticker),
-            "cashflow":         self.get_cash_flows(ticker),
-            "metrics":          self.get_key_metrics(ticker),
-            "product_segments": self.get_product_segments(ticker),
-            "geo_segments":     self.get_geo_segments(ticker),
+            "profile":           self.get_profile(ticker),
+            "income":            income,
+            "balance":           self.get_balance_sheets(ticker),
+            "cashflow":          self.get_cash_flows(ticker),
+            "metrics":           self.get_key_metrics(ticker),
+            "product_segments":  self.get_product_segments(ticker),
+            "geo_segments":      self.get_geo_segments(ticker),
+            "reported_currency": reported_currency,
         }

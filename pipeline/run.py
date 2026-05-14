@@ -44,7 +44,7 @@ def process(ticker: str, fmp: FMPClient, writer: SupabaseWriter, spy: dict) -> b
 
         writer.upsert_stock(ticker, data)
 
-        ppm      = score_ppm(data)
+        ppm      = score_ppm(data, ticker=ticker)
         growth   = score_growth(data)
         health   = score_health(data)
         final    = score_final(ppm, growth, health, spy.get("sp500_cagr"))

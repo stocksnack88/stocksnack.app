@@ -9,13 +9,34 @@ M2  FCF Yield        — project FCF forward, apply target yield, solve for mark
 M3  Div + Buyback    — project price appreciation + shareholder yield compounded
 """
 from __future__ import annotations
+import logging
+import requests
 from scoring.utils import safe_float, compute_cagr, list_cagr, cagr_to_score, clamp
+
+log = logging.getLogger(__name__)
 
 
 _TARGET_FCF_YIELD   = 0.04   # 4% — assumed long-run market FCF yield
 _MAX_PROJ_GROWTH    = 0.22   # cap individual growth rates used in projections
 _EV_EBITDA_FALLBACK = 16.0   # sector-neutral fallback multiple
 _YEARS              = 5
+
+
+def _fx_to_usd(currency: str, ticker: str = "") -> float:
+    """Return the USD exchange rate for the given currency (1 unit → USD).
+    Falls back to 1.0 on any error so the pipeline never hard-crashes."""
+    if not currency or currency.upper() == "USD":
+        return 1.0
+    try:
+        url = f"https://api.exchangerate-api.com/v4/latest/{currency.upper()}"
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        rate = resp.json()["rates"]["USD"]
+        log.info("[%s] Currency: %s → USD @ %.6f", ticker, currency, rate)
+        return float(rate)
+    except Exception as exc:
+        log.warning("[%s] FX lookup failed for %s (%s), falling back to 1.0", ticker, currency, exc)
+        return 1.0
 
 
 def _shares(profile: dict) -> float | None:
@@ -36,12 +57,12 @@ def _safe_growth(values: list, years: int = 4) -> float:
 
 # ── M1: EBITDA Multiple ────────────────────────────────────────────────────────
 
-def _m1_ebitda(data: dict, shares: float) -> dict | None:
+def _m1_ebitda(data: dict, shares: float, fx_rate: float = 1.0) -> dict | None:
     income  = data.get("income", [])
     balance = data.get("balance", [])
     metrics = data.get("metrics", [])
 
-    ebitda_vals = [safe_float(r.get("ebitda")) for r in income]
+    ebitda_vals = [safe_float(r.get("ebitda")) * fx_rate for r in income]
     if not ebitda_vals or ebitda_vals[0] <= 0:
         return None
 
@@ -53,7 +74,7 @@ def _m1_ebitda(data: dict, shares: float) -> dict | None:
 
     future_ev = ebitda_5y * ev_ebitda
 
-    net_debt = safe_float((balance[0] if balance else {}).get("netDebt"))
+    net_debt = safe_float((balance[0] if balance else {}).get("netDebt")) * fx_rate
     future_equity = future_ev - net_debt
 
     if future_equity <= 0 or shares <= 0:
@@ -70,10 +91,10 @@ def _m1_ebitda(data: dict, shares: float) -> dict | None:
 
 # ── M2: FCF Yield ──────────────────────────────────────────────────────────────
 
-def _m2_fcf(data: dict, shares: float) -> dict | None:
+def _m2_fcf(data: dict, shares: float, fx_rate: float = 1.0) -> dict | None:
     cashflow = data.get("cashflow", [])
 
-    fcf_vals = [safe_float(r.get("freeCashFlow")) for r in cashflow]
+    fcf_vals = [safe_float(r.get("freeCashFlow")) * fx_rate for r in cashflow]
     if not fcf_vals or fcf_vals[0] <= 0:
         return None
 
@@ -94,7 +115,7 @@ def _m2_fcf(data: dict, shares: float) -> dict | None:
 
 # ── M3: Dividend + Buyback Total Return ────────────────────────────────────────
 
-def _m3_shareholder_return(data: dict, current_price: float) -> float | None:
+def _m3_shareholder_return(data: dict, current_price: float, fx_rate: float = 1.0) -> float | None:
     if current_price <= 0:
         return None
 
@@ -102,20 +123,20 @@ def _m3_shareholder_return(data: dict, current_price: float) -> float | None:
     cashflow = data.get("cashflow", [])
     metrics  = data.get("metrics", [])
 
-    # Annual dividend yield: lastDividend (annual $) / price
+    # Annual dividend yield: lastDividend (annual $) / price — profile values are in USD
     _prof = data.get("profile", {})
     _price = safe_float(_prof.get("price"))
     _div = safe_float(_prof.get("lastDividend"))
     div_yield = clamp(_div / _price if _price > 0 else 0.0, 0.0, 0.15)
 
-    # Buyback yield ≈ buybacks / market cap (approximate from cashflow + income)
-    buybacks   = abs(safe_float((cashflow[0] if cashflow else {}).get("commonStockRepurchased")))
-    revenue_0  = safe_float((income[0] if income else {}).get("revenue"))
-    net_income = safe_float((income[0] if income else {}).get("netIncome"))
-    mkt_cap    = safe_float(data.get("profile", {}).get("marketCap"))
+    # Buyback yield: buybacks from cashflow (native currency) / market cap (USD)
+    # Convert buybacks to USD; market cap is already in USD from profile
+    buybacks  = abs(safe_float((cashflow[0] if cashflow else {}).get("commonStockRepurchased"))) * fx_rate
+    mkt_cap   = safe_float(data.get("profile", {}).get("marketCap"))
     buyback_yield = clamp(buybacks / mkt_cap, 0.0, 0.10) if mkt_cap > 0 else 0.0
 
     # Price appreciation proxy: average of revenue growth and net-income growth
+    # CAGRs are scale-invariant — no currency conversion needed
     rev_vals = [safe_float(r.get("revenue")) for r in income]
     ni_vals  = [safe_float(r.get("netIncome")) for r in income]
     rev_cagr = list_cagr(rev_vals, 4) or 0.05
@@ -136,14 +157,20 @@ def _m3_shareholder_return(data: dict, current_price: float) -> float | None:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-def score_ppm(data: dict) -> dict:
+def score_ppm(data: dict, ticker: str = "") -> dict:
     profile       = data.get("profile", {})
     current_price = safe_float(profile.get("price"))
     shares        = _shares(profile)
 
-    r1 = _m1_ebitda(data, shares or 0) if shares else None
-    r2 = _m2_fcf(data, shares or 0)    if shares else None
-    r3 = _m3_shareholder_return(data, current_price)
+    # Resolve FX rate once (1 unit of reported_currency → USD).
+    # All monetary statement values are multiplied by this before use.
+    # Stock price and share count are already in USD for NYSE ADRs.
+    reported_currency = data.get("reported_currency", "USD") or "USD"
+    fx_rate = _fx_to_usd(reported_currency, ticker)
+
+    r1 = _m1_ebitda(data, shares or 0, fx_rate) if shares else None
+    r2 = _m2_fcf(data, shares or 0, fx_rate)    if shares else None
+    r3 = _m3_shareholder_return(data, current_price, fx_rate)
 
     m1 = r1["price"] if r1 else None
     m2 = r2["price"] if r2 else None

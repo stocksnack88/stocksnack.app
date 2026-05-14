@@ -86,6 +86,7 @@ def score_growth(data: dict) -> dict:
     income   = data.get("income", [])
     cashflow = data.get("cashflow", [])
 
+    # CAGRs are scale-invariant — no currency conversion needed
     rev_vals = [safe_float(r.get("revenue"))      for r in income]
     ni_vals  = [safe_float(r.get("netIncome"))    for r in income]
     fcf_vals = [safe_float(r.get("freeCashFlow")) for r in cashflow]

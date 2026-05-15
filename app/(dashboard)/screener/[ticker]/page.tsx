@@ -286,64 +286,88 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>WHAT YOU ARE BUYING</p>
           </div>
-          {([
-            {
-              label: "5Y RETURN VS S&P 500",
-              value: (
-                <span className="font-mono font-bold text-sm">
-                  <span style={{ color: "#00ff41" }}>
-                    {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x` : "—"}
+          {(() => {
+            // 5Y RETURN color
+            const stockMult = currentPrice && blendedPrice ? blendedPrice / currentPrice : null;
+            const sp500Mult = scoreEx?.sp500_5y_return != null ? Number(scoreEx.sp500_5y_return) : null;
+            const multDiff  = stockMult != null && sp500Mult != null ? stockMult - sp500Mult : null;
+            const multColor = multDiff == null ? "#00ff41"
+              : Math.abs(multDiff) <= 0.1 ? "#f59e0b"
+              : multDiff > 0 ? "#00ff41" : "#ef4444";
+            // CAGR color
+            const ppmCagrN  = score?.ppm_cagr  != null ? Number(score.ppm_cagr)        : null;
+            const sp500CagrN = scoreEx?.sp500_cagr != null ? Number(scoreEx.sp500_cagr) : null;
+            const cagrDiff  = ppmCagrN != null && sp500CagrN != null ? ppmCagrN - sp500CagrN : null;
+            const cagrColor = cagrDiff == null ? "#00ff41"
+              : Math.abs(cagrDiff) <= 0.01 ? "#f59e0b"
+              : cagrDiff > 0 ? "#00ff41" : "#ef4444";
+            // Growth Quality color
+            const gq = score?.growth_score != null ? Number(score.growth_score) : null;
+            const gqColor = gq == null ? "#00ff41" : gq >= 75 ? "#00ff41" : gq >= 50 ? "#f59e0b" : "#ef4444";
+            // Financial Health color
+            const hp = score?.health_passes != null ? Number(score.health_passes) : null;
+            const healthRatio = hp != null ? hp / scoredTotal : null;
+            const healthColor2 = healthRatio == null ? "#00ff41"
+              : healthRatio >= 0.75 ? "#00ff41" : healthRatio >= 0.50 ? "#f59e0b" : "#ef4444";
+            return ([
+              {
+                label: "5Y RETURN VS S&P 500",
+                value: (
+                  <span className="font-mono font-bold text-sm">
+                    <span style={{ color: multColor }}>
+                      {stockMult != null ? `${stockMult.toFixed(1)}x` : "—"}
+                    </span>
+                    <span className="mx-2" style={{ color: "rgba(0,255,65,0.3)" }}>vs</span>
+                    <span style={{ color: "rgba(0,255,65,0.4)" }}>
+                      {sp500Mult != null ? `${sp500Mult.toFixed(1)}x` : "—"}
+                    </span>
                   </span>
-                  <span className="mx-2" style={{ color: "rgba(0,255,65,0.3)" }}>vs</span>
-                  <span style={{ color: "rgba(0,255,65,0.5)" }}>
-                    {scoreEx?.sp500_5y_return != null ? `${Number(scoreEx.sp500_5y_return).toFixed(1)}x` : "—"}
+                ),
+              },
+              {
+                label: "CAGR VS S&P 500",
+                value: (
+                  <span className="font-mono font-bold text-sm">
+                    <span style={{ color: cagrColor }}>{fmtCagr(score?.ppm_cagr)}</span>
+                    <span className="mx-2" style={{ color: "rgba(0,255,65,0.3)" }}>vs</span>
+                    <span style={{ color: "rgba(0,255,65,0.4)" }}>
+                      {sp500CagrN != null ? fmtCagr(scoreEx?.sp500_cagr) : "—"}
+                    </span>
                   </span>
-                </span>
-              ),
-            },
-            {
-              label: "CAGR VS S&P 500",
-              value: (
-                <span className="font-mono font-bold text-sm">
-                  <span style={{ color: "#00ff41" }}>{fmtCagr(score?.ppm_cagr)}</span>
-                  <span className="mx-2" style={{ color: "rgba(0,255,65,0.3)" }}>vs</span>
-                  <span style={{ color: "rgba(0,255,65,0.5)" }}>
-                    {scoreEx?.sp500_cagr != null ? fmtCagr(scoreEx.sp500_cagr) : "—"}
+                ),
+              },
+              {
+                label: "GROWTH QUALITY",
+                value: (
+                  <span className="font-mono font-bold text-sm" style={{ color: gqColor }}>
+                    {gq != null ? fmtPct(gq) : "—"}
                   </span>
-                </span>
-              ),
-            },
-            {
-              label: "GROWTH QUALITY",
-              value: (
-                <span className="font-mono font-bold text-sm" style={{ color: "#00ff41" }}>
-                  {score?.growth_score != null ? fmtPct(Number(score.growth_score)) : "—"}
-                </span>
-              ),
-            },
-            {
-              label: "FINANCIAL HEALTH",
-              value: (
-                <span className="whitespace-nowrap">
-                  {score?.health_passes != null ? (
-                    <>
-                      <span className="font-mono font-bold text-sm" style={{ color: "#00ff41" }}>{score.health_passes} / 24</span>
-                      <span className="text-[9px]" style={{ color: "rgba(0,255,65,0.5)" }}> CHECKS PASSED</span>
-                    </>
-                  ) : "—"}
-                </span>
-              ),
-            },
-          ] as const).map(({ label, value }, i) => (
-            <div
-              key={label}
-              className="flex items-center justify-between px-5 py-3 gap-4"
-              style={i < 3 ? { borderBottom: "1px solid rgba(0,255,65,0.1)" } : {}}
-            >
-              <p className="text-xs tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.4)" }}>{label}</p>
-              {value}
-            </div>
-          ))}
+                ),
+              },
+              {
+                label: "FINANCIAL HEALTH",
+                value: (
+                  <span className="whitespace-nowrap">
+                    {hp != null ? (
+                      <>
+                        <span className="font-mono font-bold text-sm" style={{ color: healthColor2 }}>{hp} / {scoredTotal}</span>
+                        <span className="text-[9px]" style={{ color: "rgba(0,255,65,0.5)" }}> CHECKS PASSED</span>
+                      </>
+                    ) : "—"}
+                  </span>
+                ),
+              },
+            ] as const).map(({ label, value }, i) => (
+              <div
+                key={label}
+                className="flex items-center justify-between px-5 py-3 gap-4"
+                style={i < 3 ? { borderBottom: "1px solid rgba(0,255,65,0.1)" } : {}}
+              >
+                <p className="text-xs tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.4)" }}>{label}</p>
+                {value}
+              </div>
+            ));
+          })()}
         </div>
 
         {/* ── About the Business ──────────────────────────────────────────────── */}

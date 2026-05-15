@@ -6,6 +6,7 @@ import Link from "next/link";
 import UpgradeButton from "@/components/ui/UpgradeButton";
 import DescriptionToggle from "@/components/ui/DescriptionToggle";
 import HealthCategories from "@/components/ui/HealthCategories";
+import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 
 const FREE_LIMIT = 5;
 
@@ -368,58 +369,16 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
               {/* Product Revenue */}
               {productSegs.length > 0 && (
-                <div className="px-5 py-4" style={{ borderBottom: geoSegs.length > 0 ? "1px solid rgba(0,255,65,0.1)" : undefined }}>
-                  <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>PRODUCT BREAKDOWN</p>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-[9px] tracking-widest flex-1" style={{ color: "rgba(0,255,65,0.3)" }}>REVENUE SHARE</span>
-                    <span className="text-[9px] tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>SHARE</span>
-                    <span className="text-[9px] tracking-widest shrink-0 w-16 text-right" style={{ color: "rgba(0,255,65,0.3)" }}>CAGR</span>
-                  </div>
-                  <div className="space-y-3">
-                    {productSegs.map((seg) => (
-                      <div key={seg.name}>
-                        <div className="flex items-start gap-3 mb-1">
-                          <span className="text-xs whitespace-normal flex-shrink-0 max-w-[55%]" style={{ color: "rgba(0,255,65,0.7)" }}>{seg.name}</span>
-                          <span className="text-xs font-mono shrink-0" style={{ color: "#00ff41" }}>{seg.pct.toFixed(1)}%</span>
-                          <span className="text-xs font-mono shrink-0 w-16 text-right" style={{ color: seg.cagr == null ? "#666" : seg.cagr >= 0 ? "#00ff41" : "#f87171" }}>
-                            {seg.cagr == null ? "—" : fmtCagr(seg.cagr)}
-                          </span>
-                        </div>
-                        <div className="h-1.5 rounded-full w-full" style={{ background: "rgba(0,255,65,0.1)" }}>
-                          <div className="h-full rounded-full" style={{ width: `${seg.pct}%`, background: "#00ff41" }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <SegmentBreakdown
+                  title="PRODUCT BREAKDOWN"
+                  segs={productSegs}
+                  borderedBottom={geoSegs.length > 0}
+                />
               )}
 
               {/* Geographic Revenue */}
               {geoSegs.length > 0 && (
-                <div className="px-5 py-4">
-                  <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>GEOGRAPHIC BREAKDOWN</p>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-[9px] tracking-widest flex-1" style={{ color: "rgba(0,255,65,0.3)" }}>REVENUE SHARE</span>
-                    <span className="text-[9px] tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>SHARE</span>
-                    <span className="text-[9px] tracking-widest shrink-0 w-16 text-right" style={{ color: "rgba(0,255,65,0.3)" }}>CAGR</span>
-                  </div>
-                  <div className="space-y-3">
-                    {geoSegs.map((seg) => (
-                      <div key={seg.name}>
-                        <div className="flex items-start gap-3 mb-1">
-                          <span className="text-xs whitespace-normal flex-shrink-0 max-w-[55%]" style={{ color: "rgba(0,255,65,0.7)" }}>{seg.name}</span>
-                          <span className="text-xs font-mono shrink-0" style={{ color: "#00ff41" }}>{seg.pct.toFixed(1)}%</span>
-                          <span className="text-xs font-mono shrink-0 w-16 text-right" style={{ color: seg.cagr == null ? "#666" : seg.cagr >= 0 ? "#00ff41" : "#f87171" }}>
-                            {seg.cagr == null ? "—" : fmtCagr(seg.cagr)}
-                          </span>
-                        </div>
-                        <div className="h-1.5 rounded-full w-full" style={{ background: "rgba(0,255,65,0.1)" }}>
-                          <div className="h-full rounded-full" style={{ width: `${seg.pct}%`, background: "#00ff41" }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <SegmentBreakdown title="GEOGRAPHIC BREAKDOWN" segs={geoSegs} />
               )}
             </section>
           );
@@ -684,8 +643,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 : diff < -0.01
                   ? [`Trails S&P by ${(Math.abs(diff) * 100).toFixed(1)}% per year`, "#ef4444"]
                   : ["Roughly matches S&P 500", "#f59e0b"];
-            const tickerColor = diff > 0.01 ? "#00ff41" : diff < -0.01 ? "#ef4444" : "#f59e0b";
-            const sp500Color  = diff > 0.01 ? "rgba(0,255,65,0.4)" : diff < -0.01 ? "#00ff41" : "#f59e0b";
+            const isClose     = Math.abs(diff) <= 0.01;
+            const tickerWins  = diff > 0.01;
+            const tickerColor = isClose ? "#f59e0b" : tickerWins ? "#00ff41" : "#ef4444";
+            const sp500Color  = isClose ? "#f59e0b" : tickerWins ? "rgba(0,255,65,0.4)" : "#00ff41";
             return (
               <div className="px-5 py-4">
                 <div className="flex items-center gap-2">
@@ -787,51 +748,46 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     const cagrNum    = cagr != null ? Number(cagr) : null;
                     return (
                       <div key={key}>
-                        {/* Label + CAGR badge */}
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                        {/* Single header row: label · badge · signal · stars */}
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           <span className="text-sm font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.7)" }}>
                             {label}
                           </span>
-                          {key === "free_cash_flow" && signal && FCF_TREND[signal] && (
+                          {key === "free_cash_flow" && signal && FCF_TREND[signal] ? (
                             <span className="text-[10px] font-mono px-2 py-0.5 rounded" style={{
                               color: SIG_COLOR[signal] ?? "#00ff41",
                               border: `1px solid ${SIG_COLOR[signal] ?? "#00ff41"}`,
                             }}>
                               {FCF_TREND[signal].arrow} {FCF_TREND[signal].label}
                             </span>
-                          )}
-                          {cagrNum != null && (
-                            <span className="text-sm font-bold font-mono px-1.5 py-0.5 rounded" style={{
+                          ) : cagrNum != null ? (
+                            <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded" style={{
                               background: cagrNum >= 0 ? "rgba(0,255,65,0.08)" : "rgba(248,113,113,0.08)",
                               color:      cagrNum >= 0 ? "rgba(0,255,65,0.7)"  : "#f87171",
                               border:     `1px solid ${cagrNum >= 0 ? "rgba(0,255,65,0.2)" : "rgba(248,113,113,0.3)"}`,
                             }}>
                               {fmtCagr(cagr)} CAGR
                             </span>
+                          ) : null}
+                          {signal && (
+                            <>
+                              <span className="text-[10px] font-mono" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
+                                {signal}
+                              </span>
+                              <span className="text-[10px] font-mono leading-none">
+                                {Array.from({ length: 5 }).map((_, i) => {
+                                  const filled = i < (SIG_STARS[signal] ?? 0);
+                                  const col = SIG_COLOR[signal] ?? "#00ff41";
+                                  return (
+                                    <span key={i} style={{ color: filled ? col : col + "4d" }}>
+                                      {filled ? "★" : "☆"}
+                                    </span>
+                                  );
+                                })}
+                              </span>
+                            </>
                           )}
                         </div>
-                        {/* Growth quality signal */}
-                        {signal && (
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <span className="text-[10px] tracking-widest font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>
-                              GROWTH QUALITY:
-                            </span>
-                            <span className="text-[10px] font-mono" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
-                              {signal}
-                            </span>
-                            <span className="text-sm font-mono leading-none">
-                              {Array.from({ length: 5 }).map((_, i) => {
-                                const filled = i < (SIG_STARS[signal] ?? 0);
-                                const col = SIG_COLOR[signal] ?? "#00ff41";
-                                return (
-                                  <span key={i} style={{ color: filled ? col : col + "4d" }}>
-                                    {filled ? "★" : "☆"}
-                                  </span>
-                                );
-                              })}
-                            </span>
-                          </div>
-                        )}
                         {/* Bar area */}
                         {(() => {
                           // Linear regression for trend line
@@ -968,7 +924,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 const c = healthColor(value != null ? Number(value) : null);
                 return (
                   <div key={idx} className="flex flex-col items-center gap-1.5">
-                    <div className="w-full rounded px-3 py-2 text-center" style={{ border: "1px solid rgba(0,255,65,0.3)" }}>
+                    <div className="w-full rounded px-3 py-2 text-center flex flex-col items-center justify-center min-h-[72px]" style={{ border: "1px solid rgba(0,255,65,0.3)" }}>
                       <p className="text-[10px] tracking-widest leading-tight" style={{ color: "rgba(0,255,65,0.6)" }}>{label}</p>
                       {sub && <p className="text-[10px] leading-tight" style={{ color: "rgba(0,255,65,0.4)" }}>{sub}</p>}
                     </div>

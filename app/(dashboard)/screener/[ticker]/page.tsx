@@ -265,7 +265,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             </div>
             <div className="flex flex-col items-center justify-center shrink-0 gap-0.5">
               <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
-                {score?.ppm_cagr != null ? `CAGR ${fmtCagr(score.ppm_cagr)}` : ""}
+                {score?.ppm_cagr != null ? `CAGR (5Y) ${fmtCagr(score.ppm_cagr)}` : ""}
               </p>
               <p className="text-2xl font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>→</p>
               <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
@@ -325,7 +325,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 ),
               },
               {
-                label: "CAGR VS S&P 500",
+                label: "CAGR (5Y) VS S&P 500",
                 value: (
                   <span className="font-mono font-bold text-sm">
                     <span style={{ color: cagrColor }}>{fmtCagr(score?.ppm_cagr)}</span>
@@ -638,7 +638,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             </div>
             <div className="flex flex-col items-center justify-center shrink-0 gap-0.5">
               <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
-                {score?.ppm_cagr != null ? `CAGR ${fmtCagr(score.ppm_cagr)}` : ""}
+                {score?.ppm_cagr != null ? `CAGR (5Y) ${fmtCagr(score.ppm_cagr)}` : ""}
               </p>
               <p className="text-2xl font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>→</p>
               <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
@@ -869,7 +869,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                 color:      cagrNum >= 0 ? "rgba(0,255,65,0.7)"  : "#f87171",
                                 border:     `1px solid ${cagrNum >= 0 ? "rgba(0,255,65,0.2)" : "rgba(248,113,113,0.3)"}`,
                               }}>
-                                {fmtCagr(cagr)} CAGR
+                                {fmtCagr(cagr)} CAGR (5Y)
                               </span>
                             ) : null}
                           </div>
@@ -1118,7 +1118,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     </p>
                     <p className="text-[9px] italic text-center mt-1" style={{ color: "rgba(0,255,65,0.4)" }}>
                       {idx === 0
-                        ? `${score?.ppm_cagr != null ? `${(Number(score.ppm_cagr) * 100).toFixed(1)}% CAGR` : "—"} vs S&P ${scoreEx?.sp500_cagr != null ? `${(Number(scoreEx.sp500_cagr) * 100).toFixed(1)}%` : "—"} benchmark`
+                        ? `${score?.ppm_cagr != null ? `${(Number(score.ppm_cagr) * 100).toFixed(1)}% CAGR (5Y)` : "—"} vs S&P ${scoreEx?.sp500_cagr != null ? `${(Number(scoreEx.sp500_cagr) * 100).toFixed(1)}%` : "—"} benchmark`
                         : idx === 1
                         ? "Revenue, EBITDA & FCF growth, adjusted for trend quality"
                         : `${score?.health_passes ?? 0} of ${scoredTotal} Buffett checks passed`}

@@ -41,7 +41,7 @@ export default function SegmentBreakdown({
           <div className="flex items-center gap-2 mb-2">
             <span className="flex-1 text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>SEGMENT</span>
             <span className="text-[9px] tracking-widest w-16 text-right shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>SHARE</span>
-            <span className="text-[9px] tracking-widest w-16 text-right shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>CAGR</span>
+            <span className="text-[9px] tracking-widest w-16 text-right shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>CAGR (5Y)</span>
           </div>
           <div className="space-y-3">
             {segs.map((seg) => (

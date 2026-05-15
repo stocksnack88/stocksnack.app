@@ -23,15 +23,32 @@ function mapStatus(stripeStatus: Stripe.Subscription.Status): string {
 async function updateProfileByUserId(userId: string, status: string) {
   await supabaseAdmin
     .from("user_profiles")
-    .update({ subscription_status: status })
-    .eq("id", userId);
+    .upsert({ id: userId, subscription_status: status }, { onConflict: "id" });
 }
 
 async function updateProfileByCustomerId(customerId: string, status: string) {
-  await supabaseAdmin
-    .from("user_profiles")
-    .update({ subscription_status: status })
-    .eq("stripe_customer_id", customerId);
+  // Retrieve the Stripe customer to get supabase_user_id + email from metadata
+  // (stored there by /api/subscribe at customer creation time)
+  const raw = await stripe.customers.retrieve(customerId);
+  if (raw.deleted) return;
+  const customer = raw as Stripe.Customer;
+  const userId = customer.metadata?.supabase_user_id ?? null;
+  const email  = customer.email ?? undefined;
+
+  if (userId) {
+    await supabaseAdmin
+      .from("user_profiles")
+      .upsert(
+        { id: userId, email, stripe_customer_id: customerId, subscription_status: status },
+        { onConflict: "id" }
+      );
+  } else {
+    // No user ID in metadata — row must already exist; update in place
+    await supabaseAdmin
+      .from("user_profiles")
+      .update({ subscription_status: status })
+      .eq("stripe_customer_id", customerId);
+  }
 }
 
 export async function POST(request: NextRequest) {

@@ -77,12 +77,14 @@ export default function HealthCategories({ cats }: { cats: HealthCat[] }) {
           >
             {/* Category header */}
             <div className="px-5 pt-4 pb-2 flex items-center gap-3 select-none">
-              <p
-                className="text-xs font-bold tracking-widest border-b border-[rgba(0,255,65,0.2)] pb-1 flex-1 min-w-0"
-                style={{ color: "rgba(0,255,65,0.5)" }}
-              >
-                {cat.label} — {cat.checks.filter((c) => c.pass).length}/{cat.checks.filter((c) => !c.not_scored).length} PASS
-              </p>
+              <div className="flex-1 min-w-0 border-b border-[rgba(0,255,65,0.2)] pb-1">
+                <p className="text-xs font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>
+                  {cat.label}
+                </p>
+                <p className="text-[10px]" style={{ color: "rgba(0,255,65,0.5)" }}>
+                  {cat.checks.filter((c) => c.pass).length}/{cat.checks.filter((c) => !c.not_scored).length} checks passed
+                </p>
+              </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {/* DATA button */}
                 <button
@@ -103,7 +105,7 @@ export default function HealthCategories({ cats }: { cats: HealthCat[] }) {
                       : { borderColor: "rgba(0,255,65,0.25)", color: "rgba(0,255,65,0.4)" }}
                     onClick={() => toggleWhy(cat.label)}
                   >
-                    WHY
+                    INFO
                   </button>
                 )}
               </div>

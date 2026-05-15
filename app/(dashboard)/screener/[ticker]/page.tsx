@@ -20,6 +20,7 @@ type HealthCheck = {
   pass: boolean;
   score: number;
   years_passed: number;
+  not_scored?: boolean;
 };
 
 
@@ -54,6 +55,11 @@ function fmtBn(n: number | null | undefined): string {
 function scoreColor(v: number | null | undefined): string {
   if (!v && v !== 0) return "#666";
   return v >= 70 ? "#00ff41" : v >= 45 ? "#fbbf24" : "#f87171";
+}
+
+function healthColor(v: number | null | undefined): string {
+  if (v == null) return "#666";
+  return v >= 75 ? "#00ff41" : v >= 50 ? "#f59e0b" : "#ef4444";
 }
 
 const HEALTH_EXPLANATIONS: { key: string; pass: string; fail: string }[] = [
@@ -229,6 +235,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
     offset += cat.count;
     return { ...cat, checks };
   });
+  const scoredTotal = rawChecks.filter((c) => !c.not_scored).length || 24;
 
   const currentPrice: number | null = price?.current_price ?? null;
   const blendedPrice: number | null = score?.ppm_blended_price ?? null;
@@ -855,14 +862,25 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         {/* ── Layer 3: Health — 24 checks ──────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>
           <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
+            <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "#00ff41" }}>
               LAYER 3 — FINANCIAL HEALTH
             </p>
-            <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
-              {score?.health_passes ?? 0}/24 checks passed · {score?.health_score != null ? Number(score.health_score).toFixed(1) : "—"}% health score
-            </p>
-            <div className="mt-2 h-1.5 rounded-full w-full" style={{ background: "rgba(255,255,255,0.1)" }}>
-              <div className="h-full rounded-full" style={{ width: `${score?.health_score ?? 0}%`, background: scoreColor(score?.health_score ?? 0) }} />
+            <div className="flex gap-6 mb-3">
+              <div>
+                <p className="text-2xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
+                  {score?.health_passes ?? 0}/{scoredTotal}
+                </p>
+                <p className="text-[10px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CHECKS PASSED</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
+                  {score?.health_score != null ? `${Number(score.health_score).toFixed(1)}%` : "—"}
+                </p>
+                <p className="text-[10px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>HEALTH SCORE</p>
+              </div>
+            </div>
+            <div className="h-1 rounded-full w-full" style={{ background: "rgba(255,255,255,0.1)" }}>
+              <div className="h-full rounded-full" style={{ width: `${score?.health_score ?? 0}%`, background: healthColor(score?.health_score) }} />
             </div>
           </div>
 
@@ -873,7 +891,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             >
               <div className="px-5 pt-4 pb-2">
                 <p className="text-xs font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>
-                  {cat.label} — {cat.checks.filter((c) => c.pass).length}/{cat.count} PASS
+                  {cat.label} — {cat.checks.filter((c) => c.pass).length}/{cat.checks.filter((c) => !c.not_scored).length} PASS
                 </p>
               </div>
               <div className="px-5 pb-4 space-y-2">
@@ -881,31 +899,43 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   <p className="text-xs" style={{ color: "rgba(0,255,65,0.25)" }}>No data</p>
                 ) : (
                   cat.checks.map((check, i) => {
-                    const explanation = getCheckExplanation(check.name, check.pass);
+                    const notScored = check.not_scored === true;
+                    const explanation = notScored
+                      ? "Not applicable for banks — excluded from health score"
+                      : getCheckExplanation(check.name, check.pass);
                     return (
                       <div key={i} className="space-y-0.5">
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-xs flex-1 min-w-0 leading-relaxed" style={{ color: "rgba(0,255,65,0.65)" }}>{check.name}</span>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-xs font-mono" style={{ color: "rgba(0,255,65,0.25)" }}>
-                              {check.years_passed}/5 yrs
+                              {notScored ? "—" : `${check.years_passed}/5 yrs`}
                             </span>
-                            <span
-                              className="inline-block text-center text-xs font-bold tracking-widest rounded"
-                              style={{
-                                minWidth: 44,
-                                padding: "2px 8px",
-                                ...(check.pass
-                                  ? { background: "rgba(0,255,65,0.12)", color: "#00ff41", border: "1px solid rgba(0,255,65,0.4)" }
-                                  : { background: "rgba(248,113,113,0.1)", color: "#f87171", border: "1px solid rgba(248,113,113,0.35)" }),
-                              }}
-                            >
-                              {check.pass ? "PASS" : "FAIL"}
-                            </span>
+                            {notScored ? (
+                              <span
+                                className="inline-block text-center text-[10px] rounded"
+                                style={{ padding: "2px 8px", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.3)" }}
+                              >
+                                NOT SCORED
+                              </span>
+                            ) : (
+                              <span
+                                className="inline-block text-center text-xs font-bold tracking-widest rounded"
+                                style={{
+                                  minWidth: 44,
+                                  padding: "2px 8px",
+                                  ...(check.pass
+                                    ? { background: "rgba(0,255,65,0.12)", color: "#00ff41", border: "1px solid rgba(0,255,65,0.4)" }
+                                    : { background: "rgba(248,113,113,0.1)", color: "#f87171", border: "1px solid rgba(248,113,113,0.35)" }),
+                                }}
+                              >
+                                {check.pass ? "PASS" : "FAIL"}
+                              </span>
+                            )}
                           </div>
                         </div>
                         {explanation && (
-                          <p className="text-[10px] italic" style={{ color: check.pass ? "rgba(0,255,65,0.5)" : "rgba(255,80,80,0.6)" }}>
+                          <p className="text-[10px] italic" style={{ color: notScored ? "rgba(255,255,255,0.25)" : check.pass ? "rgba(0,255,65,0.5)" : "rgba(255,80,80,0.6)" }}>
                             {explanation}
                           </p>
                         )}

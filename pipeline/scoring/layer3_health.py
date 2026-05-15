@@ -14,7 +14,7 @@ Per-metric score: min(current_pass*60 + years_passed*8, 100)
 Overall score  : passes / 24 * 100
 """
 from __future__ import annotations
-from scoring.utils import safe_float
+from scoring.utils import safe_float, is_financial
 
 
 def _f(d: dict, key: str, default: float = 0.0) -> float:
@@ -44,11 +44,14 @@ def _build_rows(data: dict) -> list[dict]:
 
 
 def score_health(data: dict) -> dict:
+    profile   = data.get("profile", {})
+    financial = is_financial(profile)
     rows = _build_rows(data)
     if not rows:
         return {"score": 0.0, "passes": 0, "details": []}
 
     checks: list[dict] = []
+    _BANK_EXCLUDED = {"Cash/Debt > 1.0", "Debt/Equity < 80%", "FCF Growth Trend"}
 
     def _ok(fn, row: dict) -> bool:
         try:
@@ -57,6 +60,15 @@ def score_health(data: dict) -> dict:
             return False
 
     def metric(name: str, check_fn) -> None:
+        if financial and name in _BANK_EXCLUDED:
+            checks.append({
+                "name":         name,
+                "pass":         False,
+                "score":        0,
+                "years_passed": 0,
+                "not_scored":   True,
+            })
+            return
         current_pass = _ok(check_fn, rows[0])
         years_passed = sum(1 for r in rows if _ok(check_fn, r))
         total_score  = min((60 if current_pass else 0) + years_passed * 8, 100)
@@ -197,8 +209,9 @@ def score_health(data: dict) -> dict:
     metric("$1 Retained Test",
         lambda d: _dollar_pass)
 
-    passes = sum(1 for c in checks if c["pass"])
-    score  = round(passes / len(checks) * 100, 2)
+    scored = [c for c in checks if not c.get("not_scored")]
+    passes = sum(1 for c in scored if c["pass"])
+    score  = round(passes / len(scored) * 100, 2) if scored else 0.0
 
     return {
         "score":   score,

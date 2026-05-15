@@ -491,6 +491,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           {(() => {
             const m3na = scoreEx?.m3_applicable === false || !score?.ppm_m3_price || Number(score.ppm_m3_price) === 0;
             const m3 = (cls: string) => `${cls}${m3na ? " opacity-40" : ""}`;
+            const m2na = !score?.ppm_m2_price || Number(score.ppm_m2_price) === 0;
+            const m2 = (cls: string) => `${cls}${m2na ? " opacity-40" : ""}`;
             const r = "border-r border-[rgba(0,255,65,0.1)]";
             const stepBox = "border border-[rgba(0,255,65,0.1)] rounded p-1 text-center";
             return (
@@ -501,7 +503,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 1</p>
                   <p className="text-xs font-bold tracking-wider" style={{ color: "#00ff41" }}>EARNINGS GROWTH</p>
                 </div>
-                <div className={`px-3 pt-2 pb-1 text-center ${r}`}>
+                <div className={m2(`px-3 pt-2 pb-1 text-center ${r}`)}>
                   <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 2</p>
                   <p className="text-xs font-bold tracking-wider" style={{ color: "#00ff41" }}>FREE CASH FLOW</p>
                 </div>
@@ -515,7 +517,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[1]</span> CURRENT PRICE</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
                 </div></div>
-                <div className={`px-3 py-1 ${r}`}><div className={stepBox}>
+                <div className={m2(`px-3 py-1 ${r}`)}><div className={stepBox}>
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[1]</span> CURRENT PRICE</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
                 </div></div>
@@ -526,7 +528,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
                 {/* Arrow row */}
                 <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-                <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                <div className={m2(`text-center text-[9px] leading-none py-0 ${r}`)} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
                 <div className={m3("text-center text-[9px] leading-none py-0")} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
 
                 {/* ROW 3 — Step ②: EBITDA / FCF / Dividend Yield */}
@@ -534,10 +536,19 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[2]</span> CURRENT EBITDA</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_current)}</p>
                 </div></div>
-                <div className={`px-3 py-1 ${r}`}><div className={stepBox}>
-                  <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[2]</span> CURRENT FCF</p>
-                  <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m2_fcf_current)}</p>
-                </div></div>
+                <div className={m2(`px-3 py-1 ${r}`)}>
+                  {m2na ? (
+                    <div className="text-center pt-1">
+                      <p className="text-[9px] font-bold tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.7)" }}>NOT APPLICABLE</p>
+                      <p className="text-[9px] leading-relaxed" style={{ color: "rgba(0,255,65,0.6)" }}>FCF method excluded for financial sector</p>
+                    </div>
+                  ) : (
+                    <div className={stepBox}>
+                      <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[2]</span> CURRENT FCF</p>
+                      <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m2_fcf_current)}</p>
+                    </div>
+                  )}
+                </div>
                 <div className={m3("px-3 py-1")}>
                   {m3na ? (
                     <div className="text-center pt-1">
@@ -560,7 +571,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
                 {/* Arrow row — above ROW 3.5 annotation */}
                 <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
-                <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
+                <div className={m2(`text-center text-[9px] leading-none py-0 ${r}`)} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
                 <div className={m3("text-center text-[9px] leading-none py-0")} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
 
                 {/* ROW 3.5 — Annotation */}
@@ -569,7 +580,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     Growing at {scoreEx?.m1_growth_rate != null ? `${(Number(scoreEx.m1_growth_rate) * 100).toFixed(1)}%` : "—"}
                   </p>
                 </div>
-                <div className={`px-3 py-0.5 text-center ${r}`}>
+                <div className={m2(`px-3 py-0.5 text-center ${r}`)}>
                   <p className="text-[9px] italic" style={{ color: "rgba(0,255,65,0.35)" }}>
                     Growing at {scoreEx?.m2_growth_rate != null ? `${(Number(scoreEx.m2_growth_rate) * 100).toFixed(1)}%` : "—"}
                   </p>
@@ -578,7 +589,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
                 {/* Arrow row */}
                 <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-                <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                <div className={m2(`text-center text-[9px] leading-none py-0 ${r}`)} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
                 <div className={m3("text-center text-[9px] leading-none py-0")} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
 
                 {/* ROW 4 — Step ③: Projected EBITDA / FCF / Price Growth */}
@@ -586,7 +597,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[3]</span> PROJECT 5Y EBITDA</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_projected)}</p>
                 </div></div>
-                <div className={`px-3 py-1 ${r}`}><div className={stepBox}>
+                <div className={m2(`px-3 py-1 ${r}`)}><div className={stepBox}>
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[3]</span> PROJECT 5Y FCF</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m2_fcf_projected)}</p>
                 </div></div>
@@ -599,7 +610,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
                 {/* Arrow row — above ROW 4.5 annotation */}
                 <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
-                <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
+                <div className={m2(`text-center text-[9px] leading-none py-0 ${r}`)} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
                 <div className={m3("text-center text-[9px] leading-none py-0")} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
 
                 {/* ROW 4.5 — Annotation */}
@@ -608,7 +619,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     At {scoreEx?.m1_ev_ebitda_multiple != null ? `${Number(scoreEx.m1_ev_ebitda_multiple).toFixed(0)}x` : "—"} earnings multiple
                   </p>
                 </div>
-                <div className={`px-3 py-0.5 text-center ${r}`}>
+                <div className={m2(`px-3 py-0.5 text-center ${r}`)}>
                   <p className="text-[9px] italic" style={{ color: "rgba(0,255,65,0.35)" }}>
                     At {scoreEx?.m2_fcf_yield != null ? `${(Number(scoreEx.m2_fcf_yield) * 100).toFixed(1)}%` : "—"} cash flow yield
                   </p>
@@ -623,7 +634,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
                 {/* Arrow row */}
                 <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-                <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                <div className={m2(`text-center text-[9px] leading-none py-0 ${r}`)} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
                 <div className={m3("text-center text-[9px] leading-none py-0")} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
 
                 {/* ROW 4 — Step [4]: Estimated Future Price */}
@@ -631,7 +642,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[4]</span> ESTIMATED FUTURE PRICE</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(score?.ppm_m1_price)}</p>
                 </div></div>
-                <div className={`px-3 py-1 ${r}`}><div className={stepBox}>
+                <div className={m2(`px-3 py-1 ${r}`)}><div className={stepBox}>
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[4]</span> ESTIMATED FUTURE PRICE</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(score?.ppm_m2_price)}</p>
                 </div></div>
@@ -642,7 +653,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
                 {/* Arrow row — above dividend annotation */}
                 <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
-                <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
+                <div className={m2(`text-center text-[9px] leading-none py-0 ${r}`)} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
                 <div className={m3("text-center text-[9px] leading-none py-0")} style={{ color: "rgba(0,255,65,0.4)" }}>↓</div>
 
                 {/* Dividend annotation row + Step [5]: Total Return Price */}
@@ -655,7 +666,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                       <div className={`px-3 py-0.5 text-center ${r}`}>
                         <p className="text-[9px] italic" style={{ color: "rgba(0,255,65,0.35)" }}>{divLabel}</p>
                       </div>
-                      <div className={`px-3 py-0.5 text-center ${r}`}>
+                      <div className={m2(`px-3 py-0.5 text-center ${r}`)}>
                         <p className="text-[9px] italic" style={{ color: "rgba(0,255,65,0.35)" }}>{divLabel}</p>
                       </div>
                       <div className={m3("px-3 py-0.5 text-center")}>
@@ -664,7 +675,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
                       {/* Arrow row */}
                       <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
-                      <div className={`text-center text-[9px] leading-none py-0 ${r}`} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
+                      <div className={m2(`text-center text-[9px] leading-none py-0 ${r}`)} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
                       <div className={m3("text-center text-[9px] leading-none py-0")} style={{ color: "rgba(0,255,65,0.25)" }}>↓</div>
 
                       {/* ROW 5 — Step [5]: Total Return Price (hero box) */}
@@ -674,7 +685,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           <p className="text-lg font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price != null ? Number(score.ppm_m1_price) + cumDivPs : null)}</p>
                         </div>
                       </div>
-                      <div className={`px-3 pt-1 pb-2 ${r}`}>
+                      <div className={m2(`px-3 pt-1 pb-2 ${r}`)}>
                         <div className="rounded p-2 text-center" style={{ background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)" }}>
                           <p className="text-[8px] tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.4)" }}><span className="font-bold">[5]</span> TOTAL RETURN PRICE</p>
                           <p className="text-lg font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price != null ? Number(score.ppm_m2_price) + cumDivPs : null)}</p>

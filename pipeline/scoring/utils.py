@@ -63,6 +63,13 @@ def clamp(value: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, value))
 
 
+def is_financial(profile: dict) -> bool:
+    """FCF is structurally noisy for banks/insurers — exclude it from scoring."""
+    sector   = (profile.get("sector")   or "").strip()
+    industry = (profile.get("industry") or "").strip().lower()
+    return sector in ("Financials", "Financial Services") or "bank" in industry
+
+
 def compute_gq(values: list, sp500_cagr: float = 0.10) -> dict:
     """
     Recency-weighted YoY growth quality score.

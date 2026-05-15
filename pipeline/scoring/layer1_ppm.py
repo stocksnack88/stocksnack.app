@@ -11,7 +11,7 @@ M3  Div + FCF floor  — project dividends per share with FCF ceiling, trimmed P
 from __future__ import annotations
 import logging
 import requests
-from scoring.utils import safe_float, compute_cagr, cagr_to_score, clamp, compute_gq, trimmed_median
+from scoring.utils import safe_float, compute_cagr, cagr_to_score, clamp, compute_gq, trimmed_median, is_financial
 
 log = logging.getLogger(__name__)
 
@@ -208,9 +208,15 @@ def score_ppm(data: dict, ticker: str = "", sp500_cagr: float | None = None) -> 
     reported_currency = data.get("reported_currency", "USD") or "USD"
     fx_rate = _fx_to_usd(reported_currency, ticker)
 
-    _sp500 = sp500_cagr or 0.10
+    _sp500   = sp500_cagr or 0.10
+    financial = is_financial(profile)
     r1 = _m1_ebitda(data, shares or 0, fx_rate, _sp500) if shares else None
-    r2 = _m2_fcf(data, shares or 0, fx_rate, _sp500)    if shares else None
+    if financial:
+        if ticker:
+            log.info("[%s] M2 skipped — financial sector", ticker)
+        r2 = None
+    else:
+        r2 = _m2_fcf(data, shares or 0, fx_rate, _sp500) if shares else None
     r3 = _m3_shareholder_return(data, current_price, shares or 0, fx_rate, _sp500)
 
     m1 = r1["price"] if r1 else None

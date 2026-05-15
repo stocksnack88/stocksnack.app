@@ -7,7 +7,7 @@ Score = average of all component scores × worst-signal multiplier.
 """
 from __future__ import annotations
 import logging
-from scoring.utils import safe_float, list_cagr, cagr_to_score, compute_gq
+from scoring.utils import safe_float, list_cagr, cagr_to_score, compute_gq, is_financial
 
 log = logging.getLogger(__name__)
 
@@ -107,11 +107,6 @@ def _fcf_gq_score(
     return score, gq["weightedCAGR"], gq["signal"]
 
 
-def _is_financial(profile: dict) -> bool:
-    """FCF is structurally noisy for banks/insurers — exclude it from scoring."""
-    sector   = (profile.get("sector")   or "").strip()
-    industry = (profile.get("industry") or "").strip().lower()
-    return sector in ("Financials", "Financial Services") or "bank" in industry
 
 
 def _extract_years(rows: list, n: int = 4) -> list[str]:
@@ -153,7 +148,7 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
     # FCF: linear regression on 5-year series.
     # Excluded for financial-sector companies (banks/insurers) where FCF is
     # structurally dominated by loan originations and not a growth signal.
-    financial = _is_financial(profile)
+    financial = is_financial(profile)
     if financial:
         if ticker:
             log.info("[%s] Financial sector — FCF excluded from growth scoring", ticker)

@@ -751,7 +751,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             };
             const SIG_COLOR: Record<string, string> = {
               "Solid Growth": "#00ff41", "Slowing Growth": "#00ff41",
-              "Decelerating": "#fbbf24", "Deteriorating": "#fb923c", "Freefall": "#f87171",
+              "Decelerating": "#f59e0b", "Deteriorating": "#f59e0b", "Freefall": "#ef4444",
+            };
+            const FCF_TREND: Record<string, { arrow: string; label: string }> = {
+              "Solid Growth":   { arrow: "↑", label: "Growing" },
+              "Slowing Growth": { arrow: "↑", label: "Growing" },
+              "Decelerating":   { arrow: "→", label: "Slowing" },
+              "Deteriorating":  { arrow: "↓", label: "Declining" },
+              "Freefall":       { arrow: "↓", label: "Declining" },
             };
 
             const metrics: { key: MetricKey; label: string; cagr: number | null | undefined; signal: string | null | undefined }[] = [
@@ -799,17 +806,30 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         </div>
                         {/* Growth quality signal */}
                         {signal && (
-                          <div className="flex items-center gap-1 mb-2">
+                          <div className="flex items-center gap-1.5 mb-2">
                             <span className="text-[9px] tracking-widest font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>
                               GROWTH QUALITY:
                             </span>
                             <span className="text-[9px] font-mono" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
                               {signal}
                             </span>
-                            <span className="text-[9px] font-mono" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
-                              {"★".repeat(SIG_STARS[signal] ?? 0)}
-                              <span style={{ color: "rgba(0,255,65,0.2)" }}>{"☆".repeat(5 - (SIG_STARS[signal] ?? 0))}</span>
-                            </span>
+                            {key === "free_cash_flow" ? (
+                              <span className="text-xs font-mono font-bold" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
+                                {FCF_TREND[signal]?.arrow ?? "→"} {FCF_TREND[signal]?.label ?? signal}
+                              </span>
+                            ) : (
+                              <span className="text-sm font-mono leading-none">
+                                {Array.from({ length: 5 }).map((_, i) => {
+                                  const filled = i < (SIG_STARS[signal] ?? 0);
+                                  const col = SIG_COLOR[signal] ?? "#00ff41";
+                                  return (
+                                    <span key={i} style={{ color: filled ? col : col + "4d" }}>
+                                      {filled ? "★" : "☆"}
+                                    </span>
+                                  );
+                                })}
+                              </span>
+                            )}
                           </div>
                         )}
                         {/* Bar area */}

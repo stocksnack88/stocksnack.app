@@ -130,29 +130,35 @@ def _m3_shareholder_return(
     if current_price <= 0 or shares <= 0:
         return None
 
-    income   = data.get("income", [])
     cashflow = data.get("cashflow", [])
     metrics  = data.get("metrics", [])
     profile  = data.get("profile", {})
 
-    div_current = safe_float(profile.get("lastDividend"))
+    _price = safe_float(profile.get("price"))
+    _div   = safe_float(profile.get("lastDividend"))
+    div_yield = clamp(_div / _price if _price > 0 else 0.0, 0.0, 0.15)
 
-    # Revenue + NI blend → dividend growth rate with 0.9 haircut
-    rev_vals = [safe_float(r.get("revenue")) for r in income]
-    ni_vals  = [safe_float(r.get("netIncome")) for r in income]
-    ni_pos   = [v for v in ni_vals if v and v > 0]
-    gq_rev   = compute_gq(list(reversed(rev_vals[:5])),   sp500_cagr)
-    gq_ni    = compute_gq(list(reversed(ni_pos[:5])),     sp500_cagr) if len(ni_pos) >= 2 else gq_rev
-    linear_growth  = (gq_rev["weightedCAGR"] + gq_ni["weightedCAGR"]) / 2
-    adj_div_growth = clamp(linear_growth * 0.9, -0.05, 0.20)
+    # FIX 1: gate — only apply M3 for genuine high-yield dividend payers
+    # Requires yield >= 4.5% AND dividends paid every year for last 5 years
+    if div_yield < 0.045:
+        return None
+    div_paid_5y = [safe_float(r.get("dividendsPaid")) for r in cashflow[:5]]
+    if len(div_paid_5y) < 5 or not all(v < 0 for v in div_paid_5y):
+        return None
 
-    # FCF growth rate for ceiling projection
+    # FIX 2: use total dividends paid series (oldest-first, USD) for growth rate
+    # dividendsPaid is negative in FMP — negate to get positive total outflow
+    total_div_vals = [-v * fx_rate for v in div_paid_5y]
+    gq_div         = compute_gq(list(reversed(total_div_vals)), sp500_cagr)
+    adj_div_growth = gq_div["weightedCAGR"]   # FIX 3: saved directly as m3_growth_rate
+
+    # FCF series for ceiling projection
     fcf_vals = [safe_float(r.get("freeCashFlow")) * fx_rate for r in cashflow]
-    gq_fcf       = compute_gq(list(reversed(fcf_vals[:5])), sp500_cagr) if fcf_vals else {"weightedCAGR": 0.05}
+    gq_fcf         = compute_gq(list(reversed(fcf_vals[:5])), sp500_cagr) if fcf_vals else {"weightedCAGR": 0.05}
     adj_fcf_growth = gq_fcf["weightedCAGR"]
 
     # Historical P/giveback multiple (1 / dividendYield)
-    div_yields    = [safe_float(r.get("dividendYield")) for r in metrics]
+    div_yields      = [safe_float(r.get("dividendYield")) for r in metrics]
     p_giveback_vals = [1.0 / y for y in div_yields if y and y > 0.001]
     p_giveback = (
         clamp(trimmed_median(p_giveback_vals), 5.0, 100.0)
@@ -160,32 +166,31 @@ def _m3_shareholder_return(
         else _P_GIVEBACK_FALLBACK
     )
 
-    # Project dividends per share with FCF ceiling
-    cur_gps = div_current
-    cur_fcf = fcf_vals[0] if fcf_vals else 0.0
+    # FIX 2: project total dividends forward; FCF ceiling stays in total dollars
+    cur_total_div = total_div_vals[0]   # most recent year total paid
+    cur_total_fcf = fcf_vals[0] if fcf_vals else 0.0
     for _ in range(_YEARS):
-        cur_fcf   *= (1 + adj_fcf_growth)
-        target_gps = cur_gps * (1 + adj_div_growth)
-        ceiling    = (cur_fcf * 0.90) / shares
-        cur_gps    = min(target_gps, ceiling)
+        cur_total_fcf  *= (1 + adj_fcf_growth)
+        target_total    = cur_total_div * (1 + adj_div_growth)
+        ceiling_total   = cur_total_fcf * 0.90
+        cur_total_div   = min(target_total, ceiling_total)
 
-    if cur_gps <= 0:
+    if cur_total_div <= 0:
         return None
 
-    # Keep div_yield / buyback_yield for backward-compatible intermediates
-    _price = safe_float(profile.get("price"))
-    _div   = div_current
-    div_yield     = clamp(_div / _price if _price > 0 else 0.0, 0.0, 0.15)
+    # Convert back to per-share only for final price
+    proj_div_ps = cur_total_div / shares
+
     buybacks      = abs(safe_float((cashflow[0] if cashflow else {}).get("commonStockRepurchased"))) * fx_rate
     mkt_cap       = safe_float(profile.get("marketCap"))
     buyback_yield = clamp(buybacks / mkt_cap, 0.0, 0.10) if mkt_cap > 0 else 0.0
 
     return {
-        "price":             cur_gps * p_giveback,
+        "price":             proj_div_ps * p_giveback,
         "div_yield":         div_yield,
         "buyback_yield":     buyback_yield,
         "shareholder_yield": div_yield + buyback_yield,
-        "growth_rate":       adj_div_growth,
+        "growth_rate":       adj_div_growth,   # from compute_gq on total dividends
         "annual_div_ps":     _div,
     }
 

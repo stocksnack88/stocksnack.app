@@ -646,7 +646,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const isClose     = Math.abs(diff) <= 0.01;
             const tickerWins  = diff > 0.01;
             const tickerColor = isClose ? "#f59e0b" : tickerWins ? "#00ff41" : "#ef4444";
-            const sp500Color  = isClose ? "#f59e0b" : tickerWins ? "rgba(0,255,65,0.4)" : "#00ff41";
+            const sp500Color  = isClose ? "#f59e0b" : tickerWins ? "#ef4444" : "#00ff41";
             return (
               <div className="px-5 py-4">
                 <div className="flex items-center gap-2">
@@ -748,45 +748,47 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     const cagrNum    = cagr != null ? Number(cagr) : null;
                     return (
                       <div key={key}>
-                        {/* Single header row: label · badge · signal · stars */}
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <span className="text-sm font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.7)" }}>
+                        {/* Single header row: label left · badge+signal+stars right */}
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-xs font-bold tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.7)" }}>
                             {label}
                           </span>
-                          {key === "free_cash_flow" && signal && FCF_TREND[signal] ? (
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded" style={{
-                              color: SIG_COLOR[signal] ?? "#00ff41",
-                              border: `1px solid ${SIG_COLOR[signal] ?? "#00ff41"}`,
-                            }}>
-                              {FCF_TREND[signal].arrow} {FCF_TREND[signal].label}
-                            </span>
-                          ) : cagrNum != null ? (
-                            <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded" style={{
-                              background: cagrNum >= 0 ? "rgba(0,255,65,0.08)" : "rgba(248,113,113,0.08)",
-                              color:      cagrNum >= 0 ? "rgba(0,255,65,0.7)"  : "#f87171",
-                              border:     `1px solid ${cagrNum >= 0 ? "rgba(0,255,65,0.2)" : "rgba(248,113,113,0.3)"}`,
-                            }}>
-                              {fmtCagr(cagr)} CAGR
-                            </span>
-                          ) : null}
-                          {signal && (
-                            <>
-                              <span className="text-[10px] font-mono" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
-                                {signal}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {key === "free_cash_flow" && signal && FCF_TREND[signal] ? (
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded" style={{
+                                color: SIG_COLOR[signal] ?? "#00ff41",
+                                border: `1px solid ${SIG_COLOR[signal] ?? "#00ff41"}`,
+                              }}>
+                                {FCF_TREND[signal].arrow} {FCF_TREND[signal].label}
                               </span>
-                              <span className="text-[10px] font-mono leading-none">
-                                {Array.from({ length: 5 }).map((_, i) => {
-                                  const filled = i < (SIG_STARS[signal] ?? 0);
-                                  const col = SIG_COLOR[signal] ?? "#00ff41";
-                                  return (
-                                    <span key={i} style={{ color: filled ? col : col + "4d" }}>
-                                      {filled ? "★" : "☆"}
-                                    </span>
-                                  );
-                                })}
+                            ) : cagrNum != null ? (
+                              <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded" style={{
+                                background: cagrNum >= 0 ? "rgba(0,255,65,0.08)" : "rgba(248,113,113,0.08)",
+                                color:      cagrNum >= 0 ? "rgba(0,255,65,0.7)"  : "#f87171",
+                                border:     `1px solid ${cagrNum >= 0 ? "rgba(0,255,65,0.2)" : "rgba(248,113,113,0.3)"}`,
+                              }}>
+                                {fmtCagr(cagr)} CAGR
                               </span>
-                            </>
-                          )}
+                            ) : null}
+                            {signal && (
+                              <>
+                                <span className="text-[10px] font-mono" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
+                                  {signal}
+                                </span>
+                                <span className="text-[10px] font-mono leading-none">
+                                  {Array.from({ length: 5 }).map((_, i) => {
+                                    const filled = i < (SIG_STARS[signal] ?? 0);
+                                    const col = SIG_COLOR[signal] ?? "#00ff41";
+                                    return (
+                                      <span key={i} style={{ color: filled ? col : col + "4d" }}>
+                                        {filled ? "★" : "☆"}
+                                      </span>
+                                    );
+                                  })}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                         {/* Bar area */}
                         {(() => {
@@ -931,6 +933,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     <p className="text-[9px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}>{weight}</p>
                     <p className="text-2xl font-bold font-mono" style={{ color: c }}>
                       {value != null ? `${Number(value).toFixed(1)}%` : "—"}
+                    </p>
+                    <p className="text-[9px] italic text-center mt-1" style={{ color: "rgba(0,255,65,0.4)" }}>
+                      {idx === 0
+                        ? `${score?.ppm_cagr != null ? `${(Number(score.ppm_cagr) * 100).toFixed(1)}% CAGR` : "—"} vs S&P ${scoreEx?.sp500_cagr != null ? `${(Number(scoreEx.sp500_cagr) * 100).toFixed(1)}%` : "—"} benchmark`
+                        : idx === 1
+                        ? "Revenue, EBITDA & FCF growth, adjusted for trend quality"
+                        : `${score?.health_passes ?? 0} of ${scoredTotal} Buffett checks passed`}
                     </p>
                   </div>
                 );

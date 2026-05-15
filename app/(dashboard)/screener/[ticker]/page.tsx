@@ -56,7 +56,7 @@ function fmtBn(n: number | null | undefined): string {
 
 function scoreColor(v: number | null | undefined): string {
   if (!v && v !== 0) return "#666";
-  return v >= 70 ? "#00ff41" : v >= 45 ? "#fbbf24" : "#f87171";
+  return v >= 70 ? "#00ff41" : v >= 45 ? "#f59e0b" : "#ef4444";
 }
 
 function healthColor(v: number | null | undefined): string {
@@ -722,60 +722,59 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <p className="text-3xl font-bold font-mono text-center" style={{ color: scoreColor(ppmScore) }}>
                   {ppmScore.toFixed(1)}%
                 </p>
-                {/* FIX 1 — two-line formula */}
+                {/* FIX 3 — two-line formula with CAGR labels on both sides */}
                 <p className="text-[10px] italic text-center mt-2" style={{ color: "rgba(0,255,65,0.4)" }}>
-                  {ticker} ÷ 2×S&P
+                  {ticker} CAGR ÷ 2×S&P CAGR
                 </p>
                 <p className="text-[11px] italic text-center" style={{ color: "rgba(0,255,65,0.8)" }}>
                   {ppmCagrPct}% ÷ {sp500x2Pct}% = {ratio}×
                 </p>
-                {/* FIX 2/3/4 — benchmark bar with equal thirds, ▲ marker, tick marks */}
-                <div className="mt-3 relative">
-                  {/* Marker label above bar */}
-                  <div className="relative h-4 mb-0.5">
-                    <span
-                      className="absolute text-[9px] font-mono -translate-x-1/2"
-                      style={{ left: `${markerPos * 100}%`, color: "#fff", bottom: 0 }}
-                    >
-                      {ppmCagrPct}%
-                    </span>
-                  </div>
-                  {/* 3-zone bar — equal thirds */}
-                  <div className="flex w-full h-2 rounded-full overflow-hidden">
-                    <div style={{ width: "33.33%", background: "rgba(239,68,68,0.4)"  }} />
-                    <div style={{ width: "33.33%", background: "rgba(245,158,11,0.4)" }} />
-                    <div style={{ width: "33.34%", background: "rgba(0,255,65,0.5)"   }} />
-                  </div>
-                  {/* Tick marks at zone boundaries — FIX 4 */}
-                  <div className="relative" style={{ height: 18 }}>
-                    {([
-                      { left: "0%",      label: "-S&P"  },
-                      { left: "33.33%",  label: "0"     },
-                      { left: "66.67%",  label: "S&P"   },
-                      { left: "100%",    label: "2×S&P" },
-                    ] as const).map(({ left, label }) => (
-                      <div key={label} className="absolute flex flex-col items-center" style={{ left, transform: "translateX(-50%)" }}>
-                        <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.3)" }} />
-                        <span className="text-[8px] mt-0.5 whitespace-nowrap" style={{ color: "rgba(0,255,65,0.3)" }}>{label}</span>
+                {/* FIX 2 — benchmark bar: ▼ marker above bar, equal thirds, tick marks */}
+                {(() => {
+                  const markerColor = markerPos < 1/3 ? "#ef4444" : markerPos < 2/3 ? "#f59e0b" : "#00ff41";
+                  return (
+                    <div className="mt-3">
+                      {/* Marker (value + ▼) pinned above bar */}
+                      <div className="relative h-8 mb-0.5">
+                        <div
+                          className="absolute flex flex-col items-center -translate-x-1/2"
+                          style={{ left: `${markerPos * 100}%`, bottom: 0 }}
+                        >
+                          <span className="text-[9px] font-bold font-mono leading-none" style={{ color: markerColor }}>
+                            {ppmCagrPct}%
+                          </span>
+                          <span className="text-[9px] leading-none" style={{ color: markerColor }}>▼</span>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                  {/* FIX 3 — ▲ marker below bar */}
-                  <div className="relative" style={{ height: 10, marginTop: -28 }}>
-                    <span
-                      className="absolute text-[9px] -translate-x-1/2 leading-none"
-                      style={{ left: `${markerPos * 100}%`, color: "#fff", top: 0 }}
-                    >
-                      ▲
-                    </span>
-                  </div>
-                  {/* Zone labels centered in each third */}
-                  <div className="flex w-full mt-1">
-                    <span className="text-[8px] text-center uppercase" style={{ width: "33.33%", color: "rgba(239,68,68,0.5)" }}>BELOW 0</span>
-                    <span className="text-[8px] text-center uppercase" style={{ width: "33.33%", color: "rgba(245,158,11,0.5)" }}>MARKET</span>
-                    <span className="text-[8px] text-center uppercase" style={{ width: "33.34%", color: "rgba(0,255,65,0.4)" }}>ABOVE MARKET</span>
-                  </div>
-                </div>
+                      {/* 3-zone bar — equal thirds */}
+                      <div className="flex w-full h-2 rounded-full overflow-hidden">
+                        <div style={{ width: "33.33%", background: "rgba(239,68,68,0.4)"  }} />
+                        <div style={{ width: "33.33%", background: "rgba(245,158,11,0.4)" }} />
+                        <div style={{ width: "33.34%", background: "rgba(0,255,65,0.5)"   }} />
+                      </div>
+                      {/* Tick marks at zone boundaries */}
+                      <div className="relative" style={{ height: 18 }}>
+                        {([
+                          { left: "0%",      label: "-S&P"  },
+                          { left: "33.33%",  label: "0"     },
+                          { left: "66.67%",  label: "S&P"   },
+                          { left: "100%",    label: "2×S&P" },
+                        ] as const).map(({ left, label }) => (
+                          <div key={label} className="absolute flex flex-col items-center" style={{ left, transform: "translateX(-50%)" }}>
+                            <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.3)" }} />
+                            <span className="text-[8px] mt-0.5 whitespace-nowrap" style={{ color: "rgba(0,255,65,0.3)" }}>{label}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Zone labels centered in each third */}
+                      <div className="flex w-full mt-1">
+                        <span className="text-[8px] text-center uppercase" style={{ width: "33.33%", color: "rgba(239,68,68,0.5)" }}>BELOW 0</span>
+                        <span className="text-[8px] text-center uppercase" style={{ width: "33.33%", color: "rgba(245,158,11,0.5)" }}>MARKET</span>
+                        <span className="text-[8px] text-center uppercase" style={{ width: "33.34%", color: "rgba(0,255,65,0.4)" }}>ABOVE MARKET</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()}
@@ -824,7 +823,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const metrics: { key: MetricKey; label: string; cagr: number | null | undefined; signal: string | null | undefined }[] = [
               { key: "revenue",        label: "REVENUE",        cagr: score?.revenue_cagr_5y,  signal: scoreEx?.gq_signal_revenue },
               { key: "ebitda",         label: "EBITDA",         cagr: ebitdaCagr,               signal: scoreEx?.gq_signal_net_income },
-              { key: "free_cash_flow", label: "FREE CASH FLOW", cagr: score?.fcf_cagr_5y,      signal: scoreEx?.gq_signal_fcf },
+              { key: "free_cash_flow", label: "FCF",            cagr: score?.fcf_cagr_5y,      signal: scoreEx?.gq_signal_fcf },
             ];
 
             return (
@@ -934,7 +933,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                           style={{
                                             height: barH,
                                             [isNeg ? "top" : "bottom"]: `${isNeg ? zeroY : negH}px`,
-                                            background: isNeg ? "#f87171" : "#00ff41",
+                                            background: isNeg ? "#ef4444" : "#00ff41",
                                           }}
                                         />
                                       )}

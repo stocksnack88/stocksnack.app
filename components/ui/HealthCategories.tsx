@@ -47,42 +47,70 @@ function getCheckExplanation(name: string, pass: boolean): string {
   return entry ? (pass ? entry.pass : entry.fail) : "";
 }
 
-export default function HealthCategories({ cats }: { cats: HealthCat[] }) {
-  const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
+type CatLevel = { data: boolean; why: boolean };
 
-  const toggle = (label: string) =>
-    setOpenCats((prev) => ({ ...prev, [label]: !prev[label] }));
+export default function HealthCategories({ cats }: { cats: HealthCat[] }) {
+  const [catState, setCatState] = useState<Record<string, CatLevel>>(() =>
+    Object.fromEntries(cats.map((c) => [c.label, { data: true, why: false }]))
+  );
+
+  const toggleData = (label: string) =>
+    setCatState((prev) => {
+      const cur = prev[label] ?? { data: true, why: false };
+      return { ...prev, [label]: { data: !cur.data, why: cur.data ? false : cur.why } };
+    });
+
+  const toggleWhy = (label: string) =>
+    setCatState((prev) => {
+      const cur = prev[label] ?? { data: true, why: false };
+      return { ...prev, [label]: { data: true, why: !cur.why } };
+    });
 
   return (
     <>
       {cats.map((cat, catIdx) => {
-        const isOpen = !!openCats[cat.label];
+        const { data: dataOpen, why: whyOpen } = catState[cat.label] ?? { data: true, why: false };
         return (
           <div
             key={cat.label}
             style={catIdx < cats.length - 1 ? { borderBottom: "1px solid rgba(0,255,65,0.1)" } : {}}
           >
             {/* Category header */}
-            <div
-              className="px-5 pt-4 pb-2 flex items-center justify-between gap-3 cursor-pointer select-none"
-              onClick={() => toggle(cat.label)}
-            >
+            <div className="px-5 pt-4 pb-2 flex items-center gap-3 select-none">
               <p
-                className="text-xs font-bold tracking-widest border-b border-[rgba(0,255,65,0.2)] pb-1"
+                className="text-xs font-bold tracking-widest border-b border-[rgba(0,255,65,0.2)] pb-1 flex-1 min-w-0"
                 style={{ color: "rgba(0,255,65,0.5)" }}
               >
                 {cat.label} — {cat.checks.filter((c) => c.pass).length}/{cat.checks.filter((c) => !c.not_scored).length} PASS
               </p>
-              <button
-                className="text-[10px] border border-[rgba(0,255,65,0.3)] text-[rgba(0,255,65,0.6)] px-1.5 py-0.5 rounded font-mono hover:border-[rgba(0,255,65,0.6)] shrink-0"
-                onClick={(e) => { e.stopPropagation(); toggle(cat.label); }}
-              >
-                {isOpen ? "−" : "+"}
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* DATA button */}
+                <button
+                  className="text-[10px] font-mono px-2 py-0.5 rounded border"
+                  style={dataOpen
+                    ? { borderColor: "rgba(0,255,65,0.7)", color: "rgba(0,255,65,0.9)" }
+                    : { borderColor: "rgba(0,255,65,0.25)", color: "rgba(0,255,65,0.4)" }}
+                  onClick={() => toggleData(cat.label)}
+                >
+                  DATA
+                </button>
+                {/* WHY button — only visible when DATA is open */}
+                {dataOpen && (
+                  <button
+                    className="text-[10px] font-mono px-2 py-0.5 rounded border"
+                    style={whyOpen
+                      ? { borderColor: "rgba(0,255,65,0.7)", color: "rgba(0,255,65,0.9)" }
+                      : { borderColor: "rgba(0,255,65,0.25)", color: "rgba(0,255,65,0.4)" }}
+                    onClick={() => toggleWhy(cat.label)}
+                  >
+                    WHY
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Metric rows — only when expanded */}
-            {isOpen && (
+            {/* Metric rows — visible when DATA is open */}
+            {dataOpen && (
               <div className="px-5 pb-4 space-y-2">
                 {cat.checks.length === 0 ? (
                   <p className="text-xs" style={{ color: "rgba(0,255,65,0.25)" }}>No data</p>
@@ -125,7 +153,8 @@ export default function HealthCategories({ cats }: { cats: HealthCat[] }) {
                             )}
                           </div>
                         </div>
-                        {explanation && (
+                        {/* WHY level — explanation text */}
+                        {whyOpen && explanation && (
                           <p
                             className="text-[10px] italic"
                             style={{

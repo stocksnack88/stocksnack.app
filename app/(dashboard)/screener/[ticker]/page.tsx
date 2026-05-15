@@ -661,7 +661,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </div>
 
           {/* Return summary — reuse top price projection card layout */}
-          <div className="flex items-center gap-4 px-5 py-4">
+          <div className="flex items-center gap-4 px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
             <div className="flex-1 text-center">
               <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>CURRENT PRICE</p>
               <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
@@ -684,6 +684,52 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </p>
             </div>
           </div>
+
+          {/* S&P 500 benchmark comparison */}
+          {(() => {
+            const ppmCagrNum  = score?.ppm_cagr   != null ? Number(score.ppm_cagr)        : null;
+            const sp500CagrNum = scoreEx?.sp500_cagr != null ? Number(scoreEx.sp500_cagr) : null;
+            if (ppmCagrNum == null || sp500CagrNum == null) return null;
+            const ppmMult   = Math.pow(1 + ppmCagrNum,   5);
+            const sp500Mult = Math.pow(1 + sp500CagrNum, 5);
+            const diff = ppmCagrNum - sp500CagrNum;
+            const [compText, compColor] =
+              diff > 0.01
+                ? [`Beats S&P by +${(diff * 100).toFixed(1)}% per year`, "#00ff41"]
+                : diff < -0.01
+                  ? [`Trails S&P by ${(Math.abs(diff) * 100).toFixed(1)}% per year`, "#ef4444"]
+                  : ["Roughly matches S&P 500", "#f59e0b"];
+            return (
+              <div className="px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 text-center">
+                    <p className="text-[10px] tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>YOUR RETURN</p>
+                    <p className="text-base font-bold font-mono" style={{ color: scoreColor(score?.ppm_score) }}>
+                      {fmtCagr(score?.ppm_cagr)}
+                    </p>
+                    <p className="text-[10px] font-mono" style={{ color: "rgba(0,255,65,0.35)" }}>
+                      {ppmMult.toFixed(1)}x in 5 years
+                    </p>
+                  </div>
+                  <div className="shrink-0 px-2 text-center">
+                    <p className="text-[10px] tracking-widest" style={{ color: "rgba(0,255,65,0.25)" }}>VS</p>
+                  </div>
+                  <div className="flex-1 text-center">
+                    <p className="text-[10px] tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>S&P 500</p>
+                    <p className="text-base font-mono" style={{ color: "rgba(0,255,65,0.5)" }}>
+                      {fmtCagr(scoreEx?.sp500_cagr)}
+                    </p>
+                    <p className="text-[10px] font-mono" style={{ color: "rgba(0,255,65,0.35)" }}>
+                      {sp500Mult.toFixed(1)}x in 5 years
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[11px] text-center font-mono mt-2" style={{ color: compColor }}>
+                  {compText}
+                </p>
+              </div>
+            );
+          })()}
 
         </section>
 
@@ -895,46 +941,74 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 4 — FINAL SCORE
             </p>
-            <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
-              PPM 40% · Growth 30% · Health 30%
-            </p>
           </div>
-          <div className="px-5 py-6 flex flex-wrap items-center gap-4 sm:gap-8">
-            <div className="text-center">
-              <p
-                className="text-5xl font-bold font-mono"
-                style={{ color: scoreColor(score?.final_score) }}
-              >
-                {score?.final_score !== null && score?.final_score !== undefined
-                  ? Number(score.final_score).toFixed(1)
-                  : "—"}
-              </p>
-              <p className="text-xs mt-2 tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>
-                FINAL SCORE
-              </p>
+          <div className="px-5 py-6 space-y-3">
+            {/* ROW 1 — Component labels + weights */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-[10px] tracking-widest" style={{ color: "rgba(0,255,65,0.45)" }}>PROJECTED RETURN</p>
+                <p className="text-[10px]" style={{ color: "rgba(0,255,65,0.3)" }}>(5Y)</p>
+                <p className="text-[10px] tracking-widest mt-0.5" style={{ color: "rgba(0,255,65,0.25)" }}>WEIGHT: 40%</p>
+              </div>
+              <div>
+                <p className="text-[10px] tracking-widest" style={{ color: "rgba(0,255,65,0.45)" }}>GROWTH QUALITY</p>
+                <p className="text-[10px] tracking-widest mt-1" style={{ color: "rgba(0,255,65,0.25)" }}>WEIGHT: 30%</p>
+              </div>
+              <div>
+                <p className="text-[10px] tracking-widest" style={{ color: "rgba(0,255,65,0.45)" }}>FINANCIAL HEALTH</p>
+                <p className="text-[10px] tracking-widest mt-1" style={{ color: "rgba(0,255,65,0.25)" }}>WEIGHT: 30%</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-[140px]">
-              <ScoreBar value={score?.final_score} />
-            </div>
-            <div className="text-center">
-              <SignalBadge signal={score?.signal} />
-              <p className="text-xs mt-2 tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>SIGNAL</p>
-            </div>
-          </div>
-          <div className="px-5 pb-5">
-            <div className="grid grid-cols-3 gap-3 text-center text-xs">
-              {[
-                { label: "PPM", value: score?.ppm_score },
-                { label: "GROWTH", value: score?.growth_score },
-                { label: "HEALTH", value: score?.health_score },
-              ].map(({ label, value }) => (
-                <div key={label} className="rounded py-2.5" style={{ border: "1px solid rgba(0,255,65,0.1)", background: "rgba(0,255,65,0.02)" }}>
-                  <p className="tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>{label}</p>
-                  <p className="font-bold mt-0.5" style={{ color: "#00ff41" }}>
-                    {value !== null && value !== undefined ? Number(value).toFixed(1) : "—"}
-                  </p>
-                </div>
+            {/* ROW 2 — Down arrows */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="text-sm" style={{ color: "rgba(0,255,65,0.2)" }}>↓</div>
               ))}
+            </div>
+            {/* ROW 3 — Component score boxes */}
+            <div className="grid grid-cols-3 gap-2">
+              {[score?.ppm_score, score?.growth_score, score?.health_score].map((value, idx) => {
+                const c = healthColor(value != null ? Number(value) : null);
+                return (
+                  <div key={idx} className="rounded py-3 text-center" style={{ border: `1px solid ${c}40`, background: "rgba(0,255,65,0.02)" }}>
+                    <p className="text-2xl font-bold font-mono" style={{ color: c }}>
+                      {value != null ? Number(value).toFixed(1) : "—"}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+            {/* ROW 4 — Converging line + center arrow */}
+            <div className="relative" style={{ height: 28 }}>
+              <div className="absolute inset-x-0" style={{ top: 10, height: 1, background: "rgba(0,255,65,0.15)" }} />
+              <div className="absolute inset-x-0 text-center" style={{ top: 10 }}>
+                <span className="text-sm" style={{ color: "rgba(0,255,65,0.3)" }}>↓</span>
+              </div>
+            </div>
+            {/* ROW 5 — Final score + signal */}
+            <div className="text-center space-y-3 pb-2">
+              <p className="text-[10px] tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>FINAL SCORE</p>
+              <p className="text-4xl font-bold font-mono" style={{ color: scoreColor(score?.final_score) }}>
+                {score?.final_score != null ? `${Number(score.final_score).toFixed(1)}%` : "—"}
+              </p>
+              {(() => {
+                const s = (score?.signal ?? "").toUpperCase();
+                const styles: Record<string, React.CSSProperties> = {
+                  BUY:  { background: "rgba(0,255,65,0.15)",  color: "#00ff41", border: "1px solid rgba(0,255,65,0.6)" },
+                  HOLD: { background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.5)" },
+                  SELL: { background: "rgba(239,68,68,0.15)",  color: "#ef4444", border: "1px solid rgba(239,68,68,0.5)" },
+                };
+                return (
+                  <div className="flex justify-center">
+                    <span
+                      className="inline-block text-lg font-bold tracking-widest px-6 py-2 rounded"
+                      style={styles[s] ?? { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                      {s || "—"}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </section>

@@ -679,6 +679,31 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             );
           })()}
 
+          {/* Projected Return score box */}
+          {(() => {
+            if (score?.ppm_score == null || score?.ppm_cagr == null || scoreEx?.sp500_cagr == null) return null;
+            const ppmScore   = Number(score.ppm_score);
+            const ppmCagrPct = (Number(score.ppm_cagr) * 100).toFixed(1);
+            const sp500Pct   = (Number(scoreEx.sp500_cagr) * 100).toFixed(1);
+            const sp500x2Pct = (Number(scoreEx.sp500_cagr) * 2 * 100).toFixed(1);
+            return (
+              <div className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
+                <p className="text-[10px] uppercase tracking-widest text-center mb-2" style={{ color: "rgba(0,255,65,0.4)" }}>
+                  PROJECTED RETURN SCORE
+                </p>
+                <p className="text-3xl font-bold font-mono text-center" style={{ color: scoreColor(ppmScore) }}>
+                  {ppmScore.toFixed(1)}%
+                </p>
+                <p className="text-[10px] italic text-center mt-2" style={{ color: "rgba(0,255,65,0.4)" }}>
+                  {ppmCagrPct}% projected CAGR benchmarked against S&P 500 ({sp500Pct}%)
+                </p>
+                <p className="text-[9px] text-center mt-1" style={{ color: "rgba(0,255,65,0.3)" }}>
+                  S&P×2 ({sp500x2Pct}%) = 100pts · S&P ({sp500Pct}%) = 50pts · Below S&P = 0pts
+                </p>
+              </div>
+            );
+          })()}
+
         </section>
 
         {/* ── Layer 2: Growth ──────────────────────────────────────────────────── */}
@@ -727,6 +752,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             ];
 
             return (
+              <>
               <div className="px-5 pb-5" style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
                 <div className="pt-4 pb-2 mb-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.3)" }}>
                   <p className="text-base font-bold leading-tight" style={{ color: "#00ff41" }}>HISTORICAL GROWTH TREND</p>
@@ -748,12 +774,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     const cagrNum    = cagr != null ? Number(cagr) : null;
                     return (
                       <div key={key}>
-                        {/* Single header row: label left · badge+signal+stars right */}
+                        {/* Header: name+badge left · signal+stars right */}
                         <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className="text-xs font-bold tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.7)" }}>
-                            {label}
-                          </span>
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-xs font-bold tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.7)" }}>
+                              {label}
+                            </span>
                             {key === "free_cash_flow" && signal && FCF_TREND[signal] ? (
                               <span className="text-[10px] font-mono px-2 py-0.5 rounded" style={{
                                 color: SIG_COLOR[signal] ?? "#00ff41",
@@ -770,6 +796,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                 {fmtCagr(cagr)} CAGR
                               </span>
                             ) : null}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
                             {signal && (
                               <>
                                 <span className="text-[10px] font-mono" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
@@ -876,6 +904,84 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   })}
                 </div>
               </div>
+              {/* Growth Quality score section */}
+              {(() => {
+                if (score?.growth_score == null) return null;
+                const growthScore = Number(score.growth_score);
+                const sp500Base   = scoreEx?.sp500_cagr != null ? Math.max(Number(scoreEx.sp500_cagr), 0.01) : 0.10;
+                const cagrToScore = (cagr: number | null | undefined): number => {
+                  if (cagr == null) return 50;
+                  const cap = sp500Base * 2, mid = sp500Base, floor = -sp500Base;
+                  if (cagr >= cap) return 100;
+                  if (cagr >= mid) return 50 + (cagr - mid) / (cap - mid) * 50;
+                  if (cagr >= 0)   return 35 + (cagr / mid) * 15;
+                  if (cagr >= floor) return Math.max(0, (cagr - floor) / (-floor) * 35);
+                  return 0;
+                };
+                const revCagr = score?.revenue_cagr_5y    != null ? Number(score.revenue_cagr_5y)    : null;
+                const niCagr  = score?.net_income_cagr_5y != null ? Number(score.net_income_cagr_5y) : null;
+                const revSig  = scoreEx?.gq_signal_revenue    ?? null;
+                const niSig   = scoreEx?.gq_signal_net_income ?? null;
+                const fcfSig  = scoreEx?.gq_signal_fcf        ?? null;
+                const revPts  = Math.round(cagrToScore(revCagr));
+                const niPts   = Math.round(cagrToScore(niCagr));
+                const fcfPts  = fcfSig != null ? Math.round((SIG_STARS[fcfSig] ?? 0) / 5 * 100) : null;
+                const TREND_MULT: Record<string, number> = {
+                  "Solid Growth": 1.00, "Slowing Growth": 0.90,
+                  "Decelerating": 0.75, "Deteriorating": 0.50, "Freefall": 0.25,
+                };
+                const allSigs    = [revSig, niSig, fcfSig].filter(Boolean) as string[];
+                const worstMult  = allSigs.length ? Math.min(...allSigs.map(s => TREND_MULT[s] ?? 1.0)) : 1.0;
+                const worstSig   = allSigs.find(s => (TREND_MULT[s] ?? 1.0) === worstMult) ?? null;
+                const hasPenalty = worstMult <= 0.75;
+                const miniRows = [
+                  { name: "REVENUE", sig: revSig, pts: revPts,  cagr: revCagr, isFcf: false },
+                  { name: "EBITDA",  sig: niSig,  pts: niPts,   cagr: niCagr,  isFcf: false },
+                  { name: "FCF",     sig: fcfSig, pts: fcfPts,  cagr: null,    isFcf: true  },
+                ];
+                return (
+                  <div className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
+                    <div className="mb-3 pb-2" style={{ borderBottom: "1px solid rgba(0,255,65,0.08)" }}>
+                      <p className="text-[10px] uppercase tracking-widest text-center" style={{ color: "rgba(0,255,65,0.4)" }}>
+                        GROWTH QUALITY SCORE
+                      </p>
+                      <p className="text-3xl font-bold font-mono text-center mt-1" style={{ color: scoreColor(growthScore) }}>
+                        {growthScore.toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      {miniRows.map(({ name, sig, pts, cagr, isFcf }) => {
+                        const sigColor = sig ? (SIG_COLOR[sig] ?? "#00ff41") : "rgba(0,255,65,0.3)";
+                        const ptsNum   = pts ?? 0;
+                        return (
+                          <div key={name} className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono w-14 shrink-0" style={{ color: "rgba(0,255,65,0.5)" }}>{name}</span>
+                            <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(0,255,65,0.1)" }}>
+                              <div className="h-full rounded-full" style={{ width: `${ptsNum}%`, background: sigColor }} />
+                            </div>
+                            <span className="text-[10px] font-mono w-10 text-right shrink-0" style={{ color: sigColor }}>
+                              {pts != null ? `${pts}pts` : "—"}
+                            </span>
+                            <span className="text-[9px] font-mono w-20 text-right shrink-0" style={{ color: "rgba(0,255,65,0.4)" }}>
+                              {isFcf
+                                ? (sig && FCF_TREND[sig] ? FCF_TREND[sig].label : (sig ?? "—"))
+                                : cagr != null ? fmtCagr(cagr) : "—"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[9px] italic text-center mt-3" style={{
+                      color: hasPenalty ? "rgba(251,191,36,0.7)" : "rgba(0,255,65,0.5)",
+                    }}>
+                      {hasPenalty && worstSig
+                        ? `Trend penalty applied: ${worstSig} (×${worstMult.toFixed(2)})`
+                        : "No trend penalty applied"}
+                    </p>
+                  </div>
+                );
+              })()}
+              </>
             );
           })()}
         </section>

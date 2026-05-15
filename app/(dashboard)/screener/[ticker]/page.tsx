@@ -682,10 +682,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           {/* Projected Return score box */}
           {(() => {
             if (score?.ppm_score == null || score?.ppm_cagr == null || scoreEx?.sp500_cagr == null) return null;
-            const ppmScore   = Number(score.ppm_score);
-            const ppmCagrPct = (Number(score.ppm_cagr) * 100).toFixed(1);
-            const sp500Pct   = (Number(scoreEx.sp500_cagr) * 100).toFixed(1);
-            const sp500x2Pct = (Number(scoreEx.sp500_cagr) * 2 * 100).toFixed(1);
+            const ppmScore    = Number(score.ppm_score);
+            const ppmCagr     = Number(score.ppm_cagr);
+            const sp500Cagr   = Number(scoreEx.sp500_cagr);
+            const ppmCagrPct  = (ppmCagr  * 100).toFixed(1);
+            const sp500Pct    = (sp500Cagr * 100).toFixed(1);
+            const ratio       = sp500Cagr !== 0 ? (ppmCagr / sp500Cagr).toFixed(2) : "—";
+            // Marker position: maps [−sp500, 2×sp500] → [0, 1] (total range = 3×sp500)
+            const markerPos   = Math.min(1, Math.max(0, (ppmCagr + sp500Cagr) / (3 * sp500Cagr)));
             return (
               <div className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
                 <p className="text-[10px] uppercase tracking-widest text-center mb-2" style={{ color: "rgba(0,255,65,0.4)" }}>
@@ -694,12 +698,43 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <p className="text-3xl font-bold font-mono text-center" style={{ color: scoreColor(ppmScore) }}>
                   {ppmScore.toFixed(1)}%
                 </p>
-                <p className="text-[10px] italic text-center mt-2" style={{ color: "rgba(0,255,65,0.4)" }}>
-                  {ppmCagrPct}% projected CAGR benchmarked against S&P 500 ({sp500Pct}%)
+                {/* FIX 1 — ratio line */}
+                <p className="text-[11px] italic text-center mt-2" style={{ color: "rgba(0,255,65,0.5)" }}>
+                  {ticker} {ppmCagrPct}% ÷ S&P {sp500Pct}% = {ratio}×
                 </p>
-                <p className="text-[9px] text-center mt-1" style={{ color: "rgba(0,255,65,0.3)" }}>
-                  S&P×2 ({sp500x2Pct}%) = 100pts · S&P ({sp500Pct}%) = 50pts · Below S&P = 0pts
-                </p>
+                {/* FIX 2 — benchmark bar */}
+                <div className="mt-2 relative">
+                  {/* Marker label above bar */}
+                  <div className="relative h-3 mb-0.5">
+                    <span
+                      className="absolute text-[9px] font-mono -translate-x-1/2"
+                      style={{ left: `${markerPos * 100}%`, color: "#fff", bottom: 0 }}
+                    >
+                      {ppmCagrPct}%
+                    </span>
+                  </div>
+                  {/* 3-zone bar */}
+                  <div className="flex w-full h-2 rounded-full overflow-hidden">
+                    <div style={{ width: "25%", background: "rgba(239,68,68,0.4)" }} />
+                    <div style={{ width: "25%", background: "rgba(245,158,11,0.4)" }} />
+                    <div style={{ width: "50%", background: "rgba(0,255,65,0.5)"  }} />
+                  </div>
+                  {/* Marker ▼ */}
+                  <div className="relative h-2.5">
+                    <span
+                      className="absolute text-[9px] -translate-x-1/2 leading-none"
+                      style={{ left: `${markerPos * 100}%`, color: "#fff", top: 0 }}
+                    >
+                      ▼
+                    </span>
+                  </div>
+                  {/* Zone labels */}
+                  <div className="flex w-full mt-0.5">
+                    <span className="text-[8px] text-center uppercase" style={{ width: "25%", color: "rgba(239,68,68,0.5)" }}>BELOW 0</span>
+                    <span className="text-[8px] text-center uppercase" style={{ width: "25%", color: "rgba(245,158,11,0.5)" }}>MARKET</span>
+                    <span className="text-[8px] text-center uppercase" style={{ width: "50%", color: "rgba(0,255,65,0.4)" }}>ABOVE MARKET</span>
+                  </div>
+                </div>
               </div>
             );
           })()}

@@ -709,10 +709,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const ppmScore    = Number(score.ppm_score);
             const ppmCagr     = Number(score.ppm_cagr);
             const sp500Cagr   = Number(scoreEx.sp500_cagr);
-            const ppmCagrPct  = (ppmCagr  * 100).toFixed(1);
-            const sp500Pct    = (sp500Cagr * 100).toFixed(1);
-            const ratio       = sp500Cagr !== 0 ? (ppmCagr / sp500Cagr).toFixed(2) : "—";
-            // Marker position: maps [−sp500, 2×sp500] → [0, 1] (total range = 3×sp500)
+            const ppmCagrPct  = (ppmCagr * 100).toFixed(1);
+            const sp500x2Pct  = (sp500Cagr * 2 * 100).toFixed(1);
+            const ratio       = sp500Cagr !== 0 ? (ppmCagr / (sp500Cagr * 2)).toFixed(2) : "—";
+            // Marker: maps [−sp500, +2×sp500] → [0, 1] (total range = 3×sp500)
             const markerPos   = Math.min(1, Math.max(0, (ppmCagr + sp500Cagr) / (3 * sp500Cagr)));
             return (
               <div className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
@@ -722,14 +722,17 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <p className="text-3xl font-bold font-mono text-center" style={{ color: scoreColor(ppmScore) }}>
                   {ppmScore.toFixed(1)}%
                 </p>
-                {/* FIX 1 — ratio line */}
-                <p className="text-[11px] italic text-center mt-2" style={{ color: "rgba(0,255,65,0.5)" }}>
-                  {ticker} {ppmCagrPct}% ÷ S&P {sp500Pct}% = {ratio}×
+                {/* FIX 1 — two-line formula */}
+                <p className="text-[10px] italic text-center mt-2" style={{ color: "rgba(0,255,65,0.4)" }}>
+                  {ticker} ÷ 2×S&P
                 </p>
-                {/* FIX 2 — benchmark bar */}
-                <div className="mt-2 relative">
+                <p className="text-[11px] italic text-center" style={{ color: "rgba(0,255,65,0.8)" }}>
+                  {ppmCagrPct}% ÷ {sp500x2Pct}% = {ratio}×
+                </p>
+                {/* FIX 2/3/4 — benchmark bar with equal thirds, ▲ marker, tick marks */}
+                <div className="mt-3 relative">
                   {/* Marker label above bar */}
-                  <div className="relative h-3 mb-0.5">
+                  <div className="relative h-4 mb-0.5">
                     <span
                       className="absolute text-[9px] font-mono -translate-x-1/2"
                       style={{ left: `${markerPos * 100}%`, color: "#fff", bottom: 0 }}
@@ -737,26 +740,40 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                       {ppmCagrPct}%
                     </span>
                   </div>
-                  {/* 3-zone bar */}
+                  {/* 3-zone bar — equal thirds */}
                   <div className="flex w-full h-2 rounded-full overflow-hidden">
-                    <div style={{ width: "25%", background: "rgba(239,68,68,0.4)" }} />
-                    <div style={{ width: "25%", background: "rgba(245,158,11,0.4)" }} />
-                    <div style={{ width: "50%", background: "rgba(0,255,65,0.5)"  }} />
+                    <div style={{ width: "33.33%", background: "rgba(239,68,68,0.4)"  }} />
+                    <div style={{ width: "33.33%", background: "rgba(245,158,11,0.4)" }} />
+                    <div style={{ width: "33.34%", background: "rgba(0,255,65,0.5)"   }} />
                   </div>
-                  {/* Marker ▼ */}
-                  <div className="relative h-2.5">
+                  {/* Tick marks at zone boundaries — FIX 4 */}
+                  <div className="relative" style={{ height: 18 }}>
+                    {([
+                      { left: "0%",      label: "-S&P"  },
+                      { left: "33.33%",  label: "0"     },
+                      { left: "66.67%",  label: "S&P"   },
+                      { left: "100%",    label: "2×S&P" },
+                    ] as const).map(({ left, label }) => (
+                      <div key={label} className="absolute flex flex-col items-center" style={{ left, transform: "translateX(-50%)" }}>
+                        <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.3)" }} />
+                        <span className="text-[8px] mt-0.5 whitespace-nowrap" style={{ color: "rgba(0,255,65,0.3)" }}>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* FIX 3 — ▲ marker below bar */}
+                  <div className="relative" style={{ height: 10, marginTop: -28 }}>
                     <span
                       className="absolute text-[9px] -translate-x-1/2 leading-none"
                       style={{ left: `${markerPos * 100}%`, color: "#fff", top: 0 }}
                     >
-                      ▼
+                      ▲
                     </span>
                   </div>
-                  {/* Zone labels */}
-                  <div className="flex w-full mt-0.5">
-                    <span className="text-[8px] text-center uppercase" style={{ width: "25%", color: "rgba(239,68,68,0.5)" }}>BELOW 0</span>
-                    <span className="text-[8px] text-center uppercase" style={{ width: "25%", color: "rgba(245,158,11,0.5)" }}>MARKET</span>
-                    <span className="text-[8px] text-center uppercase" style={{ width: "50%", color: "rgba(0,255,65,0.4)" }}>ABOVE MARKET</span>
+                  {/* Zone labels centered in each third */}
+                  <div className="flex w-full mt-1">
+                    <span className="text-[8px] text-center uppercase" style={{ width: "33.33%", color: "rgba(239,68,68,0.5)" }}>BELOW 0</span>
+                    <span className="text-[8px] text-center uppercase" style={{ width: "33.33%", color: "rgba(245,158,11,0.5)" }}>MARKET</span>
+                    <span className="text-[8px] text-center uppercase" style={{ width: "33.34%", color: "rgba(0,255,65,0.4)" }}>ABOVE MARKET</span>
                   </div>
                 </div>
               </div>

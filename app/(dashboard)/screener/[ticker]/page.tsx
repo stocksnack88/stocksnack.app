@@ -393,8 +393,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   <div className="space-y-3">
                     {productSegs.map((seg) => (
                       <div key={seg.name}>
-                        <div className="flex items-center gap-3 mb-1">
-                          <span className="text-xs flex-1 min-w-0 truncate" style={{ color: "rgba(0,255,65,0.7)" }}>{seg.name}</span>
+                        <div className="flex items-start gap-3 mb-1">
+                          <span className="text-xs whitespace-normal flex-shrink-0 max-w-[55%]" style={{ color: "rgba(0,255,65,0.7)" }}>{seg.name}</span>
                           <span className="text-xs font-mono shrink-0" style={{ color: "#00ff41" }}>{seg.pct.toFixed(1)}%</span>
                           <span className="text-xs font-mono shrink-0 w-16 text-right" style={{ color: seg.cagr == null ? "#666" : seg.cagr >= 0 ? "#00ff41" : "#f87171" }}>
                             {seg.cagr == null ? "—" : fmtCagr(seg.cagr)}
@@ -421,8 +421,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   <div className="space-y-3">
                     {geoSegs.map((seg) => (
                       <div key={seg.name}>
-                        <div className="flex items-center gap-3 mb-1">
-                          <span className="text-xs flex-1 min-w-0 truncate" style={{ color: "rgba(0,255,65,0.7)" }}>{seg.name}</span>
+                        <div className="flex items-start gap-3 mb-1">
+                          <span className="text-xs whitespace-normal flex-shrink-0 max-w-[55%]" style={{ color: "rgba(0,255,65,0.7)" }}>{seg.name}</span>
                           <span className="text-xs font-mono shrink-0" style={{ color: "#00ff41" }}>{seg.pct.toFixed(1)}%</span>
                           <span className="text-xs font-mono shrink-0 w-16 text-right" style={{ color: seg.cagr == null ? "#666" : seg.cagr >= 0 ? "#00ff41" : "#f87171" }}>
                             {seg.cagr == null ? "—" : fmtCagr(seg.cagr)}
@@ -711,9 +711,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const ebitdaCagr = (eFirst && eLast && eFirst > 0 && eLast > 0 && nyrs > 0)
               ? Math.pow(eLast / eFirst, 1 / nyrs) - 1 : null;
 
-            const SIG_STARS: Record<string, number> = {
-              "Solid Growth": 5, "Slowing Growth": 4, "Decelerating": 3, "Deteriorating": 2, "Freefall": 1,
-            };
             const SIG_COLOR: Record<string, string> = {
               "Solid Growth": "#00ff41", "Slowing Growth": "#00ff41",
               "Decelerating": "#f59e0b", "Deteriorating": "#f59e0b", "Freefall": "#ef4444",
@@ -756,11 +753,16 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                       <div key={key}>
                         {/* Label + CAGR badge */}
                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <span className="text-[9px] font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>
+                          <span className="text-sm font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.7)" }}>
                             {label}
                           </span>
+                          {key === "free_cash_flow" && signal && FCF_TREND[signal] && (
+                            <span className="text-[10px] font-mono" style={{ color: (SIG_COLOR[signal] ?? "#00ff41") + "99" }}>
+                              {FCF_TREND[signal].arrow} {FCF_TREND[signal].label}
+                            </span>
+                          )}
                           {cagrNum != null && (
-                            <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded" style={{
+                            <span className="text-sm font-bold font-mono px-1.5 py-0.5 rounded" style={{
                               background: cagrNum >= 0 ? "rgba(0,255,65,0.08)" : "rgba(248,113,113,0.08)",
                               color:      cagrNum >= 0 ? "rgba(0,255,65,0.7)"  : "#f87171",
                               border:     `1px solid ${cagrNum >= 0 ? "rgba(0,255,65,0.2)" : "rgba(248,113,113,0.3)"}`,
@@ -769,67 +771,82 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             </span>
                           )}
                         </div>
-                        {/* Growth quality signal */}
-                        {signal && (
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <span className="text-[9px] tracking-widest font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>
-                              GROWTH QUALITY:
-                            </span>
-                            <span className="text-[9px] font-mono" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
-                              {signal}
-                            </span>
-                            {key === "free_cash_flow" ? (
-                              <span className="text-xs font-mono font-bold" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
-                                {FCF_TREND[signal]?.arrow ?? "→"} {FCF_TREND[signal]?.label ?? signal}
-                              </span>
-                            ) : (
-                              <span className="text-sm font-mono leading-none">
-                                {Array.from({ length: 5 }).map((_, i) => {
-                                  const filled = i < (SIG_STARS[signal] ?? 0);
-                                  const col = SIG_COLOR[signal] ?? "#00ff41";
+                        {/* Bar area */}
+                        {(() => {
+                          // Linear regression for trend line
+                          const nBars = vals.length;
+                          const rVals = vals.map((d, i) => ({ i, v: d.v })).filter(d => d.v != null);
+                          let svgLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
+                          if (rVals.length >= 2) {
+                            const n = rVals.length;
+                            const sumX  = rVals.reduce((s, p) => s + p.i, 0);
+                            const sumY  = rVals.reduce((s, p) => s + (p.v as number), 0);
+                            const sumXY = rVals.reduce((s, p) => s + p.i * (p.v as number), 0);
+                            const sumX2 = rVals.reduce((s, p) => s + p.i * p.i, 0);
+                            const denom = n * sumX2 - sumX * sumX;
+                            const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
+                            const intercept = (sumY - slope * sumX) / n;
+                            const toSvgY = (v: number) =>
+                              Math.max(0, Math.min(CHART_H, zeroY - v / totalRange * CHART_H));
+                            svgLine = {
+                              x1: 0.5 / nBars * 100,
+                              y1: toSvgY(intercept),
+                              x2: (nBars - 0.5) / nBars * 100,
+                              y2: toSvgY(slope * (nBars - 1) + intercept),
+                            };
+                          }
+                          return (
+                            <div className="relative" style={{ height: CHART_H }}>
+                              {maxNeg < 0 && (
+                                <div className="absolute inset-x-0 z-10 pointer-events-none" style={{ top: zeroY, height: 1, background: "rgba(0,255,65,0.2)" }} />
+                              )}
+                              <div className="absolute inset-0 flex gap-1.5">
+                                {vals.map(({ year, v, isNeg }) => {
+                                  const barH = v != null ? Math.max(2, Math.round(Math.abs(v) / totalRange * CHART_H)) : 0;
                                   return (
-                                    <span key={i} style={{ color: filled ? col : col + "4d" }}>
-                                      {filled ? "★" : "☆"}
-                                    </span>
+                                    <div key={year} className="group flex-1 relative" style={{ minWidth: 0 }}>
+                                      {v != null && (
+                                        <div
+                                          className={`absolute inset-x-0 ${isNeg ? "rounded-b-sm" : "rounded-t-sm"} opacity-40 group-hover:opacity-100 transition-opacity duration-100`}
+                                          style={{
+                                            height: barH,
+                                            [isNeg ? "top" : "bottom"]: `${isNeg ? zeroY : negH}px`,
+                                            background: isNeg ? "#f87171" : "#00ff41",
+                                          }}
+                                        />
+                                      )}
+                                    </div>
                                   );
                                 })}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        {/* Bar area */}
-                        <div className="relative" style={{ height: CHART_H }}>
-                          {maxNeg < 0 && (
-                            <div className="absolute inset-x-0 z-10 pointer-events-none" style={{ top: zeroY, height: 1, background: "rgba(0,255,65,0.2)" }} />
-                          )}
-                          <div className="absolute inset-0 flex gap-1.5">
-                            {vals.map(({ year, v, isNeg }) => {
-                              const barH = v != null ? Math.max(2, Math.round(Math.abs(v) / totalRange * CHART_H)) : 0;
-                              return (
-                                <div key={year} className="group flex-1 relative" style={{ minWidth: 0 }}>
-                                  {v != null && (
-                                    <div
-                                      className={`absolute inset-x-0 ${isNeg ? "rounded-b-sm" : "rounded-t-sm"} opacity-40 group-hover:opacity-100 transition-opacity duration-100`}
-                                      style={{
-                                        height: barH,
-                                        [isNeg ? "top" : "bottom"]: `${isNeg ? zeroY : negH}px`,
-                                        background: isNeg ? "#f87171" : "#00ff41",
-                                      }}
-                                    />
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
+                              </div>
+                              {svgLine && signal && (
+                                <svg
+                                  className="absolute inset-0 pointer-events-none"
+                                  width="100%" height={CHART_H}
+                                  viewBox={`0 0 100 ${CHART_H}`}
+                                  preserveAspectRatio="none"
+                                >
+                                  <line
+                                    x1={svgLine.x1} y1={svgLine.y1}
+                                    x2={svgLine.x2} y2={svgLine.y2}
+                                    stroke={SIG_COLOR[signal] ?? "#00ff41"}
+                                    strokeWidth="1.5"
+                                    strokeOpacity="0.8"
+                                    vectorEffect="non-scaling-stroke"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                          );
+                        })()}
                         {/* Value + year labels */}
                         <div className="flex gap-1.5 mt-1.5">
                           {vals.map(({ year, v, isNeg }) => (
                             <div key={year} className="flex-1 text-center" style={{ minWidth: 0 }}>
-                              <span className="block text-[7px] font-mono font-bold leading-tight truncate" style={{ color: isNeg ? "rgba(248,113,113,0.6)" : "rgba(0,255,65,0.5)" }}>
+                              <span className="block text-[11px] font-mono font-bold leading-tight" style={{ color: isNeg ? "rgba(248,113,113,0.6)" : "rgba(0,255,65,0.5)" }}>
                                 {v != null ? fmtBn(Math.abs(v)) : "—"}
                               </span>
-                              <span className="block text-[7px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.2)" }}>
+                              <span className="block text-[10px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.2)" }}>
                                 {year}
                               </span>
                             </div>

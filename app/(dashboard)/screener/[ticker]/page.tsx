@@ -9,10 +9,10 @@ import DescriptionToggle from "@/components/ui/DescriptionToggle";
 const FREE_LIMIT = 5;
 
 const HEALTH_CATEGORIES = [
-  { label: "BALANCE SHEET", count: 7 },
-  { label: "INCOME STATEMENT", count: 7 },
-  { label: "CASH FLOW", count: 5 },
-  { label: "BUFFETT TIER", count: 5 },
+  { label: "5Y BALANCE SHEET", count: 7 },
+  { label: "5Y INCOME STATEMENT", count: 7 },
+  { label: "5Y CASH FLOW", count: 5 },
+  { label: "BUSINESS TRAITS", count: 5 },
 ] as const;
 
 type HealthCheck = {
@@ -54,6 +54,43 @@ function fmtBn(n: number | null | undefined): string {
 function scoreColor(v: number | null | undefined): string {
   if (!v && v !== 0) return "#666";
   return v >= 70 ? "#00ff41" : v >= 45 ? "#fbbf24" : "#f87171";
+}
+
+const HEALTH_EXPLANATIONS: { key: string; pass: string; fail: string }[] = [
+  // Balance Sheet
+  { key: "cash/debt",           pass: "Holds more cash than debt — financially secure",                          fail: "Debt exceeds cash — vulnerable in a downturn" },
+  { key: "debt/equity",         pass: "Low borrowing vs assets — low financial risk",                            fail: "Heavy borrowing vs assets — higher financial risk" },
+  { key: "preferred stock",     pass: "No preferred shareholders ahead of you in the queue",                     fail: "Preferred shareholders get paid before you do" },
+  { key: "retained earnings",   pass: "Savings growing year after year — compounding internally",                fail: "Savings shrinking — profits not being retained effectively" },
+  { key: "active buybacks",     pass: "Buying back shares — your ownership slice grows",                         fail: "No buybacks — ownership not being returned to shareholders" },
+  { key: "roe",                 pass: "Strong returns on shareholder money — a quality business",                fail: "Weak returns on shareholder money — money not being used efficiently" },
+  { key: "rota",                pass: "Squeezes strong profit from every asset it owns",                         fail: "Assets not generating enough profit — inefficient operations" },
+  // Income Statement
+  { key: "gross margin",        pass: "Keeps a healthy chunk after costs — real pricing power",                  fail: "Thin margins after costs — limited pricing power" },
+  { key: "sg&a",                pass: "Admin costs are lean — more profit reaches the bottom line",              fail: "High admin costs eating into gross profit" },
+  { key: "r&d",                 pass: "Research spending is controlled — not burning cash on bets",              fail: "Heavy R&D spend — high risk, uncertain payoff" },
+  { key: "interest",            pass: "Debt interest is small — not enslaved to lenders",                       fail: "Large chunk of earnings going to debt interest payments" },
+  { key: "tax rate",            pass: "Pays fair taxes — clean straightforward accounting",                      fail: "Tax rate outside normal range — unusual, check the reason" },
+  { key: "net margin",          pass: "Keeps 20+ cents of every dollar earned — highly profitable",              fail: "Keeps less than 20 cents per dollar — thin profitability" },
+  { key: "eps growth",          pass: "Earnings per share growing — each share worth more over time",            fail: "Earnings per share shrinking — each share worth less" },
+  // Cash Flow
+  { key: "sbc",                 pass: "Staff share pay is controlled — ownership not being diluted",             fail: "Excessive share-based pay quietly diluting your stake" },
+  { key: "ocf",                 pass: "Profit backed by real cash — not accounting tricks",                      fail: "Profits may not be real cash — quality of earnings is low" },
+  { key: "fcf growth",          pass: "Spendable cash growing consistently year after year",                     fail: "Spendable cash shrinking — less financial flexibility" },
+  { key: "capex",               pass: "Doesn't need heavy investment to keep growing — capital light",           fail: "Needs heavy reinvestment just to maintain operations" },
+  { key: "payout ratio",        pass: "Dividends and buybacks fully covered by real cash flow",                  fail: "Returning more cash than it generates — unsustainable" },
+  // Business Traits
+  { key: "consistent earnings", pass: "Profits show up reliably every year — predictable business",              fail: "Erratic earnings — dependent on unpredictable events" },
+  { key: "dilution",            pass: "Share count stable — not printing shares that shrink your piece",         fail: "Share count growing — your ownership being diluted" },
+  { key: "intangibles",         pass: "Value from real operations — not goodwill that can vanish",               fail: "High goodwill or intangibles — value could disappear if brand weakens" },
+  { key: "debt payoff",         pass: "Could clear all debt within 4 years of profit",                          fail: "Would take over 4 years of total profit just to clear debt" },
+  { key: "retained test",       pass: "Every dollar kept has grown the stock's market value",                    fail: "Retaining profits but failing to grow market value" },
+];
+
+function getCheckExplanation(name: string, pass: boolean): string {
+  const lower = name.toLowerCase();
+  const entry = HEALTH_EXPLANATIONS.find((e) => lower.includes(e.key));
+  return entry ? (pass ? entry.pass : entry.fail) : "";
 }
 
 function ScoreBar({ value }: { value: number | null | undefined }) {
@@ -830,16 +867,16 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── Layer 3: Health — 24 checks ──────────────────────────────────────── */}
         <section className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-            <div>
-              <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
-                LAYER 3 — FINANCIAL HEALTH
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
-                24 Buffett-style pass/fail checks · {score?.health_passes ?? 0}/24 passing
-              </p>
+          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
+              LAYER 3 — FINANCIAL HEALTH
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
+              {score?.health_passes ?? 0}/24 checks passed · {score?.health_score != null ? Number(score.health_score).toFixed(1) : "—"}% health score
+            </p>
+            <div className="mt-2 h-1.5 rounded-full w-full" style={{ background: "rgba(255,255,255,0.1)" }}>
+              <div className="h-full rounded-full" style={{ width: `${score?.health_score ?? 0}%`, background: scoreColor(score?.health_score ?? 0) }} />
             </div>
-            <ScoreBar value={score?.health_score} />
           </div>
 
           {healthCats.map((cat, catIdx) => (
@@ -847,40 +884,47 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               key={cat.label}
               style={catIdx < healthCats.length - 1 ? { borderBottom: "1px solid rgba(0,255,65,0.1)" } : {}}
             >
-              <div className="px-5 pt-4 pb-2 flex items-center justify-between">
+              <div className="px-5 pt-4 pb-2">
                 <p className="text-xs font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>
-                  {cat.label}
-                </p>
-                <p className="text-xs font-mono" style={{ color: "rgba(0,255,65,0.4)" }}>
-                  {cat.checks.filter((c) => c.pass).length}/{cat.count} PASS
+                  {cat.label} — {cat.checks.filter((c) => c.pass).length}/{cat.count} PASS
                 </p>
               </div>
               <div className="px-5 pb-4 space-y-2">
                 {cat.checks.length === 0 ? (
                   <p className="text-xs" style={{ color: "rgba(0,255,65,0.25)" }}>No data</p>
                 ) : (
-                  cat.checks.map((check, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3">
-                      <span className="text-xs flex-1 min-w-0 leading-relaxed" style={{ color: "rgba(0,255,65,0.65)" }}>{check.name}</span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs font-mono" style={{ color: "rgba(0,255,65,0.25)" }}>
-                          {check.years_passed}/5 yrs
-                        </span>
-                        <span
-                          className="inline-block text-center text-xs font-bold tracking-widest rounded"
-                          style={{
-                            minWidth: 44,
-                            padding: "2px 8px",
-                            ...(check.pass
-                              ? { background: "rgba(0,255,65,0.12)", color: "#00ff41", border: "1px solid rgba(0,255,65,0.4)" }
-                              : { background: "rgba(248,113,113,0.1)", color: "#f87171", border: "1px solid rgba(248,113,113,0.35)" }),
-                          }}
-                        >
-                          {check.pass ? "PASS" : "FAIL"}
-                        </span>
+                  cat.checks.map((check, i) => {
+                    const explanation = getCheckExplanation(check.name, check.pass);
+                    return (
+                      <div key={i} className="space-y-0.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs flex-1 min-w-0 leading-relaxed" style={{ color: "rgba(0,255,65,0.65)" }}>{check.name}</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs font-mono" style={{ color: "rgba(0,255,65,0.25)" }}>
+                              {check.years_passed}/5 yrs
+                            </span>
+                            <span
+                              className="inline-block text-center text-xs font-bold tracking-widest rounded"
+                              style={{
+                                minWidth: 44,
+                                padding: "2px 8px",
+                                ...(check.pass
+                                  ? { background: "rgba(0,255,65,0.12)", color: "#00ff41", border: "1px solid rgba(0,255,65,0.4)" }
+                                  : { background: "rgba(248,113,113,0.1)", color: "#f87171", border: "1px solid rgba(248,113,113,0.35)" }),
+                              }}
+                            >
+                              {check.pass ? "PASS" : "FAIL"}
+                            </span>
+                          </div>
+                        </div>
+                        {explanation && (
+                          <p className="text-[10px] italic" style={{ color: check.pass ? "rgba(0,255,65,0.5)" : "rgba(255,80,80,0.6)" }}>
+                            {explanation}
+                          </p>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

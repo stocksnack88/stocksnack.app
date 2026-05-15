@@ -887,13 +887,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             </p>
             <div className="flex gap-6 mb-3">
               <div>
-                <p className="text-2xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
+                <p className="text-2xl font-bold font-mono" style={{ color: scoreColor(score?.health_score) }}>
                   {score?.health_passes ?? 0}/{scoredTotal}
                 </p>
                 <p className="text-[10px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CHECKS PASSED</p>
               </div>
               <div>
-                <p className="text-2xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
+                <p className="text-2xl font-bold font-mono" style={{ color: scoreColor(score?.health_score) }}>
                   {score?.health_score != null ? `${Number(score.health_score).toFixed(1)}%` : "—"}
                 </p>
                 <p className="text-[10px] tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>HEALTH SCORE</p>

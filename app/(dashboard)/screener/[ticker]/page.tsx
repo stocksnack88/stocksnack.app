@@ -64,21 +64,6 @@ function healthColor(v: number | null | undefined): string {
 }
 
 
-function ScoreBar({ value }: { value: number | null | undefined }) {
-  if (value === null || value === undefined) return null;
-  const color = scoreColor(value);
-  return (
-    <div className="flex items-center gap-3 min-w-[140px]">
-      <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }}>
-        <div className="h-full rounded-full" style={{ width: `${value}%`, background: color }} />
-      </div>
-      <span className="text-sm font-bold font-mono w-12 text-right" style={{ color }}>
-        {value.toFixed(1)}
-      </span>
-    </div>
-  );
-}
-
 function SignalBadge({ signal }: { signal: string | null | undefined }) {
   const s = (signal ?? "").toUpperCase();
   const map: Record<string, React.CSSProperties> = {

@@ -9,11 +9,11 @@ Weighted average (unchanged):
 Signal logic — two-gate approach:
     PRICE GATE (ppm_cagr vs sp500_cagr):
         < 1.0× S&P 500 CAGR          → SELL
-        1.0×–1.5× S&P 500 CAGR       → HOLD
-        ≥ 1.5× S&P 500 CAGR          → SECOND GATE
+        1.0×–1.2× S&P 500 CAGR       → HOLD
+        ≥ 1.2× S&P 500 CAGR          → SECOND GATE
 
     SECOND GATE (quality check):
-        health_passes ≥ 16 AND growth_score ≥ 40  → BUY
+        health_passes ≥ 16 AND growth_score ≥ 40  → BUY+ (if ≥ 1.5×) or BUY
         exactly one passes                          → HOLD
         both fail                                   → SELL
 
@@ -43,13 +43,13 @@ def score_final(
     if sp500_cagr and ppm_cagr is not None:
         if ppm_cagr < sp500_cagr:
             signal = "SELL"
-        elif ppm_cagr < sp500_cagr * 1.5:
+        elif ppm_cagr < sp500_cagr * 1.2:
             signal = "HOLD"
         else:
             h_ok = health_passes >= 16
             g_ok = growth_score  >= 40
             if h_ok and g_ok:
-                signal = "BUY"
+                signal = "BUY+" if ppm_cagr >= sp500_cagr * 1.5 else "BUY"
             elif h_ok or g_ok:
                 signal = "HOLD"
             else:

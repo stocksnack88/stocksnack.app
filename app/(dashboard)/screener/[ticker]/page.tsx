@@ -68,9 +68,10 @@ function healthColor(v: number | null | undefined): string {
 function SignalBadge({ signal }: { signal: string | null | undefined }) {
   const s = (signal ?? "").toUpperCase();
   const map: Record<string, React.CSSProperties> = {
-    BUY: { background: "rgba(0,255,65,0.15)", color: "#00ff41", border: "1px solid rgba(0,255,65,0.6)" },
-    HOLD: { background: "rgba(251,191,36,0.15)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.5)" },
-    SELL: { background: "rgba(248,113,113,0.15)", color: "#f87171", border: "1px solid rgba(248,113,113,0.5)" },
+    "BUY+": { background: "rgba(0,255,65,0.25)", color: "#00ff41", border: "1px solid rgba(0,255,65,0.9)" },
+    BUY:   { background: "rgba(0,255,65,0.15)", color: "#00ff41", border: "1px solid rgba(0,255,65,0.6)" },
+    HOLD:  { background: "rgba(251,191,36,0.15)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.5)" },
+    SELL:  { background: "rgba(248,113,113,0.15)", color: "#f87171", border: "1px solid rgba(248,113,113,0.5)" },
   };
   return (
     <span

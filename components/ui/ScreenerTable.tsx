@@ -18,9 +18,10 @@ export type ScreenerRow = {
 function SignalBadge({ signal }: { signal: string | null }) {
   const s = (signal ?? "").toUpperCase();
   const styles: Record<string, string> = {
-    BUY:  "bg-[#00ff41]/20 text-[#00ff41] border border-[#00ff41]/60",
-    HOLD: "bg-yellow-400/10 text-yellow-300 border border-yellow-400/50",
-    SELL: "bg-red-500/10 text-red-400 border border-red-500/50",
+    "BUY+": "bg-[#00ff41]/30 text-[#00ff41] border border-[#00ff41]/80",
+    BUY:   "bg-[#00ff41]/20 text-[#00ff41] border border-[#00ff41]/60",
+    HOLD:  "bg-yellow-400/10 text-yellow-300 border border-yellow-400/50",
+    SELL:  "bg-red-500/10 text-red-400 border border-red-500/50",
   };
   return (
     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold tracking-widest ${styles[s] ?? "bg-gray-800 text-gray-400 border border-gray-600"}`}>

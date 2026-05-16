@@ -856,7 +856,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                               {label}
                             </span>
                             {key === "free_cash_flow" && signal && FCF_TREND[signal] ? (
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded" style={{
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap" style={{
                                 color: SIG_COLOR[signal] ?? "#00ff41",
                                 border: `1px solid ${SIG_COLOR[signal] ?? "#00ff41"}`,
                               }}>

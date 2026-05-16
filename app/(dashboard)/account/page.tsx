@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { stripe } from "@/lib/stripe";
 import Stripe from "stripe";
 import CancelSubscriptionButton from "@/components/ui/CancelSubscriptionButton";
+import SignOutButton from "@/components/ui/SignOutButton";
 import Link from "next/link";
 
 function fmt(ts: number) {
@@ -84,6 +85,14 @@ export default async function AccountPage() {
         <div className="px-5 py-4 flex items-center justify-between" style={{ background: row }}>
           <p className="text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.45)" }}>EMAIL</p>
           <p className="text-xs truncate max-w-[55%]" style={{ color: "rgba(0,255,65,0.8)" }}>{user.email}</p>
+        </div>
+      </div>
+
+      {/* Sign out */}
+      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}` }}>
+        <div className="px-5 py-4 flex items-center justify-between" style={{ background: row }}>
+          <p className="text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.45)" }}>SESSION</p>
+          <SignOutButton />
         </div>
       </div>
 

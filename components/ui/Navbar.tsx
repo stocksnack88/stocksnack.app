@@ -69,15 +69,15 @@ export default async function Navbar() {
           <>
             <Link
               href="/pricing"
-              className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
-            >
-              PRICING
-            </Link>
-            <Link
-              href="/pricing"
               className="px-4 py-1.5 rounded tracking-widest font-bold transition-colors bg-[#00ff41] text-black hover:bg-[#00ff41]/90"
             >
               UPGRADE
+            </Link>
+            <Link
+              href="/account"
+              className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
+            >
+              ACCOUNT
             </Link>
           </>
         )}

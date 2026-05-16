@@ -710,8 +710,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const ppmCagr     = Number(score.ppm_cagr);
             const sp500Cagr   = Number(scoreEx.sp500_cagr);
             const ppmCagrPct  = (ppmCagr * 100).toFixed(1);
-            const sp500x2Pct  = (sp500Cagr * 2 * 100).toFixed(1);
-            const ratio       = sp500Cagr !== 0 ? (ppmCagr / (sp500Cagr * 2)).toFixed(2) : "—";
+            const sp500CagrPct = (sp500Cagr * 100).toFixed(1);
+            const ratio       = sp500Cagr !== 0 ? (ppmCagr / sp500Cagr).toFixed(2) : "—";
             // Marker: maps [−sp500, +2×sp500] → [0, 1] (total range = 3×sp500)
             const markerPos   = Math.min(1, Math.max(0, (ppmCagr + sp500Cagr) / (3 * sp500Cagr)));
             return (
@@ -722,12 +722,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <p className="text-3xl font-bold font-mono text-center" style={{ color: scoreColor(ppmScore) }}>
                   {ppmScore.toFixed(1)}%
                 </p>
-                {/* FIX 3 — two-line formula with CAGR labels on both sides */}
                 <p className="text-[10px] italic text-center mt-2" style={{ color: "rgba(0,255,65,0.4)" }}>
-                  {ticker} CAGR ÷ 2×S&P CAGR
+                  {ticker} CAGR ÷ S&P CAGR
                 </p>
                 <p className="text-[11px] italic text-center" style={{ color: "rgba(0,255,65,0.8)" }}>
-                  {ppmCagrPct}% ÷ {sp500x2Pct}% = {ratio}×
+                  {ppmCagrPct}% ÷ {sp500CagrPct}% = {ratio}× → {ppmScore.toFixed(1)}%
                 </p>
                 {/* FIX 2 — benchmark bar: ▼ marker above bar, equal thirds, tick marks */}
                 {(() => {

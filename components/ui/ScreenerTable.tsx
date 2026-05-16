@@ -114,11 +114,11 @@ export default function ScreenerTable({
           <tr className="bg-[#001200]">
             <th rowSpan={2} className="border-0 sticky left-0 z-20 bg-[#001200] w-14 px-2 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">TICKER</th>
             <th rowSpan={2} className="border-0 hidden md:table-cell bg-[#001200] px-2 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">COMPANY</th>
-            <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">5Y RETURN</th>
+            <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-1 text-center text-xs font-bold tracking-widest text-[#00ff41]/60">5Y RETURN</th>
             {showQuality && (
               <th colSpan={2} className="border-0 bg-[#001200] px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">QUALITY</th>
             )}
-            <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">VERDICT</th>
+            <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-1 text-center text-xs font-bold tracking-widest text-[#00ff41]/60">VERDICT</th>
             <th rowSpan={2} className="border-0 sticky top-0 right-0 z-30 bg-[#001200] px-2 py-3 text-center align-middle">
               <button
                 onClick={() => setDetailLevel((l) => (l + 1) % 3)}

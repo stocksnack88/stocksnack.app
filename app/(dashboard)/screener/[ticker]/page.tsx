@@ -1069,25 +1069,25 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             </p>
             <div className="flex items-center rounded-lg p-4 mb-3" style={{ border: "1px solid rgba(0,255,65,0.2)" }}>
               <div className="flex-1 flex flex-col items-center">
-                <p className="text-4xl font-bold font-mono" style={{ color: scoreColor(score?.health_score) }}>
+                <p className="text-4xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
                   {score?.health_passes ?? 0}/{scoredTotal}
                 </p>
-                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: scoreColor(score?.health_score), opacity: 0.6 }}>
+                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: healthColor(score?.health_score), opacity: 0.6 }}>
                   CHECKS PASSED
                 </p>
               </div>
               <div className="self-stretch mx-4" style={{ width: 1, background: "rgba(0,255,65,0.2)" }} />
               <div className="flex-1 flex flex-col items-center">
-                <p className="text-4xl font-bold font-mono" style={{ color: scoreColor(score?.health_score) }}>
+                <p className="text-4xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
                   {score?.health_score != null ? `${Number(score.health_score).toFixed(1)}%` : "—"}
                 </p>
-                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: scoreColor(score?.health_score), opacity: 0.6 }}>
+                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: healthColor(score?.health_score), opacity: 0.6 }}>
                   HEALTH SCORE
                 </p>
               </div>
             </div>
             <div className="h-1 rounded-full w-full" style={{ background: "rgba(0,255,65,0.1)" }}>
-              <div className="h-full rounded-full" style={{ width: `${score?.health_score ?? 0}%`, background: scoreColor(score?.health_score), opacity: 0.8 }} />
+              <div className="h-full rounded-full" style={{ width: `${score?.health_score ?? 0}%`, background: healthColor(score?.health_score), opacity: 0.8 }} />
             </div>
           </div>
 

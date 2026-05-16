@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
-import SignOutButton from "./SignOutButton";
 
 export default async function Navbar() {
   const cookieStore = cookies();
@@ -83,15 +82,12 @@ export default async function Navbar() {
         )}
 
         {user && isPro && (
-          <>
-            <Link
-              href="/account"
-              className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
-            >
-              ACCOUNT
-            </Link>
-            <SignOutButton />
-          </>
+          <Link
+            href="/account"
+            className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
+          >
+            ACCOUNT
+          </Link>
         )}
       </div>
     </nav>

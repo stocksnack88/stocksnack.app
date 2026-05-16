@@ -101,8 +101,8 @@ export default function ScreenerTable({
     : "Reset view";
 
   // bg-[#001200] keeps sticky cells opaque so data doesn't bleed through on scroll
-  const stickyThTint = "sticky top-[53px] z-10 bg-[#001a00]/40"; // tinted: 5Y RETURN + VERDICT
-  const stickyThBase = "sticky top-[53px] z-10 bg-[#001200]";    // no tint: QUALITY
+  const stickyThTint = "sticky top-0 z-10 bg-[#001a00]/40"; // tinted: 5Y RETURN + VERDICT
+  const stickyThBase = "sticky top-0 z-10 bg-[#001200]";    // no tint: QUALITY
   const stickyTd    = "sticky left-0 z-[5] bg-[#000]";
 
   return (
@@ -119,7 +119,7 @@ export default function ScreenerTable({
               <th colSpan={2} className="border-0 bg-[#001200] px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">QUALITY</th>
             )}
             <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-1 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">VERDICT</th>
-            <th rowSpan={2} className="border-0 sticky top-[53px] right-0 z-30 bg-[#001200] px-2 py-3 text-center align-middle">
+            <th rowSpan={2} className="border-0 sticky top-0 right-0 z-30 bg-[#001200] px-2 py-3 text-center align-middle">
               <button
                 onClick={() => setDetailLevel((l) => (l + 1) % 3)}
                 className="text-[#00ff41]/40 hover:text-[#00ff41] border border-[#00ff41]/25 rounded px-1.5 py-0.5 font-mono text-xs transition-colors leading-none"

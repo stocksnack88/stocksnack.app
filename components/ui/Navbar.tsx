@@ -58,7 +58,7 @@ export default async function Navbar() {
             </Link>
             <Link
               href="/login"
-              className="tracking-widest transition-colors text-[#00ff41]/50 hover:text-[#00ff41]"
+              className="tracking-widest transition-colors text-[#00ff41]/50 hover:text-[#00ff41] py-3 px-2"
             >
               SIGN IN
             </Link>

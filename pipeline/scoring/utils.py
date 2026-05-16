@@ -92,7 +92,9 @@ def compute_gq(values: list, sp500_cagr: float = 0.10) -> dict:
     weights = [0.5, 1.0, 1.5, 2.0, 3.0][-len(rates):]
     w_sum   = sum(r * w for r, w in zip(rates, weights) if r is not None)
     w_total = sum(w     for r, w in zip(rates, weights) if r is not None)
-    weighted_cagr = clamp(w_sum / w_total, -0.15, 0.25) if w_total > 0 else 0.05
+    floor         = -sp500_cagr
+    ceiling       =  sp500_cagr * 4
+    weighted_cagr = clamp(w_sum / w_total, floor, ceiling) if w_total > 0 else 0.05
 
     # Signal: oldest-first → recent = last 2, early = first 2
     recent_avg = sum(valid[-2:]) / 2

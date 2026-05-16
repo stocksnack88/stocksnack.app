@@ -729,9 +729,21 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <p className="text-[11px] italic text-center" style={{ color: "rgba(0,255,65,0.8)" }}>
                   {ppmCagrPct}% ÷ {sp500CagrPct}% = {ratio}× → {ppmScore.toFixed(1)}%
                 </p>
-                {/* FIX 2 — benchmark bar: ▼ marker above bar, equal thirds, tick marks */}
+                {/* Benchmark bar: 5 signal zones mapped to [-S&P, +2×S&P] range */}
                 {(() => {
-                  const markerColor = markerPos < 1/3 ? "#ef4444" : markerPos < 2/3 ? "#f59e0b" : "#00ff41";
+                  // zone boundaries as markerPos fractions:
+                  // 0      = ppmCagr = -sp500  (left edge)
+                  // 1/3    = ppmCagr = 0
+                  // 2/3    = ppmCagr = 1.0×S&P (SELL→HOLD)
+                  // 11/15  = ppmCagr = 1.2×S&P (HOLD→BUY)
+                  // 5/6    = ppmCagr = 1.5×S&P (BUY→BUY+)
+                  // 1      = ppmCagr = 2×S&P   (right edge)
+                  const markerColor =
+                    markerPos < 1/3   ? "#ef4444"
+                    : markerPos < 2/3   ? "#f59e0b"
+                    : markerPos < 11/15 ? "#f59e0b"
+                    : markerPos < 5/6   ? "#a3e635"
+                    : "#00ff41";
                   return (
                     <div className="mt-3">
                       {/* Marker (value + ▼) pinned above bar */}
@@ -746,19 +758,23 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           <span className="text-[9px] leading-none" style={{ color: markerColor }}>▼</span>
                         </div>
                       </div>
-                      {/* 3-zone bar — equal thirds */}
+                      {/* 5-zone bar — widths derived from signal thresholds */}
                       <div className="flex w-full h-2 rounded-full overflow-hidden">
-                        <div style={{ width: "33.33%", background: "rgba(239,68,68,0.4)"  }} />
-                        <div style={{ width: "33.33%", background: "rgba(245,158,11,0.4)" }} />
-                        <div style={{ width: "33.34%", background: "rgba(0,255,65,0.5)"   }} />
+                        <div style={{ width: "33.33%", background: "rgba(239,68,68,0.5)"  }} />
+                        <div style={{ width: "33.33%", background: "rgba(245,158,11,0.45)"}} />
+                        <div style={{ width: "6.67%",  background: "rgba(245,158,11,0.2)" }} />
+                        <div style={{ width: "10%",    background: "rgba(0,255,65,0.25)"  }} />
+                        <div style={{ width: "16.67%", background: "rgba(0,255,65,0.55)"  }} />
                       </div>
-                      {/* Tick marks at zone boundaries */}
+                      {/* Tick marks at signal-threshold boundaries */}
                       <div className="relative" style={{ height: 18 }}>
                         {([
-                          { left: "0%",      label: "-S&P"  },
-                          { left: "33.33%",  label: "0"     },
-                          { left: "66.67%",  label: "S&P"   },
-                          { left: "100%",    label: "2×S&P" },
+                          { left: "0%",      label: "−S&P" },
+                          { left: "33.33%",  label: "0"    },
+                          { left: "66.67%",  label: "1.0×" },
+                          { left: "73.33%",  label: "1.2×" },
+                          { left: "83.33%",  label: "1.5×" },
+                          { left: "100%",    label: "2×"   },
                         ] as const).map(({ left, label }) => (
                           <div key={label} className="absolute flex flex-col items-center" style={{ left, transform: "translateX(-50%)" }}>
                             <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.3)" }} />
@@ -766,11 +782,22 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           </div>
                         ))}
                       </div>
-                      {/* Zone labels centered in each third */}
-                      <div className="flex w-full mt-1">
-                        <span className="text-[8px] text-center uppercase" style={{ width: "33.33%", color: "rgba(239,68,68,0.5)" }}>BELOW 0</span>
-                        <span className="text-[8px] text-center uppercase" style={{ width: "33.33%", color: "rgba(245,158,11,0.5)" }}>MARKET</span>
-                        <span className="text-[8px] text-center uppercase" style={{ width: "33.34%", color: "rgba(0,255,65,0.4)" }}>ABOVE MARKET</span>
+                      {/* Signal zone labels — centered in their zone(s) */}
+                      <div className="relative mt-1" style={{ height: 14 }}>
+                        {([
+                          { left: "33.33%",  label: "SELL",  color: "rgba(239,68,68,0.55)"  },
+                          { left: "70%",     label: "HOLD",  color: "rgba(245,158,11,0.55)" },
+                          { left: "78.33%",  label: "BUY",   color: "rgba(0,255,65,0.4)"    },
+                          { left: "91.67%",  label: "BUY+",  color: "rgba(0,255,65,0.6)"    },
+                        ] as const).map(({ left, label, color }) => (
+                          <span
+                            key={label}
+                            className="absolute text-[8px] font-bold uppercase whitespace-nowrap -translate-x-1/2"
+                            style={{ left, color }}
+                          >
+                            {label}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   );
@@ -1147,9 +1174,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {(() => {
                 const s = (score?.signal ?? "").toUpperCase();
                 const styles: Record<string, React.CSSProperties> = {
-                  BUY:  { background: "rgba(0,255,65,0.15)",  color: "#00ff41", border: "1px solid rgba(0,255,65,0.6)" },
-                  HOLD: { background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.5)" },
-                  SELL: { background: "rgba(239,68,68,0.15)",  color: "#ef4444", border: "1px solid rgba(239,68,68,0.5)" },
+                  "BUY+": { background: "rgba(0,255,65,0.25)",  color: "#00ff41", border: "1px solid rgba(0,255,65,0.9)" },
+                  BUY:    { background: "rgba(0,255,65,0.15)",  color: "#00ff41", border: "1px solid rgba(0,255,65,0.6)" },
+                  HOLD:   { background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.5)" },
+                  SELL:   { background: "rgba(239,68,68,0.15)",  color: "#ef4444", border: "1px solid rgba(239,68,68,0.5)" },
                 };
                 return (
                   <div className="flex justify-center">

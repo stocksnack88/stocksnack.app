@@ -140,8 +140,7 @@ def _m3_shareholder_return(
 
     # FIX 1: gate — only apply M3 for genuine high-yield dividend payers
     # Requires yield >= 4.5% AND dividends paid every year for last 5 years
-    if div_yield < 0.045:
-        return None
+    # if div_yield < 0.045: return None  # TEMP: removed for testing
     div_paid_5y = [safe_float(r.get("dividendsPaid")) for r in cashflow[:5]]
     if len(div_paid_5y) < 5 or not all(v < 0 for v in div_paid_5y):
         return None

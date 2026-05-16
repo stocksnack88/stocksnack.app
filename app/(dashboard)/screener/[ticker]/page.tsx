@@ -823,7 +823,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const metrics: { key: MetricKey; label: string; cagr: number | null | undefined; signal: string | null | undefined }[] = [
               { key: "revenue",        label: "REVENUE",        cagr: score?.revenue_cagr_5y,  signal: scoreEx?.gq_signal_revenue },
               { key: "ebitda",         label: "EBITDA",         cagr: ebitdaCagr,               signal: scoreEx?.gq_signal_net_income },
-              { key: "free_cash_flow", label: "FCF",            cagr: score?.fcf_cagr_5y,      signal: scoreEx?.gq_signal_fcf },
+              { key: "free_cash_flow", label: "FREE CASH FLOW", cagr: score?.fcf_cagr_5y,      signal: scoreEx?.gq_signal_fcf },
             ];
 
             return (
@@ -868,7 +868,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                 color:      cagrNum >= 0 ? "rgba(0,255,65,0.7)"  : "#f87171",
                                 border:     `1px solid ${cagrNum >= 0 ? "rgba(0,255,65,0.2)" : "rgba(248,113,113,0.3)"}`,
                               }}>
-                                {fmtCagr(cagr)} CAGR (5Y)
+                                {fmtCagr(cagr)} CAGR
                               </span>
                             ) : null}
                           </div>
@@ -1067,22 +1067,27 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "#00ff41" }}>
               LAYER 3 — FINANCIAL HEALTH
             </p>
-            <div className="flex gap-6 mb-3">
-              <div>
-                <p className="text-2xl font-bold font-mono" style={{ color: scoreColor(score?.health_score) }}>
+            <div className="flex items-center rounded-lg p-4 mb-3" style={{ border: "1px solid rgba(0,255,65,0.2)" }}>
+              <div className="flex-1 flex flex-col items-center">
+                <p className="text-4xl font-bold font-mono" style={{ color: scoreColor(score?.health_score) }}>
                   {score?.health_passes ?? 0}/{scoredTotal}
                 </p>
-                <p className="text-[10px] tracking-widest" style={{ color: scoreColor(score?.health_score) }}>CHECKS PASSED</p>
+                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: scoreColor(score?.health_score), opacity: 0.6 }}>
+                  CHECKS PASSED
+                </p>
               </div>
-              <div>
-                <p className="text-2xl font-bold font-mono" style={{ color: scoreColor(score?.health_score) }}>
+              <div className="self-stretch mx-4" style={{ width: 1, background: "rgba(0,255,65,0.2)" }} />
+              <div className="flex-1 flex flex-col items-center">
+                <p className="text-4xl font-bold font-mono" style={{ color: scoreColor(score?.health_score) }}>
                   {score?.health_score != null ? `${Number(score.health_score).toFixed(1)}%` : "—"}
                 </p>
-                <p className="text-[10px] tracking-widest" style={{ color: scoreColor(score?.health_score) }}>HEALTH SCORE</p>
+                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: scoreColor(score?.health_score), opacity: 0.6 }}>
+                  HEALTH SCORE
+                </p>
               </div>
             </div>
-            <div className="h-1 rounded-full w-full" style={{ background: "rgba(255,255,255,0.1)" }}>
-              <div className="h-full rounded-full" style={{ width: `${score?.health_score ?? 0}%`, background: healthColor(score?.health_score) }} />
+            <div className="h-1 rounded-full w-full" style={{ background: "rgba(0,255,65,0.1)" }}>
+              <div className="h-full rounded-full" style={{ width: `${score?.health_score ?? 0}%`, background: scoreColor(score?.health_score), opacity: 0.8 }} />
             </div>
           </div>
 

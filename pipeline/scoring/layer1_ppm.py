@@ -191,6 +191,7 @@ def _m3_shareholder_return(
         "shareholder_yield": div_yield + buyback_yield,
         "growth_rate":       adj_div_growth,   # from compute_gq on total dividends
         "annual_div_ps":     _div,
+        "p_giveback_yield":  (1.0 / p_giveback) if p_giveback > 0 else None,
     }
 
 
@@ -236,7 +237,7 @@ def score_ppm(data: dict, ticker: str = "", sp500_cagr: float | None = None) -> 
         "m2_growth_rate":        round(r2["growth_rate"],      4) if r2 else None,
         "m2_fcf_yield":          round(r2["fcf_yield"],        4) if r2 else None,
         "m3_applicable":         r3 is not None,
-        "m3_div_yield":          round(r3["div_yield"],        4) if r3 else None,
+        "m3_div_yield":          round(r3["p_giveback_yield"],  4) if r3 and r3.get("p_giveback_yield") is not None else None,
         "m3_buyback_yield":      round(r3["buyback_yield"],    4) if r3 else None,
         "m3_shareholder_yield":  round(r3["shareholder_yield"],4) if r3 else None,
         "m3_growth_rate":        round(r3["growth_rate"],      4) if r3 else None,

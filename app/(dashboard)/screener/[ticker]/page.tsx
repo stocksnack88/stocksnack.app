@@ -447,8 +447,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const m3GrowthRate     = scoreEx?.m3_growth_rate != null ? Number(scoreEx.m3_growth_rate) : null;
             const m3Proj5yTotalDiv = m3CurTotalDiv != null && m3GrowthRate != null
               ? m3CurTotalDiv * Math.pow(1 + m3GrowthRate, 5) : null;
-            const m3Proj5yDivPs    = m3Proj5yTotalDiv != null && m3Shares != null && m3Shares > 0
-              ? m3Proj5yTotalDiv / m3Shares : null;
 
             return (
               <div className="grid grid-cols-3 items-start" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>

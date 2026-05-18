@@ -29,5 +29,6 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
-        run: python3 run.py
+        # SEC EDGAR pipeline — migrated from FMP on 2026-05-17
+        # Backup: python3 run.py (FMP pipeline, keep for rollback)
+        run: python3 sec/run_sec.py

@@ -1,0 +1,67 @@
+original_tag,standardised_name,priority,confirmed_date,notes
+RevenueFromContractWithCustomerExcludingAssessedTax,revenue,1,2026-05-16,confirmed AAPL
+Revenues,revenue,2,2026-05-16,
+SalesRevenueNet,revenue,3,2026-05-16,
+SalesRevenueGoodsNet,revenue,4,2026-05-16,
+RevenueFromContractWithCustomerIncludingAssessedTax,revenue,5,2026-05-16,
+GrossProfit,gross_profit,1,2026-05-16,confirmed AAPL
+CostOfRevenue,cost_of_revenue,1,2026-05-17,used by META AMZN and others who don't file GrossProfit directly
+CostOfGoodsSold,cost_of_revenue,2,2026-05-17,older tag name for same concept
+CostOfGoodsAndServicesSold,cost_of_revenue,3,2026-05-17,alternative combined tag
+OperatingIncomeLoss,operating_income,1,2026-05-16,confirmed AAPL
+IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest,operating_income,2,2026-05-17,JNJ substitute — pre-tax income from continuing ops. OperatingIncomeLoss stopped being filed by JNJ after FY2012.
+NetIncomeLoss,net_income,1,2026-05-16,confirmed AAPL
+NetIncome,net_income,2,2026-05-16,
+ProfitLoss,net_income,3,2026-05-16,
+NetIncomeLossAvailableToCommonStockholdersBasic,net_income,4,2026-05-16,
+EarningsPerShareDiluted,eps_diluted,1,2026-05-16,confirmed AAPL
+EarningsPerShareBasic,eps_diluted,2,2026-05-16,
+SellingGeneralAndAdministrativeExpense,sga_expense,1,2026-05-16,confirmed AAPL
+SellingAndMarketingExpense,sga_expense,2,2026-05-16,
+ResearchAndDevelopmentExpense,rd_expense,1,2026-05-16,confirmed AAPL
+ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost,rd_expense,2,2026-05-16,
+InterestExpense,interest_expense,1,2026-05-16,confirmed AAPL
+InterestExpenseNonoperating,interest_expense,2,2026-05-17,JNJ post-Kenvue reclassification. Also covers other companies using nonoperating classification.
+InterestAndDebtExpense,interest_expense,3,2026-05-16,
+InterestExpenseDebt,interest_expense,4,2026-05-16,
+IncomeTaxExpenseBenefit,income_tax_expense,1,2026-05-16,confirmed AAPL
+NetCashProvidedByUsedInOperatingActivities,operating_cash_flow,1,2026-05-16,confirmed AAPL
+NetCashProvidedByUsedInOperatingActivitiesContinuingOperations,operating_cash_flow,2,2026-05-16,
+PaymentsToAcquirePropertyPlantAndEquipment,capital_expenditure,1,2026-05-16,confirmed AAPL
+CapitalExpendituresIncurredButNotYetPaid,capital_expenditure,2,2026-05-16,
+PaymentsForCapitalImprovements,capital_expenditure,3,2026-05-16,
+AllocatedShareBasedCompensationExpense,stock_based_compensation,1,2026-05-16,confirmed AAPL
+ShareBasedCompensation,stock_based_compensation,2,2026-05-16,
+PaymentsOfDividends,dividends_paid,1,2026-05-16,confirmed AAPL
+PaymentsOfDividendsCommonStock,dividends_paid,2,2026-05-16,
+PaymentsOfOrdinaryDividends,dividends_paid,3,2026-05-16,
+PaymentsForRepurchaseOfCommonStock,common_stock_repurchased,1,2026-05-16,confirmed AAPL
+PaymentsForRepurchaseOfEquity,common_stock_repurchased,2,2026-05-16,
+DepreciationDepletionAndAmortization,depreciation_amortization,1,2026-05-16,confirmed AAPL — complete total
+DepreciationAndAmortization,depreciation_amortization,2,2026-05-17,partial (PP&E + intangibles; component for sum)
+Depreciation,depreciation_amortization,3,2026-05-17,partial (PP&E only; component for sum)
+AmortizationOfIntangibleAssets,depreciation_amortization,4,2026-05-17,partial (intangibles only; component for sum)
+DepreciationAmortizationAndAccretionNet,depreciation_amortization,5,2026-05-17,alternative complete — last resort
+CashAndCashEquivalentsAtCarryingValue,cash_and_equivalents,1,2026-05-16,confirmed AAPL
+CashAndCashEquivalents,cash_and_equivalents,2,2026-05-16,
+CashCashEquivalentsAndShortTermInvestments,cash_and_equivalents,3,2026-05-16,
+LongTermDebt,total_debt,1,2026-05-17,complete total including current maturities
+LongTermDebtNoncurrent,total_debt,2,2026-05-17,noncurrent portion only — fallback
+DebtAndCapitalLeaseObligations,total_debt,3,2026-05-16,
+LongTermDebtAndCapitalLeaseObligations,total_debt,4,2026-05-16,
+StockholdersEquity,total_equity,1,2026-05-16,confirmed AAPL
+StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest,total_equity,2,2026-05-16,
+PartnersCapital,total_equity,3,2026-05-16,
+Assets,total_assets,1,2026-05-16,confirmed AAPL
+Liabilities,total_liabilities,1,2026-05-16,confirmed AAPL
+RetainedEarningsAccumulatedDeficit,retained_earnings,1,2026-05-16,confirmed AAPL
+RetainedEarnings,retained_earnings,2,2026-05-16,
+PreferredStockValue,preferred_stock,1,2026-05-16,
+PreferredStockSharesOutstanding,preferred_stock,2,2026-05-16,
+Goodwill,goodwill_and_intangibles,1,2026-05-16,
+IntangibleAssetsNetExcludingGoodwill,goodwill_and_intangibles,2,2026-05-16,
+FiniteLivedIntangibleAssetsNet,goodwill_and_intangibles,3,2026-05-16,
+WeightedAverageNumberOfDilutedSharesOutstanding,shares_outstanding,1,2026-05-17,most accurate — annual average including dilution. Required for EPS so available for almost all companies. Matches FMP weightedAverageShsOutDil exactly.
+WeightedAverageNumberOfSharesOutstandingBasic,shares_outstanding,2,2026-05-17,basic weighted average, less preferred than diluted but widely available.
+CommonStockSharesOutstanding,shares_outstanding,3,2026-05-17,point in time snapshot, optional in XBRL, some companies don't file this (e.g. META).
+CommonStockSharesIssued,shares_outstanding,4,2026-05-17,last resort, includes treasury shares.

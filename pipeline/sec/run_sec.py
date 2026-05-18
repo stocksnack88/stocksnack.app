@@ -25,8 +25,10 @@ for _p in [str(_PIPELINE_DIR), str(_SEC_DIR)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from normalizer import normalise
-from yf_client  import get_profile, get_market_cap, get_historical_market_cap
+from normalizer        import normalise
+from yf_client         import get_profile, get_market_cap, get_historical_market_cap
+from sec_client        import ticker_to_cik
+from segment_extractor import get_segments
 
 from scoring.layer1_ppm    import score_ppm
 from scoring.layer2_growth import score_growth
@@ -245,18 +247,28 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
             health.get("passes", 0),
         )
 
+        log.info("[%s] Fetching segments...", ticker)
+        cik      = ticker_to_cik(ticker)
+        segments = get_segments(ticker, cik) if cik else {"product_segments": None, "geo_segments": None}
+        prod     = segments.get("product_segments")
+        geo      = segments.get("geo_segments")
+        if prod is not None or geo is not None:
+            log.info("[%s] Product segments: %d found", ticker, len(prod) if prod else 0)
+            log.info("[%s] Geo segments: %d found",     ticker, len(geo)  if geo  else 0)
+        else:
+            log.info("[%s] Segments: not available", ticker)
+
         if dry_run:
             log.info("[%s] --dry-run: skipping Supabase write", ticker)
         else:
-            segments = {"product_segments": None, "geo_segments": None}
             writer.upsert_scores(ticker, ppm, growth, health, final, spy, segments)
 
         log.info("[%s] ✓ Done", ticker)
-        return True
+        return True, len(prod) if prod else None, len(geo) if geo else None
 
     except Exception as exc:
         log.error("[%s] FAILED: %s", ticker, exc, exc_info=True)
-        return False
+        return False, None, None
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -284,18 +296,31 @@ def main() -> None:
     spy = compute_spy_benchmark({}, [])
     log.info("SPY benchmark: cagr=%.4f", spy.get("sp500_cagr") or 0)
 
-    processed: list[str] = []
-    failed:    list[str] = []
+    processed:       list[str]          = []
+    failed:          list[str]          = []
+    segment_results: dict[str, tuple]   = {}  # ticker -> (prod_count, geo_count)
 
     for ticker in tickers:
-        ok = process(ticker, writer, spy, dry_run)
+        ok, prod_cnt, geo_cnt = process(ticker, writer, spy, dry_run)
         (processed if ok else failed).append(ticker)
+        segment_results[ticker] = (prod_cnt, geo_cnt)
         if len(tickers) > 1:
             time.sleep(1)
 
     log.info("Done — processed: %d  failed: %d", len(processed), len(failed))
     if failed:
         log.warning("Failed: %s", ", ".join(failed))
+
+    log.info("─" * 52)
+    log.info("SEGMENT COVERAGE SUMMARY")
+    log.info("%-8s  %-14s  %-10s", "Ticker", "Product segs", "Geo segs")
+    log.info("%-8s  %-14s  %-10s", "──────", "────────────", "────────")
+    for t in tickers:
+        pc, gc = segment_results.get(t, (None, None))
+        log.info("%-8s  %-14s  %-10s",
+                 t,
+                 str(pc) if pc is not None else "—",
+                 str(gc) if gc is not None else "—")
 
     sys.exit(1 if len(failed) > 2 else 0)
 

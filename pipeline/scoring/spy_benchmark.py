@@ -98,8 +98,9 @@ def compute_spy_benchmark(fmp_spy_quote: dict, fmp_spy_dividends: list) -> dict:
 
     spy_price = float(fmp_spy_quote.get("price") or 0)
     if spy_price <= 0:
-        log.warning("SPY price unavailable")
-        return {"sp500_cagr": round(blended, 6), "sp500_5y_return": None}
+        # No FMP SPY price — derive 5Y return from blended CAGR alone (excludes ~1.3% dividend yield)
+        sp500_5y_return = round((1 + blended) ** 5, 4)
+        return {"sp500_cagr": round(blended, 6), "sp500_5y_return": sp500_5y_return}
 
     ttm_div = _ttm_dividends(fmp_spy_dividends)
     projected_dividends = ttm_div * 5

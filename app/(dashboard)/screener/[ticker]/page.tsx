@@ -1008,16 +1008,44 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         })()}
                         {/* Value + year labels */}
                         <div className="flex gap-1.5 mt-1.5">
-                          {vals.map(({ year, v, isNeg }) => (
-                            <div key={year} className="flex-1 text-center" style={{ minWidth: 0 }}>
-                              <span className="block text-[11px] font-mono font-bold leading-tight" style={{ color: isNeg ? "rgba(248,113,113,0.6)" : "rgba(0,255,65,0.5)" }}>
-                                {v != null ? fmtBn(Math.abs(v)) : "—"}
-                              </span>
-                              <span className="block text-[10px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.2)" }}>
-                                {year}
-                              </span>
-                            </div>
-                          ))}
+                          {vals.map(({ year, v, isNeg }, i) => {
+                            const prevV      = i > 0 ? vals[i - 1].v : null;
+                            const absChange  = v != null && prevV != null ? v - prevV : null;
+                            const pctChange  = absChange != null && prevV != null && prevV !== 0
+                              ? (absChange / Math.abs(prevV)) * 100
+                              : null;
+                            const changeColor = absChange != null && absChange >= 0
+                              ? "rgba(0,255,65,0.5)"
+                              : "rgba(248,113,113,0.6)";
+                            return (
+                              <div key={year} className="flex-1 text-center" style={{ minWidth: 0 }}>
+                                <span className="block text-[11px] font-mono font-bold leading-tight" style={{ color: isNeg ? "rgba(248,113,113,0.6)" : "rgba(0,255,65,0.5)" }}>
+                                  {v != null ? fmtBn(Math.abs(v)) : "—"}
+                                </span>
+                                {absChange != null && (
+                                  <span className="block text-[10px] font-mono leading-tight" style={{ color: changeColor }}>
+                                    {(() => {
+                                      const sign = absChange >= 0 ? "+" : "-";
+                                      const abs  = Math.abs(absChange);
+                                      const bn   = abs / 1_000_000_000;
+                                      const mn   = abs / 1_000_000;
+                                      if (bn >= 1) return `${sign}$${bn.toFixed(1)}B`;
+                                      if (mn >= 1) return `${sign}$${mn.toFixed(1)}M`;
+                                      return `${sign}$${abs.toFixed(0)}`;
+                                    })()}
+                                  </span>
+                                )}
+                                {pctChange != null && (
+                                  <span className="block text-[10px] font-mono leading-tight" style={{ color: changeColor }}>
+                                    {(pctChange >= 0 ? "+" : "") + pctChange.toFixed(1) + "%"}
+                                  </span>
+                                )}
+                                <span className="block text-[10px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.2)" }}>
+                                  {year}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );

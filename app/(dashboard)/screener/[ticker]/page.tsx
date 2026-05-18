@@ -1015,8 +1015,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                 </span>
                                 {i === 0 ? (
                                   <>
-                                    <span className="block text-[10px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.15)" }}>Growth</span>
-                                    <span className="block text-[10px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.15)" }}>YoY %</span>
+                                    <div className="flex justify-between text-[10px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.15)" }}><span>Growth</span><span>→</span></div>
+                                    <div className="flex justify-between text-[10px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.15)" }}><span>YoY %</span><span>→</span></div>
                                   </>
                                 ) : (
                                   <>
@@ -1087,6 +1087,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { name: "EBITDA",  sig: niSig,  pts: niPts,   cagr: niCagr,  isFcf: false },
                   { name: "FCF",     sig: fcfSig, pts: fcfPts,  cagr: null,    isFcf: true  },
                 ];
+                const validPts     = miniRows.map(r => r.pts).filter((p): p is number => p != null);
+                const rawScore     = validPts.length ? Math.round(validPts.reduce((s, p) => s + p, 0) / validPts.length) : null;
+                const penaltyLabel = hasPenalty && worstSig ? `${worstSig} ×${worstMult.toFixed(2)}` : "None";
                 return (
                   <div className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
                     <div className="mb-3 pb-2" style={{ borderBottom: "1px solid rgba(0,255,65,0.08)" }}>
@@ -1119,32 +1122,33 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           </div>
                         );
                       })}
-                      {(() => {
-                        const validPts = miniRows.map(r => r.pts).filter((p): p is number => p != null);
-                        if (!validPts.length) return null;
-                        const rawScore = Math.round(validPts.reduce((s, p) => s + p, 0) / validPts.length);
-                        return (
-                          <div className="flex items-center gap-2">
-                            <span className="w-14 shrink-0" />
-                            <span className="w-20 shrink-0" />
-                            <div className="flex-1" />
-                            <span className="text-[10px] font-mono w-10 text-right shrink-0" style={{ color: "rgba(0,255,65,0.25)" }}>
-                              {rawScore}%
-                            </span>
-                          </div>
-                        );
-                      })()}
+                      {rawScore != null && (
+                        <div className="flex items-center gap-2">
+                          <span className="w-14 shrink-0" />
+                          <span className="w-20 shrink-0" />
+                          <div className="flex-1" />
+                          <span className="text-[10px] font-mono text-right shrink-0" style={{ color: "rgba(0,255,65,0.25)" }}>
+                            Average → {rawScore}%
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-[9px] italic text-center mt-3" style={{
-                      color: hasPenalty ? "rgba(251,191,36,0.7)" : "rgba(0,255,65,0.5)",
-                    }}>
-                      {hasPenalty && worstSig
-                        ? `Trend penalty: ${worstSig} (×${worstMult.toFixed(2)} applied to raw score)`
-                        : "No trend penalty applied"}
-                    </p>
-                    <p className="text-[9px] font-mono text-center mt-1" style={{ color: scoreColor(growthScore) }}>
-                      Final score: {growthScore.toFixed(1)}%
-                    </p>
+                    {rawScore != null && (
+                      <div className="mt-3 space-y-0.5 font-mono text-[9px]">
+                        <div className="flex">
+                          <span className="w-28 shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>Average score</span>
+                          <span style={{ color: "rgba(0,255,65,0.3)" }}>: {rawScore}%</span>
+                        </div>
+                        <div className="flex">
+                          <span className="w-28 shrink-0" style={{ color: hasPenalty ? "rgba(251,191,36,0.5)" : "rgba(0,255,65,0.3)" }}>Trend penalty</span>
+                          <span style={{ color: hasPenalty ? "rgba(251,191,36,0.7)" : "rgba(0,255,65,0.3)" }}>: {penaltyLabel}</span>
+                        </div>
+                        <div className="flex">
+                          <span className="w-28 shrink-0" style={{ color: "rgba(0,255,65,0.5)" }}>Final score</span>
+                          <span style={{ color: scoreColor(growthScore) }}>: {growthScore.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })()}

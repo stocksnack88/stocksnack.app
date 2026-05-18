@@ -1015,8 +1015,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                 </span>
                                 {i === 0 ? (
                                   <>
-                                    <div className="flex justify-between text-[10px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.15)" }}><span>Growth</span><span>→</span></div>
-                                    <div className="flex justify-between text-[10px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.15)" }}><span>YoY %</span><span>→</span></div>
+                                    <div className="flex justify-between text-[10px] font-mono leading-tight"><span style={{ color: "rgba(0,255,65,0.15)" }}>Growth</span><span style={{ color: "#00ff41" }}>→</span></div>
+                                    <div className="flex justify-between text-[10px] font-mono leading-tight"><span style={{ color: "rgba(0,255,65,0.15)" }}>YoY %</span><span style={{ color: "#00ff41" }}>→</span></div>
                                   </>
                                 ) : (
                                   <>

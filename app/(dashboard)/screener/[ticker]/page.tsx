@@ -736,7 +736,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 return 0.40 + (ppmCagr - sp500Cagr) / (0.2 * sp500Cagr) * 0.08;
               if (ppmCagr < 1.5 * sp500Cagr)
                 return 0.48 + (ppmCagr - 1.2 * sp500Cagr) / (0.3 * sp500Cagr) * 0.12;
-              return Math.min(1, 0.60 + (ppmCagr - 1.5 * sp500Cagr) / sp500Cagr * 0.40);
+              return 1.0; // BUY+: clamp needle to right edge
             })();
             return (
               <div className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
@@ -764,7 +764,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     { left: "0%",  cagr: "−S&P", zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
                     { left: "40%", cagr: "S&P",  zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
                     { left: "48%", cagr: "1.2×", zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
-                    { left: "60%", cagr: "1.5×", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"   },
+                    { left: "100%", cagr: "1.5×", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"  },
                   ] as const;
                   return (
                     <div className="mt-3">
@@ -793,7 +793,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           <div
                             key={cagr}
                             className="absolute"
-                            style={{ left, transform: left === "0%" ? "none" : "translateX(-50%)" }}
+                            style={{ left, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
                           >
                             <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
                             <span
@@ -819,7 +819,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             style={{
                               left,
                               color: zoneColor,
-                              transform: left === "0%" ? "none" : "translateX(-50%)",
+                              transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)",
                             }}
                           >
                             {zone}

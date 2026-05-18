@@ -727,8 +727,17 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const ppmCagrPct  = (ppmCagr * 100).toFixed(1);
             const sp500CagrPct = (sp500Cagr * 100).toFixed(1);
             const ratio       = sp500Cagr !== 0 ? (ppmCagr / sp500Cagr).toFixed(2) : "—";
-            // Marker: maps [−sp500, +2×sp500] → [0, 1] (total range = 3×sp500)
-            const markerPos   = Math.min(1, Math.max(0, (ppmCagr + sp500Cagr) / (3 * sp500Cagr)));
+            // Needle: piecewise linear mapping to zones SELL=40% HOLD=8% BUY=12% BUY+=40%
+            // Zone boundaries: SELL[-S&P → S&P] HOLD[S&P → 1.2×] BUY[1.2× → 1.5×] BUY+[1.5×→]
+            const needlePos = (() => {
+              if (ppmCagr < sp500Cagr)
+                return Math.max(0, (ppmCagr + sp500Cagr) / (2 * sp500Cagr) * 0.40);
+              if (ppmCagr < 1.2 * sp500Cagr)
+                return 0.40 + (ppmCagr - sp500Cagr) / (0.2 * sp500Cagr) * 0.08;
+              if (ppmCagr < 1.5 * sp500Cagr)
+                return 0.48 + (ppmCagr - 1.2 * sp500Cagr) / (0.3 * sp500Cagr) * 0.12;
+              return Math.min(1, 0.60 + (ppmCagr - 1.5 * sp500Cagr) / sp500Cagr * 0.40);
+            })();
             return (
               <div className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
                 <p className="text-[10px] uppercase tracking-widest text-center mb-2" style={{ color: "rgba(0,255,65,0.4)" }}>
@@ -743,26 +752,27 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <p className="text-[11px] italic text-center" style={{ color: "rgba(0,255,65,0.8)" }}>
                   {ppmCagrPct}% ÷ {sp500CagrPct}% = {ratio}× → {ppmScore.toFixed(1)}%
                 </p>
-                {/* Benchmark bar: 4 signal zones mapped to [-S&P, +2×S&P] range */}
+                {/* Benchmark bar: SELL=40% HOLD=8% BUY=12% BUY+=40%
+                    Range: [-S&P, BUY+] — needle is piecewise linear, zone-accurate */}
                 {(() => {
-                  // Zone boundaries as markerPos fractions (range = 3×S&P):
-                  //   0      = ppmCagr = −S&P    (left edge)
-                  //   2/3    = ppmCagr = 1.0×S&P (SELL → HOLD)
-                  //   11/15  = ppmCagr = 1.2×S&P (HOLD → BUY)
-                  //   5/6    = ppmCagr = 1.5×S&P (BUY  → BUY+)
-                  //   1      = ppmCagr = 2×S&P   (right edge, unlabelled)
                   const markerColor =
-                    markerPos < 2/3   ? "#ef4444"
-                    : markerPos < 11/15 ? "#f59e0b"
-                    : markerPos < 5/6   ? "#a3e635"
+                    ppmCagr < sp500Cagr         ? "#ef4444"
+                    : ppmCagr < 1.2 * sp500Cagr ? "#f59e0b"
+                    : ppmCagr < 1.5 * sp500Cagr ? "#a3e635"
                     : "#00ff41";
+                  const ticks = [
+                    { left: "0%",  cagr: "−S&P", zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
+                    { left: "40%", cagr: "S&P",  zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
+                    { left: "48%", cagr: "1.2×", zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
+                    { left: "60%", cagr: "1.5×", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"   },
+                  ] as const;
                   return (
                     <div className="mt-3">
-                      {/* Marker (value + ▼) pinned above bar */}
+                      {/* Needle (value + ▼) pinned above bar */}
                       <div className="relative h-8 mb-0.5">
                         <div
                           className="absolute flex flex-col items-center -translate-x-1/2"
-                          style={{ left: `${markerPos * 100}%`, bottom: 0 }}
+                          style={{ left: `${needlePos * 100}%`, bottom: 0 }}
                         >
                           <span className="text-[9px] font-bold font-mono leading-none" style={{ color: markerColor }}>
                             {ppmCagrPct}%
@@ -772,39 +782,47 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                       </div>
                       {/* 4-zone bar */}
                       <div className="flex w-full h-2 rounded-full overflow-hidden">
-                        <div style={{ width: "66.67%", background: "rgba(239,68,68,0.5)"   }} />
-                        <div style={{ width: "6.67%",  background: "rgba(245,158,11,0.55)" }} />
-                        <div style={{ width: "10%",    background: "rgba(163,230,53,0.45)" }} />
-                        <div style={{ width: "16.67%", background: "rgba(0,255,65,0.6)"    }} />
+                        <div style={{ width: "40%", background: "rgba(239,68,68,0.5)"   }} />
+                        <div style={{ width: "8%",  background: "rgba(245,158,11,0.55)" }} />
+                        <div style={{ width: "12%", background: "rgba(163,230,53,0.45)" }} />
+                        <div style={{ width: "40%", background: "rgba(0,255,65,0.6)"    }} />
                       </div>
-                      {/* Tick marks — 4 only, no 0 CAGR and no 2× */}
-                      <div className="relative" style={{ height: 18 }}>
-                        {([
-                          { left: "0%",     label: "−S&P" },
-                          { left: "66.67%", label: "S&P"  },
-                          { left: "73.33%", label: "1.2×" },
-                          { left: "83.33%", label: "1.5×" },
-                        ] as const).map(({ left, label }) => (
-                          <div key={label} className="absolute flex flex-col items-center" style={{ left, transform: "translateX(-50%)" }}>
-                            <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.3)" }} />
-                            <span className="text-[8px] mt-0.5 whitespace-nowrap" style={{ color: "rgba(0,255,65,0.3)" }}>{label}</span>
+                      {/* Tick marks with 45° rotated CAGR labels */}
+                      <div className="relative" style={{ height: 38 }}>
+                        {ticks.map(({ left, cagr }) => (
+                          <div
+                            key={cagr}
+                            className="absolute"
+                            style={{ left, transform: left === "0%" ? "none" : "translateX(-50%)" }}
+                          >
+                            <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
+                            <span
+                              className="text-[8px] font-mono whitespace-nowrap block"
+                              style={{
+                                color: "rgba(0,255,65,0.35)",
+                                transform: "rotate(45deg)",
+                                transformOrigin: "top left",
+                                marginTop: 2,
+                              }}
+                            >
+                              {cagr}
+                            </span>
                           </div>
                         ))}
                       </div>
-                      {/* Signal zone labels — centered in each zone */}
-                      <div className="relative mt-1" style={{ height: 14 }}>
-                        {([
-                          { left: "33.33%", label: "SELL", color: "rgba(239,68,68,0.6)"   },
-                          { left: "70%",    label: "HOLD", color: "rgba(245,158,11,0.65)" },
-                          { left: "78.33%", label: "BUY",  color: "rgba(163,230,53,0.65)" },
-                          { left: "91.67%", label: "BUY+", color: "rgba(0,255,65,0.7)"    },
-                        ] as const).map(({ left, label, color }) => (
+                      {/* Zone names below each tick */}
+                      <div className="relative" style={{ height: 14 }}>
+                        {ticks.map(({ left, zone, zoneColor }) => (
                           <span
-                            key={label}
-                            className="absolute text-[8px] font-bold uppercase whitespace-nowrap -translate-x-1/2"
-                            style={{ left, color }}
+                            key={zone}
+                            className="absolute text-[8px] font-bold uppercase whitespace-nowrap"
+                            style={{
+                              left,
+                              color: zoneColor,
+                              transform: left === "0%" ? "none" : "translateX(-50%)",
+                            }}
                           >
-                            {label}
+                            {zone}
                           </span>
                         ))}
                       </div>

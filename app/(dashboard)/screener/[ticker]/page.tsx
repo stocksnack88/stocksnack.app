@@ -1108,32 +1108,51 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     </div>
                     <div className="space-y-2">
                       {miniRows.map(({ name, sig, pts, cagr, isFcf }) => {
-                        const sigColor = sig ? (SIG_COLOR[sig] ?? "#00ff41") : "rgba(0,255,65,0.3)";
-                        const ptsNum   = pts ?? 0;
+                        const sigColor  = sig ? (SIG_COLOR[sig] ?? "#00ff41") : "rgba(0,255,65,0.3)";
+                        const ptsNum    = pts ?? 0;
+                        const cagrLabel = isFcf
+                          ? (sig && FCF_TREND[sig] ? FCF_TREND[sig].label : (sig ?? "—"))
+                          : cagr != null ? `${(cagr * 100).toFixed(1)}% CAGR` : "—";
                         return (
                           <div key={name} className="flex items-center gap-2">
                             <span className="text-[10px] font-mono w-14 shrink-0" style={{ color: "rgba(0,255,65,0.5)" }}>{name}</span>
+                            <span className="text-[9px] font-mono w-20 shrink-0" style={{ color: "rgba(0,255,65,0.4)" }}>
+                              {cagrLabel}
+                            </span>
                             <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(0,255,65,0.1)" }}>
                               <div className="h-full rounded-full" style={{ width: `${ptsNum}%`, background: sigColor }} />
                             </div>
                             <span className="text-[10px] font-mono w-10 text-right shrink-0" style={{ color: sigColor }}>
-                              {pts != null ? `${pts}pts` : "—"}
-                            </span>
-                            <span className="text-[9px] font-mono w-20 text-right shrink-0" style={{ color: "rgba(0,255,65,0.4)" }}>
-                              {isFcf
-                                ? (sig && FCF_TREND[sig] ? FCF_TREND[sig].label : (sig ?? "—"))
-                                : cagr != null ? fmtCagr(cagr) : "—"}
+                              {pts != null ? `${pts}%` : "—"}
                             </span>
                           </div>
                         );
                       })}
+                      {(() => {
+                        const validPts = miniRows.map(r => r.pts).filter((p): p is number => p != null);
+                        if (!validPts.length) return null;
+                        const rawScore = Math.round(validPts.reduce((s, p) => s + p, 0) / validPts.length);
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span className="w-14 shrink-0" />
+                            <span className="w-20 shrink-0" />
+                            <div className="flex-1" />
+                            <span className="text-[10px] font-mono w-10 text-right shrink-0" style={{ color: "rgba(0,255,65,0.25)" }}>
+                              {rawScore}%
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                     <p className="text-[9px] italic text-center mt-3" style={{
                       color: hasPenalty ? "rgba(251,191,36,0.7)" : "rgba(0,255,65,0.5)",
                     }}>
                       {hasPenalty && worstSig
-                        ? `Trend penalty applied: ${worstSig} (×${worstMult.toFixed(2)})`
+                        ? `Trend penalty: ${worstSig} (×${worstMult.toFixed(2)} applied to raw score)`
                         : "No trend penalty applied"}
+                    </p>
+                    <p className="text-[9px] font-mono text-center mt-1" style={{ color: scoreColor(growthScore) }}>
+                      Final score: {growthScore.toFixed(1)}%
                     </p>
                   </div>
                 );

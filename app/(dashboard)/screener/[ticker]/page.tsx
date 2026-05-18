@@ -573,7 +573,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 </div>
                 <div className="px-3 py-0.5 text-center">
                   {!m3na && <p className="text-[9px] italic" style={{ color: "rgba(0,255,65,0.35)" }}>
-                    At {m3PGiveback != null ? `${m3PGiveback.toFixed(0)}x` : "—"} price/dividend multiple
+                    At {scoreEx?.m3_div_yield != null ? `${(Number(scoreEx.m3_div_yield) * 100).toFixed(1)}%` : "—"} dividend yield
                   </p>}
                 </div>
 

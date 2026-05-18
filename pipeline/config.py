@@ -23,9 +23,9 @@ FMP_BASE_URL: str = "https://financialmodelingprep.com"
 
 TICKERS = [
     "NVDA", "GOOGL", "AAPL", "MSFT", "AMZN",
-    "TSM",  "META",  "TSLA", "WMT",  "JPM",
-    "XOM",  "V",     "AMD",  "JNJ",  "COST",
-    "CVX",  "BAC",   "NFLX", "ABBV", "KO",
+    "META", "TSLA",  "WMT",  "JPM",  "XOM",
+    "V",    "AMD",   "JNJ",  "COST", "CVX",
+    "BAC",  "NFLX",  "ABBV", "KO",
 ]
 
 PPM_WEIGHT    = 0.40

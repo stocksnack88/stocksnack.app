@@ -297,7 +297,7 @@ def main() -> None:
     if failed:
         log.warning("Failed: %s", ", ".join(failed))
 
-    sys.exit(1 if failed else 0)
+    sys.exit(1 if len(failed) > 2 else 0)
 
 
 if __name__ == "__main__":

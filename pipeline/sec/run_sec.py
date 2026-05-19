@@ -5,9 +5,10 @@ Mirrors pipeline/run.py exactly but sources data from SEC EDGAR + yfinance
 instead of FMP. Does NOT touch run.py, fmp_client.py, or any scoring files.
 
 Run:
-    python run_sec.py                          # all tickers from config.py
+    python run_sec.py                          # all S&P 500 tickers (cached)
     python run_sec.py --tickers AAPL MSFT      # specific tickers
     python run_sec.py --tickers AAPL --dry-run # score only, no Supabase writes
+    python run_sec.py --limit 50               # first 50 tickers (testing)
 """
 from __future__ import annotations
 
@@ -37,9 +38,66 @@ from scoring.layer4_final  import score_final
 from scoring.spy_benchmark import compute_spy_benchmark
 
 from supabase_writer import SupabaseWriter
-from config import TICKERS, SUPABASE_URL, SUPABASE_KEY
+from config import SUPABASE_URL, SUPABASE_KEY
 
 BANK_TICKERS = ["JPM", "BAC"]
+
+_SP500_CACHE     = _SEC_DIR / "sp500_tickers.csv"
+_CACHE_TTL_DAYS  = 7
+
+
+def _load_sp500_tickers() -> list[str]:
+    """
+    Return the current S&P 500 constituent ticker list.
+
+    Fetches from Wikipedia on first call (or when cache is older than
+    _CACHE_TTL_DAYS) and writes sp500_tickers.csv next to this file.
+    Subsequent calls within the TTL window read from the cache file.
+
+    Normalises Wikipedia dot-notation (BRK.B) to hyphen-notation (BRK-B)
+    used by SEC EDGAR and yfinance.
+    """
+    import time as _time
+
+    if _SP500_CACHE.exists():
+        age_days = (_time.time() - _SP500_CACHE.stat().st_mtime) / 86400
+        if age_days < _CACHE_TTL_DAYS:
+            tickers = [
+                line.strip() for line in _SP500_CACHE.read_text().splitlines()
+                if line.strip()
+            ]
+            log.info(
+                "S&P 500: loaded %d tickers from cache (%.1f days old)",
+                len(tickers), age_days,
+            )
+            return tickers
+
+    log.info("S&P 500: fetching constituent list from Wikipedia…")
+    try:
+        import pandas as pd
+    except ImportError:
+        raise RuntimeError(
+            "pandas is required to fetch the S&P 500 list: pip install pandas lxml"
+        )
+
+    import io
+    import requests as _req
+    _wiki_url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    _wiki_headers = {"User-Agent": "StockSnack/1.0 hello@stocksnack.app"}
+    resp = _req.get(_wiki_url, headers=_wiki_headers, timeout=15)
+    resp.raise_for_status()
+    tables  = pd.read_html(io.StringIO(resp.text))
+    df      = tables[0]
+    tickers = (
+        df["Symbol"]
+        .str.replace(".", "-", regex=False)
+        .str.strip()
+        .tolist()
+    )
+
+    _SP500_CACHE.write_text("\n".join(tickers) + "\n")
+    log.info("S&P 500: fetched and cached %d tickers → %s", len(tickers), _SP500_CACHE)
+    return tickers
 
 _ANOMALY_MIN_BASE = 1e8   # $100M — skip comparisons where prior year < this
 
@@ -376,15 +434,27 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
 def main() -> None:
     parser = argparse.ArgumentParser(description="StockSnack SEC EDGAR pipeline")
     parser.add_argument(
-        "--tickers", nargs="+", default=TICKERS,
-        metavar="TICKER", help="Override the default ticker list",
+        "--tickers", nargs="+", default=None,
+        metavar="TICKER", help="Run specific tickers instead of the full S&P 500 list",
+    )
+    parser.add_argument(
+        "--limit", type=int, default=None,
+        metavar="N", help="Process at most N tickers (useful for testing)",
     )
     parser.add_argument(
         "--dry-run", action="store_true",
         help="Run scoring but do NOT write to Supabase",
     )
     args = parser.parse_args()
-    tickers: list[str] = [t.upper() for t in args.tickers]
+
+    if args.tickers:
+        tickers: list[str] = [t.upper() for t in args.tickers]
+    else:
+        tickers = _load_sp500_tickers()
+
+    if args.limit:
+        tickers = tickers[: args.limit]
+
     dry_run: bool = args.dry_run
 
     log.info("Starting SEC pipeline — %d tickers%s",

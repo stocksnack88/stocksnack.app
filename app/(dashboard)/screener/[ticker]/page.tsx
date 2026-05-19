@@ -867,13 +867,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const ebitdaCagr = (eFirst && eLast && eFirst > 0 && eLast > 0 && nyrs > 0)
               ? Math.pow(eLast / eFirst, 1 / nyrs) - 1 : null;
 
-            const SIG_STARS: Record<string, number> = {
-              "Solid Growth": 5, "Slowing Growth": 4, "Decelerating": 3, "Deteriorating": 2, "Freefall": 1,
-            };
             const SIG_COLOR: Record<string, string> = {
               "Solid Growth": "#00ff41", "Slowing Growth": "#00ff41",
               "Decelerating": "#f59e0b", "Deteriorating": "#f59e0b", "Freefall": "#ef4444",
             };
+            const sp500Cagr = scoreEx?.sp500_cagr != null ? Number(scoreEx.sp500_cagr) : null;
             const FCF_TREND: Record<string, { arrow: string; label: string }> = {
               "Solid Growth":   { arrow: "↑", label: "Growing" },
               "Slowing Growth": { arrow: "↑", label: "Growing" },
@@ -909,6 +907,16 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     const negH       = Math.abs(maxNeg) / totalRange * CHART_H;
                     const zeroY      = maxPos            / totalRange * CHART_H;
                     const cagrNum    = cagr != null ? Number(cagr) : null;
+                    const benchLabel = cagrNum == null || sp500Cagr == null ? null
+                      : cagrNum < 0              ? "Declining"
+                      : cagrNum >= sp500Cagr * 1.5 ? "Exceptional"
+                      : cagrNum >= sp500Cagr * 1.2 ? "Strong"
+                      : cagrNum >= sp500Cagr       ? "Solid"
+                      : "Moderate";
+                    const benchColor = benchLabel === "Exceptional" || benchLabel === "Strong" || benchLabel === "Solid"
+                      ? "#00ff41"
+                      : benchLabel === "Moderate" ? "#f59e0b"
+                      : "#ef4444";
                     return (
                       <div key={key}>
                         {/* Header: name+badge left · signal+stars right */}
@@ -935,23 +943,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             ) : null}
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
-                            {signal && (
-                              <>
-                                <span className="text-[10px] font-mono" style={{ color: SIG_COLOR[signal] ?? "rgba(0,255,65,0.5)" }}>
-                                  {signal}
-                                </span>
-                                <span className="text-[10px] font-mono leading-none">
-                                  {Array.from({ length: 5 }).map((_, i) => {
-                                    const filled = i < (SIG_STARS[signal] ?? 0);
-                                    const col = SIG_COLOR[signal] ?? "#00ff41";
-                                    return (
-                                      <span key={i} style={{ color: filled ? col : col + "4d" }}>
-                                        {filled ? "★" : "☆"}
-                                      </span>
-                                    );
-                                  })}
-                                </span>
-                              </>
+                            {benchLabel && (
+                              <span className="text-[10px] font-mono font-bold tracking-wider" style={{ color: benchColor }}>
+                                {benchLabel.toUpperCase()}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -1031,12 +1026,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             const pctChange  = absChange != null && prevV != null && prevV !== 0
                               ? (absChange / Math.abs(prevV)) * 100
                               : null;
-                            const changeColor = absChange != null && absChange >= 0
-                              ? "rgba(0,255,65,0.5)"
-                              : "rgba(248,113,113,0.6)";
+                            const changeColor = absChange == null
+                              ? "rgba(0,255,65,0.3)"
+                              : absChange > 0 ? "#00ff41"
+                              : absChange < 0 ? "#ef4444"
+                              : "rgba(0,255,65,0.3)";
                             return (
                               <div key={year} className="flex-1 text-center" style={{ minWidth: 0 }}>
-                                <span className="block text-[11px] font-mono font-bold leading-tight" style={{ color: isNeg ? "rgba(248,113,113,0.6)" : "rgba(0,255,65,0.5)" }}>
+                                <span className="block text-[11px] font-mono font-bold leading-tight" style={{ color: isNeg ? "#ef4444" : "#00ff41" }}>
                                   {v != null ? fmtBn(Math.abs(v)) : "—"}
                                 </span>
                                 {i === 0 ? (

@@ -1,0 +1,223 @@
+"""
+StockSnack — Supabase data quality checker.
+
+Reads stock_scores and runs missing-data, range, staleness, and signal
+checks on every ticker. Prints a results table and exits code 1 if any
+FAIL is found (so GitHub Actions can catch regressions).
+
+Run:
+    python verify.py                 # all tickers
+    python verify.py --ticker NVDA   # single ticker (debug)
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+_PIPELINE_DIR = Path(__file__).parent.parent
+if str(_PIPELINE_DIR) not in sys.path:
+    sys.path.insert(0, str(_PIPELINE_DIR))
+
+from supabase import create_client
+
+try:
+    from tabulate import tabulate
+    _HAS_TABULATE = True
+except ImportError:
+    _HAS_TABULATE = False
+
+# ── constants ─────────────────────────────────────────────────────────────────
+
+VALID_SIGNALS   = {"BUY+", "BUY", "HOLD", "SELL"}
+STALENESS_DAYS  = 8
+
+# ── check helpers ─────────────────────────────────────────────────────────────
+
+def _val(row: dict, key: str):
+    return row.get(key)
+
+def _is_null_or_zero(v) -> bool:
+    return v is None or v == 0
+
+def _fmt(v) -> str:
+    if v is None:
+        return "NULL"
+    if isinstance(v, float):
+        return f"{v:.4g}"
+    return str(v)
+
+
+def run_checks(row: dict) -> list[tuple[str, str, str]]:
+    """
+    Returns list of (check_name, value_str, status) tuples.
+    status is FAIL, WARN, or PASS.
+    """
+    results: list[tuple[str, str, str]] = []
+
+    def add(name: str, v, status: str):
+        results.append((name, _fmt(v), status))
+
+    # ── MISSING DATA ──────────────────────────────────────────────────────────
+    missing_fields = [
+        "final_score",
+        "ppm_score",
+        "growth_quality_score",
+        "health_score",
+        "m1_ebitda_current",
+        "current_price",
+        "projected_price_5y",
+    ]
+    for field in missing_fields:
+        v = _val(row, field)
+        add(f"missing:{field}", v, "FAIL" if _is_null_or_zero(v) else "PASS")
+
+    # ── RANGE ─────────────────────────────────────────────────────────────────
+    score_fields = ["final_score", "ppm_score", "growth_quality_score", "health_score"]
+    for field in score_fields:
+        v = _val(row, field)
+        if v is None:
+            add(f"range:{field}", v, "FAIL")
+        elif not (0 <= v <= 100):
+            add(f"range:{field}", v, "FAIL")
+        else:
+            add(f"range:{field}", v, "PASS")
+
+    hcp = _val(row, "health_checks_passed")
+    if hcp is None:
+        add("range:health_checks_passed", hcp, "FAIL")
+    elif not (0 <= hcp <= 24):
+        add("range:health_checks_passed", hcp, "FAIL")
+    else:
+        add("range:health_checks_passed", hcp, "PASS")
+
+    proj = _val(row, "projected_price_5y")
+    if proj is not None and proj < 0:
+        add("range:projected_price_5y<0", proj, "FAIL")
+    else:
+        add("range:projected_price_5y<0", proj, "PASS")
+
+    cagr = _val(row, "ppm_cagr")
+    if cagr is not None:
+        if cagr > 2.0:
+            add("range:ppm_cagr>200%", f"{cagr*100:.1f}%", "FAIL")
+        elif cagr < -1.0:
+            add("range:ppm_cagr<-100%", f"{cagr*100:.1f}%", "FAIL")
+        else:
+            add("range:ppm_cagr", f"{cagr*100:.1f}%", "PASS")
+    else:
+        add("range:ppm_cagr", cagr, "WARN")
+
+    # ── STALENESS ─────────────────────────────────────────────────────────────
+    updated_at = _val(row, "updated_at")
+    if updated_at is None:
+        add("staleness:updated_at", updated_at, "FAIL")
+    else:
+        try:
+            ts = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+            now = datetime.now(timezone.utc)
+            age_days = (now - ts).days
+            status = "FAIL" if age_days > STALENESS_DAYS else "PASS"
+            add("staleness:updated_at", f"{age_days}d ago", status)
+        except Exception:
+            add("staleness:updated_at", updated_at, "WARN")
+
+    # ── SIGNAL ────────────────────────────────────────────────────────────────
+    sig = _val(row, "signal")
+    if sig not in VALID_SIGNALS:
+        add("signal", sig, "FAIL")
+    else:
+        add("signal", sig, "PASS")
+
+    return results
+
+
+# ── main ──────────────────────────────────────────────────────────────────────
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="StockSnack data quality verifier")
+    parser.add_argument("--ticker", metavar="TICKER",
+                        help="Run checks on a single ticker only")
+    args = parser.parse_args()
+
+    url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL") or os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        print("ERROR: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
+        return 1
+
+    client = create_client(url, key)
+
+    query = client.table("stock_scores").select(
+        "ticker, final_score, ppm_score, growth_quality_score, health_score, "
+        "health_checks_passed, m1_ebitda_current, current_price, projected_price_5y, "
+        "ppm_cagr, signal, updated_at"
+    )
+    if args.ticker:
+        query = query.eq("ticker", args.ticker.upper())
+
+    resp = query.execute()
+    rows = resp.data or []
+
+    if not rows:
+        print(f"No rows found{' for ' + args.ticker if args.ticker else ''}.")
+        return 1
+
+    # Run checks and collect all results
+    table_rows: list[tuple[str, str, str, str]] = []
+    fail_count  = 0
+    warn_count  = 0
+    clean_tickers: set[str] = set()
+    dirty_tickers: set[str] = set()
+
+    for row in sorted(rows, key=lambda r: r["ticker"]):
+        ticker  = row["ticker"]
+        checks  = run_checks(row)
+        has_fail = any(s == "FAIL" for _, _, s in checks)
+        has_warn = any(s == "WARN" for _, _, s in checks)
+
+        for check_name, value, status in checks:
+            if status in ("FAIL", "WARN"):
+                table_rows.append((ticker, check_name, value, status))
+            if status == "FAIL":
+                fail_count += 1
+            elif status == "WARN":
+                warn_count += 1
+
+        if has_fail:
+            dirty_tickers.add(ticker)
+        else:
+            clean_tickers.add(ticker)
+
+    total   = len(rows)
+    n_clean = len(clean_tickers - dirty_tickers)
+
+    # Print results
+    print()
+    if table_rows:
+        headers = ["TICKER", "CHECK", "VALUE", "STATUS"]
+        if _HAS_TABULATE:
+            print(tabulate(table_rows, headers=headers, tablefmt="simple"))
+        else:
+            col_w = [max(len(h), max((len(r[i]) for r in table_rows), default=0))
+                     for i, h in enumerate(headers)]
+            fmt = "  ".join(f"{{:<{w}}}" for w in col_w)
+            print(fmt.format(*headers))
+            print("  ".join("-" * w for w in col_w))
+            for r in table_rows:
+                print(fmt.format(*r))
+    else:
+        print("All checks passed.")
+
+    print()
+    issues = fail_count + warn_count
+    print(f"{n_clean}/{total} tickers clean.  {fail_count} FAIL  {warn_count} WARN  ({issues} issues total)")
+    print()
+
+    return 1 if fail_count > 0 else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

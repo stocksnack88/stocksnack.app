@@ -1,9 +1,10 @@
 """
 StockSnack — Supabase data quality checker.
 
-Reads stock_scores and runs missing-data, range, staleness, and signal
-checks on every ticker. Prints a results table and exits code 1 if any
-FAIL is found (so GitHub Actions can catch regressions).
+Reads stock_scores (and stock_prices for current_price) and runs
+missing-data, range, staleness, and signal checks on every ticker.
+Prints a results table and exits code 1 if any FAIL is found (so
+GitHub Actions can catch regressions).
 
 Run:
     python verify.py                 # all tickers
@@ -31,8 +32,8 @@ except ImportError:
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
-VALID_SIGNALS   = {"BUY+", "BUY", "HOLD", "SELL"}
-STALENESS_DAYS  = 8
+VALID_SIGNALS  = {"BUY+", "BUY", "HOLD", "SELL"}
+STALENESS_DAYS = 8
 
 # ── check helpers ─────────────────────────────────────────────────────────────
 
@@ -61,21 +62,26 @@ def run_checks(row: dict) -> list[tuple[str, str, str]]:
         results.append((name, _fmt(v), status))
 
     # ── MISSING DATA ──────────────────────────────────────────────────────────
+    # Actual column names from stock_scores / stock_prices:
+    #   growth_quality_score → growth_score
+    #   health_checks_passed → health_passes
+    #   projected_price_5y   → ppm_blended_price
+    #   current_price        → from stock_prices table (merged into row)
     missing_fields = [
         "final_score",
         "ppm_score",
-        "growth_quality_score",
+        "growth_score",
         "health_score",
         "m1_ebitda_current",
-        "current_price",
-        "projected_price_5y",
+        "current_price",       # injected from stock_prices before run_checks
+        "ppm_blended_price",
     ]
     for field in missing_fields:
         v = _val(row, field)
         add(f"missing:{field}", v, "FAIL" if _is_null_or_zero(v) else "PASS")
 
     # ── RANGE ─────────────────────────────────────────────────────────────────
-    score_fields = ["final_score", "ppm_score", "growth_quality_score", "health_score"]
+    score_fields = ["final_score", "ppm_score", "growth_score", "health_score"]
     for field in score_fields:
         v = _val(row, field)
         if v is None:
@@ -85,19 +91,19 @@ def run_checks(row: dict) -> list[tuple[str, str, str]]:
         else:
             add(f"range:{field}", v, "PASS")
 
-    hcp = _val(row, "health_checks_passed")
-    if hcp is None:
-        add("range:health_checks_passed", hcp, "FAIL")
-    elif not (0 <= hcp <= 24):
-        add("range:health_checks_passed", hcp, "FAIL")
+    hp = _val(row, "health_passes")
+    if hp is None:
+        add("range:health_passes", hp, "FAIL")
+    elif not (0 <= hp <= 24):
+        add("range:health_passes", hp, "FAIL")
     else:
-        add("range:health_checks_passed", hcp, "PASS")
+        add("range:health_passes", hp, "PASS")
 
-    proj = _val(row, "projected_price_5y")
+    proj = _val(row, "ppm_blended_price")
     if proj is not None and proj < 0:
-        add("range:projected_price_5y<0", proj, "FAIL")
+        add("range:ppm_blended_price<0", proj, "FAIL")
     else:
-        add("range:projected_price_5y<0", proj, "PASS")
+        add("range:ppm_blended_price<0", proj, "PASS")
 
     cagr = _val(row, "ppm_cagr")
     if cagr is not None:
@@ -116,7 +122,13 @@ def run_checks(row: dict) -> list[tuple[str, str, str]]:
         add("staleness:updated_at", updated_at, "FAIL")
     else:
         try:
-            ts = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+            import re
+            # Strip timezone offset, then normalise fractional seconds to 6 digits.
+            # Python 3.9 fromisoformat requires exactly 0, 3, or 6 fractional digits
+            # and does not handle +HH:MM offsets.
+            ts_str = re.sub(r'[+-]\d{2}:\d{2}$', '', updated_at.replace("Z", ""))
+            ts_str = re.sub(r'\.(\d+)$', lambda m: '.' + m.group(1).ljust(6, '0')[:6], ts_str)
+            ts = datetime.fromisoformat(ts_str).replace(tzinfo=timezone.utc)
             now = datetime.now(timezone.utc)
             age_days = (now - ts).days
             status = "FAIL" if age_days > STALENESS_DAYS else "PASS"
@@ -150,33 +162,41 @@ def main() -> int:
 
     client = create_client(url, key)
 
-    query = client.table("stock_scores").select(
-        "ticker, final_score, ppm_score, growth_quality_score, health_score, "
-        "health_checks_passed, m1_ebitda_current, current_price, projected_price_5y, "
+    scores_query = client.table("stock_scores").select(
+        "ticker, final_score, ppm_score, growth_score, health_score, "
+        "health_passes, m1_ebitda_current, ppm_blended_price, "
         "ppm_cagr, signal, updated_at"
     )
     if args.ticker:
-        query = query.eq("ticker", args.ticker.upper())
+        scores_query = scores_query.eq("ticker", args.ticker.upper())
 
-    resp = query.execute()
-    rows = resp.data or []
+    scores_resp = scores_query.execute()
+    rows = scores_resp.data or []
 
     if not rows:
         print(f"No rows found{' for ' + args.ticker if args.ticker else ''}.")
         return 1
 
+    # Fetch current prices from stock_prices table and merge
+    prices_query = client.table("stock_prices").select("ticker, current_price")
+    if args.ticker:
+        prices_query = prices_query.eq("ticker", args.ticker.upper())
+    prices_resp = prices_query.execute()
+    price_map = {p["ticker"]: p["current_price"] for p in (prices_resp.data or [])}
+    for row in rows:
+        row["current_price"] = price_map.get(row["ticker"])
+
     # Run checks and collect all results
     table_rows: list[tuple[str, str, str, str]] = []
-    fail_count  = 0
-    warn_count  = 0
+    fail_count = 0
+    warn_count = 0
     clean_tickers: set[str] = set()
     dirty_tickers: set[str] = set()
 
     for row in sorted(rows, key=lambda r: r["ticker"]):
-        ticker  = row["ticker"]
-        checks  = run_checks(row)
+        ticker   = row["ticker"]
+        checks   = run_checks(row)
         has_fail = any(s == "FAIL" for _, _, s in checks)
-        has_warn = any(s == "WARN" for _, _, s in checks)
 
         for check_name, value, status in checks:
             if status in ("FAIL", "WARN"):

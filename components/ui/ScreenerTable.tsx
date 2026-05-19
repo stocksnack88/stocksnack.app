@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import HazardTooltip from "@/components/ui/HazardTooltip";
 
 export type ScreenerRow = {
   ticker: string;
@@ -13,6 +14,8 @@ export type ScreenerRow = {
   health_passes: number | null;
   signal: string | null;
   updated_at: string | null;
+  has_anomaly: boolean | null;
+  anomaly_reasons: string | null;
 };
 
 function SignalBadge({ signal }: { signal: string | null }) {
@@ -152,8 +155,15 @@ export default function ScreenerTable({
                 }`}
               >
                 <td className={`px-2 py-3 ${stickyTd}`}>
-                  <span className="font-mono font-bold text-[#00ff41] tracking-wider underline decoration-[#00ff41]">
-                    {stock.ticker}
+                  <span className="inline-flex items-center gap-1">
+                    <span className="font-mono font-bold text-[#00ff41] tracking-wider underline decoration-[#00ff41]">
+                      {stock.ticker}
+                    </span>
+                    {stock.has_anomaly && (
+                      <HazardTooltip
+                        reasons={(stock.anomaly_reasons ?? "").split(", ").filter(Boolean)}
+                      />
+                    )}
                   </span>
                 </td>
                 <td className="hidden md:table-cell px-2 py-3 text-left">

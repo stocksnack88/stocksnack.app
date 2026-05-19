@@ -150,6 +150,7 @@ class SupabaseWriter:
         final: dict,
         spy: dict,
         segments: dict,
+        hazard: dict | None = None,
     ) -> None:
         self.client.table("stock_scores").upsert({
             "ticker":             ticker,
@@ -206,6 +207,9 @@ class SupabaseWriter:
             # Segments
             "product_segments":   segments.get("product_segments"),
             "geo_segments":       segments.get("geo_segments"),
+            # Hazard flags
+            "has_anomaly":        (hazard or {}).get("has_anomaly", False),
+            "anomaly_reasons":    ", ".join((hazard or {}).get("reasons", [])) or None,
             "updated_at":         _now(),
         }).execute()
 

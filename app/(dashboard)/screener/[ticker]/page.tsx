@@ -7,6 +7,7 @@ import UpgradeButton from "@/components/ui/UpgradeButton";
 import DescriptionToggle from "@/components/ui/DescriptionToggle";
 import HealthCategories from "@/components/ui/HealthCategories";
 import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
+import HazardTooltip from "@/components/ui/HazardTooltip";
 
 const FREE_LIMIT = 5;
 
@@ -216,6 +217,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
     gq_signal_revenue?: string | null;
     gq_signal_net_income?: string | null;
     gq_signal_fcf?: string | null;
+    has_anomaly?: boolean | null;
+    anomaly_reasons?: string | null;
   };
   const scoreEx = score as (NonNullable<typeof score> & ScoreExtras) | null;
 
@@ -242,6 +245,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 {ticker}
               </h1>
               <SignalBadge signal={score?.signal} />
+              {scoreEx?.has_anomaly && (
+                <HazardTooltip
+                  reasons={(scoreEx.anomaly_reasons ?? "").split(", ").filter(Boolean)}
+                />
+              )}
             </div>
             <p className="text-sm mb-1" style={{ color: "rgba(0,255,65,0.7)" }}>
               {stock?.name ?? "—"}

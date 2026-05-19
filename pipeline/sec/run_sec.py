@@ -41,6 +41,98 @@ from config import TICKERS, SUPABASE_URL, SUPABASE_KEY
 
 BANK_TICKERS = ["JPM", "BAC"]
 
+_ANOMALY_MIN_BASE = 1e8   # $100M — skip comparisons where prior year < this
+
+
+def check_hazard(data: dict) -> dict:
+    """
+    Detect sudden large movements in key financial metrics year-over-year.
+
+    Returns {"has_anomaly": bool, "reasons": list[str]}
+    Checks:
+      revenue     — flag if YoY > +50% or < -50%
+      ebitda      — flag if YoY > +100% or < -50%
+      totalAssets — flag only drops > -30% (spinoffs, divestitures)
+
+    Consecutive-year anomalies for the same metric+direction are consolidated:
+      "Revenue spiked 3 consecutive years (FY2024, FY2025, FY2026)"
+    Single-year anomalies keep the percentage:
+      "EBITDA dropped 61% in FY2023"
+    Never raises.
+    """
+    try:
+        income  = data.get("income",  [])
+        balance = data.get("balance", [])
+
+        def year_of(row: dict) -> int:
+            d = str(row.get("date", ""))
+            return int(d[:4]) if len(d) >= 4 and d[:4].isdigit() else 0
+
+        # Collect raw events as (label, direction, year, display_pct)
+        raw_events: list[tuple[str, str, int, float]] = []
+
+        def yoy_collect(
+            rows: list[dict],
+            field: str,
+            spike_thr: float | None,
+            drop_thr: float,
+            label: str,
+        ) -> None:
+            pairs = [(year_of(r), _safe(r.get(field))) for r in rows if year_of(r) > 0]
+            pairs = [(y, v) for y, v in pairs if v != 0.0]
+            pairs.sort(key=lambda x: x[0])
+            for i in range(1, len(pairs)):
+                prev_y, prev_v = pairs[i - 1]
+                curr_y, curr_v = pairs[i]
+                if prev_v <= 0 or prev_v < _ANOMALY_MIN_BASE:
+                    continue
+                pct = (curr_v - prev_v) / prev_v
+                if spike_thr is not None and pct > spike_thr:
+                    raw_events.append((label, "spiked", curr_y, pct * 100))
+                elif pct < drop_thr:
+                    raw_events.append((label, "dropped", curr_y, abs(pct) * 100))
+
+        yoy_collect(income,  "revenue",     0.50, -0.50, "Revenue")
+        yoy_collect(income,  "ebitda",      1.00, -0.50, "EBITDA")
+        yoy_collect(balance, "totalAssets", None, -0.30, "Total assets")
+
+        # Group by (label, direction), preserving insertion order of first occurrence
+        grouped: dict[tuple[str, str], list[tuple[int, float]]] = {}
+        for label, direction, year, pct in raw_events:
+            key = (label, direction)
+            grouped.setdefault(key, []).append((year, pct))
+
+        reasons: list[str] = []
+        for (label, direction), year_pcts in grouped.items():
+            year_pcts.sort(key=lambda x: x[0])
+            years = [yp[0] for yp in year_pcts]
+
+            # Split into consecutive runs
+            runs: list[list[int]] = []
+            cur: list[int] = [years[0]]
+            for i in range(1, len(years)):
+                if years[i] == years[i - 1] + 1:
+                    cur.append(years[i])
+                else:
+                    runs.append(cur)
+                    cur = [years[i]]
+            runs.append(cur)
+
+            for run in runs:
+                if len(run) == 1:
+                    y = run[0]
+                    pct = next(p for yr, p in year_pcts if yr == y)
+                    reasons.append(f"{label} {direction} {pct:.0f}% in FY{y}")
+                else:
+                    fy_str = ", ".join(f"FY{y}" for y in run)
+                    reasons.append(
+                        f"{label} {direction} {len(run)} consecutive years ({fy_str})"
+                    )
+
+        return {"has_anomaly": bool(reasons), "reasons": reasons}
+    except Exception:
+        return {"has_anomaly": False, "reasons": []}
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s %(message)s",
@@ -232,6 +324,14 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
             log.warning("[%s] No price from yfinance — skipped", ticker)
             return False
 
+        # Hazard check
+        hazard = check_hazard(data)
+        if hazard["has_anomaly"]:
+            for reason in hazard["reasons"]:
+                log.warning("[%s] ⚠  Anomaly detected: %s", ticker, reason)
+        else:
+            log.info("[%s] ✓  No anomalies detected", ticker)
+
         log.info("[%s] Running scoring layers…", ticker)
         ppm    = score_ppm(data,   ticker=ticker, sp500_cagr=spy.get("sp500_cagr"))
         growth = score_growth(data, sp500_cagr=spy.get("sp500_cagr"), ticker=ticker)
@@ -261,7 +361,7 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
         if dry_run:
             log.info("[%s] --dry-run: skipping Supabase write", ticker)
         else:
-            writer.upsert_scores(ticker, ppm, growth, health, final, spy, segments)
+            writer.upsert_scores(ticker, ppm, growth, health, final, spy, segments, hazard)
 
         log.info("[%s] ✓ Done", ticker)
         return True, len(prod) if prod else None, len(geo) if geo else None

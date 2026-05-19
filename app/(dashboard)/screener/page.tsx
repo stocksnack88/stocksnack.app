@@ -49,6 +49,8 @@ export default async function ScreenerPage({
         final_score,
         signal,
         updated_at,
+        has_anomaly,
+        anomaly_reasons,
         stocks ( name )
       `)
       .order("final_score", { ascending: false }),
@@ -69,6 +71,8 @@ export default async function ScreenerPage({
     health_passes: r.health_passes,
     signal: r.signal,
     updated_at: r.updated_at,
+    has_anomaly: r.has_anomaly ?? null,
+    anomaly_reasons: r.anomaly_reasons ?? null,
   }));
 
   const visibleStocks = isPro ? stocks : stocks.slice(0, FREE_LIMIT);

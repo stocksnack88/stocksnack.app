@@ -861,11 +861,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             if (!rows.length) return null;
             const CHART_H = 80;
 
-            const eFirst = rows[0]?.ebitda;
-            const eLast  = rows[rows.length - 1]?.ebitda;
-            const nyrs   = rows.length - 1;
-            const ebitdaCagr = (eFirst && eLast && eFirst > 0 && eLast > 0 && nyrs > 0)
-              ? Math.pow(eLast / eFirst, 1 / nyrs) - 1 : null;
 
             const SIG_COLOR: Record<string, string> = {
               "Solid Growth": "#00ff41", "Slowing Growth": "#00ff41",

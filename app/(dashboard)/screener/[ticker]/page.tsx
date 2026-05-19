@@ -882,7 +882,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
             const metrics: { key: MetricKey; label: string; cagr: number | null | undefined; signal: string | null | undefined }[] = [
               { key: "revenue",        label: "REVENUE",        cagr: score?.revenue_cagr_5y,  signal: scoreEx?.gq_signal_revenue },
-              { key: "ebitda",         label: "EBITDA",         cagr: ebitdaCagr,               signal: scoreEx?.gq_signal_net_income },
+              { key: "ebitda",         label: "EBITDA",         cagr: score?.net_income_cagr_5y != null ? Number(score.net_income_cagr_5y) : null, signal: scoreEx?.gq_signal_net_income },
               { key: "free_cash_flow", label: "FREE CASH FLOW", cagr: score?.fcf_cagr_5y,      signal: scoreEx?.gq_signal_fcf },
             ];
 
@@ -931,14 +931,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                 border: `1px solid ${SIG_COLOR[signal] ?? "#00ff41"}`,
                               }}>
                                 {FCF_TREND[signal].arrow} {FCF_TREND[signal].label}
-                              </span>
-                            ) : cagrNum != null ? (
-                              <span className="text-xs font-bold font-mono px-1.5 py-0.5 rounded" style={{
-                                background: cagrNum >= 0 ? "rgba(0,255,65,0.08)" : "rgba(248,113,113,0.08)",
-                                color:      cagrNum >= 0 ? "rgba(0,255,65,0.7)"  : "#f87171",
-                                border:     `1px solid ${cagrNum >= 0 ? "rgba(0,255,65,0.2)" : "rgba(248,113,113,0.3)"}`,
-                              }}>
-                                {fmtCagr(cagr)} CAGR
                               </span>
                             ) : null}
                           </div>
@@ -1091,12 +1083,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 };
                 const revCagr = score?.revenue_cagr_5y    != null ? Number(score.revenue_cagr_5y)    : null;
                 const niCagr  = score?.net_income_cagr_5y != null ? Number(score.net_income_cagr_5y) : null;
+                const fcfCagr = score?.fcf_cagr_5y        != null ? Number(score.fcf_cagr_5y)        : null;
                 const revSig  = scoreEx?.gq_signal_revenue    ?? null;
                 const niSig   = scoreEx?.gq_signal_net_income ?? null;
                 const fcfSig  = scoreEx?.gq_signal_fcf        ?? null;
                 const revPts  = Math.round(cagrToScore(revCagr));
                 const niPts   = Math.round(cagrToScore(niCagr));
-                const fcfPts  = fcfSig != null ? Math.round((SIG_STARS[fcfSig] ?? 0) / 5 * 100) : null;
+                const fcfPts  = fcfCagr != null ? Math.round(cagrToScore(fcfCagr)) : null;
                 const TREND_MULT: Record<string, number> = {
                   "Solid Growth": 1.00, "Slowing Growth": 0.90,
                   "Decelerating": 0.75, "Deteriorating": 0.50, "Freefall": 0.25,
@@ -1106,9 +1099,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 const worstSig   = allSigs.find(s => (TREND_MULT[s] ?? 1.0) === worstMult) ?? null;
                 const hasPenalty = worstMult <= 0.75;
                 const miniRows = [
-                  { name: "REVENUE", sig: revSig, pts: revPts,  cagr: revCagr, isFcf: false },
-                  { name: "EBITDA",  sig: niSig,  pts: niPts,   cagr: niCagr,  isFcf: false },
-                  { name: "FCF",     sig: fcfSig, pts: fcfPts,  cagr: null,    isFcf: true  },
+                  { name: "REVENUE", sig: revSig, pts: revPts, cagr: revCagr },
+                  { name: "EBITDA",  sig: niSig,  pts: niPts,  cagr: niCagr  },
+                  { name: "FCF",     sig: fcfSig, pts: fcfPts, cagr: fcfCagr },
                 ];
                 const validPts     = miniRows.map(r => r.pts).filter((p): p is number => p != null);
                 const rawScore     = validPts.length ? Math.round(validPts.reduce((s, p) => s + p, 0) / validPts.length) : null;
@@ -1124,33 +1117,40 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                       </p>
                     </div>
                     <div className="space-y-2">
-                      {miniRows.map(({ name, sig, pts, cagr, isFcf }) => {
-                        const sigColor  = sig ? (SIG_COLOR[sig] ?? "#00ff41") : "rgba(0,255,65,0.3)";
-                        const ptsNum    = pts ?? 0;
-                        const cagrLabel = isFcf
-                          ? (sig && FCF_TREND[sig] ? FCF_TREND[sig].label : (sig ?? "—"))
-                          : cagr != null ? `${(cagr * 100).toFixed(1)}% CAGR` : "—";
+                      {miniRows.map(({ name, sig, pts, cagr }) => {
+                        const sigColor = sig ? (SIG_COLOR[sig] ?? "#00ff41") : "rgba(0,255,65,0.3)";
+                        const ptsNum   = pts ?? 0;
+                        const benchForRow = cagr == null || !sp500Base ? null
+                          : cagr < 0                ? "DECLINING"
+                          : cagr >= sp500Base * 1.5 ? "EXCEPTIONAL"
+                          : cagr >= sp500Base * 1.2 ? "STRONG"
+                          : cagr >= sp500Base        ? "SOLID"
+                          : "MODERATE";
+                        const formulaLabel = cagr != null && sp500Base > 0
+                          ? `${(cagr * 100).toFixed(1)}% ÷ ${(sp500Base * 100).toFixed(1)}% S&P = ${(cagr / sp500Base).toFixed(2)}×`
+                          : sig && FCF_TREND[sig] ? `${FCF_TREND[sig].arrow} ${FCF_TREND[sig].label}` : "—";
                         return (
-                          <div key={name} className="flex items-center gap-2">
+                          <div key={name} className="flex items-center gap-1.5">
                             <span className="text-[10px] font-mono w-14 shrink-0" style={{ color: "rgba(0,255,65,0.5)" }}>{name}</span>
-                            <span className="text-[9px] font-mono w-20 shrink-0" style={{ color: "rgba(0,255,65,0.4)" }}>
-                              {cagrLabel}
+                            <span className="text-[9px] font-mono shrink min-w-0 truncate" style={{ color: "rgba(0,255,65,0.4)" }}>
+                              {formulaLabel}
                             </span>
-                            <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(0,255,65,0.1)" }}>
+                            <span className="text-[9px] font-mono shrink-0" style={{ color: "rgba(0,255,65,0.25)" }}>→</span>
+                            <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(0,255,65,0.1)", minWidth: 20 }}>
                               <div className="h-full rounded-full" style={{ width: `${ptsNum}%`, background: sigColor }} />
                             </div>
-                            <span className="text-[10px] font-mono w-10 text-right shrink-0" style={{ color: sigColor }}>
+                            <span className="text-[10px] font-mono w-8 text-right shrink-0" style={{ color: sigColor }}>
                               {pts != null ? `${pts}%` : "—"}
+                            </span>
+                            <span className="text-[9px] font-mono w-16 text-right shrink-0" style={{ color: sigColor }}>
+                              {benchForRow ?? ""}
                             </span>
                           </div>
                         );
                       })}
                       {rawScore != null && (
-                        <div className="flex items-center gap-2">
-                          <span className="w-14 shrink-0" />
-                          <span className="w-20 shrink-0" />
-                          <div className="flex-1" />
-                          <span className="text-[10px] font-mono text-right shrink-0" style={{ color: "rgba(0,255,65,0.25)" }}>
+                        <div className="flex justify-end">
+                          <span className="text-[10px] font-mono" style={{ color: "rgba(0,255,65,0.25)" }}>
                             Average → {rawScore}%
                           </span>
                         </div>

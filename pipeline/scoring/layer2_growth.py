@@ -7,7 +7,7 @@ Score = average of all component scores × worst-signal multiplier.
 """
 from __future__ import annotations
 import logging
-from scoring.utils import safe_float, list_cagr, cagr_to_score, compute_gq, is_financial
+from scoring.utils import safe_float, cagr_to_score, compute_gq, is_financial
 
 log = logging.getLogger(__name__)
 
@@ -132,17 +132,15 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
 
     _base = sp500_cagr or 0.10
 
-    # Revenue and Net Income: 3Y + 5Y CAGRs (positive-only series for NI)
-    ni_pos = [v for v in ni_vals if v > 0]
-    rev_cagr_3y = list_cagr(rev_vals, 3)
-    rev_cagr_5y = list_cagr(rev_vals, 5)
-    ni_cagr_3y  = list_cagr(ni_pos,  3)
-    ni_cagr_5y  = list_cagr(ni_pos,  5)
+    # Revenue and Net Income: recency-weighted YoY via compute_gq (oldest-first input)
+    gq_rev = compute_gq(list(reversed(rev_vals[:5])), _base)
+    gq_ni  = compute_gq(list(reversed(ni_vals[:5])),  _base)
+    rev_weighted_cagr = gq_rev["weightedCAGR"]
+    ni_weighted_cagr  = gq_ni["weightedCAGR"]
 
     rev_ni_scores = [
-        cagr_to_score(v, _base)
-        for v in (rev_cagr_3y, rev_cagr_5y, ni_cagr_3y, ni_cagr_5y)
-        if v is not None
+        cagr_to_score(rev_weighted_cagr, _base),
+        cagr_to_score(ni_weighted_cagr,  _base),
     ]
 
     # FCF: linear regression on 5-year series.
@@ -166,8 +164,8 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
     ni_yoy  = _yoy_rates(ni_vals)
     fcf_yoy = _yoy_rates(fcf_vals)
 
-    sig_rev = _growth_signal(rev_yoy)
-    sig_ni  = _growth_signal(ni_yoy)
+    sig_rev = gq_rev["signal"]
+    sig_ni  = gq_ni["signal"]
     # FCF signal comes from compute_gq when available; fall back to _growth_signal for display
     sig_fcf = sig_fcf_gq if sig_fcf_gq is not None else _growth_signal(fcf_yoy)
 
@@ -184,10 +182,10 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
 
     return {
         "score":              final_score,
-        "revenue_cagr_3y":    round(rev_cagr_3y, 4) if rev_cagr_3y is not None else None,
-        "revenue_cagr_5y":    round(rev_cagr_5y, 4) if rev_cagr_5y is not None else None,
-        "net_income_cagr_3y": round(ni_cagr_3y,  4) if ni_cagr_3y  is not None else None,
-        "net_income_cagr_5y": round(ni_cagr_5y,  4) if ni_cagr_5y  is not None else None,
+        "revenue_cagr_3y":    None,
+        "revenue_cagr_5y":    round(rev_weighted_cagr, 4),
+        "net_income_cagr_3y": None,
+        "net_income_cagr_5y": round(ni_weighted_cagr,  4),
         # FCF stored as normalised regression growth rate; None for financial companies
         "fcf_cagr_3y":        None,
         "fcf_cagr_5y":        round(fcf_ng, 4) if fcf_ng is not None else None,

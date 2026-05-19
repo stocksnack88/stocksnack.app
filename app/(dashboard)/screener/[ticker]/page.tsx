@@ -1126,6 +1126,21 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 const worstMult  = allSigs.length ? Math.min(...allSigs.map(s => TREND_MULT[s] ?? 1.0)) : 1.0;
                 const worstSig   = allSigs.find(s => (TREND_MULT[s] ?? 1.0) === worstMult) ?? null;
                 const hasPenalty = worstMult <= 0.75;
+                const toNeedlePos = (s: number): number => {
+                  if (s <= 0)  return 0;
+                  if (s <= 40) return s / 40 * 0.40;
+                  if (s <= 48) return 0.40 + (s - 40) / 8 * 0.08;
+                  if (s <= 60) return 0.48 + (s - 48) / 12 * 0.12;
+                  return Math.min(1.0, 0.60 + (s - 60) / 40 * 0.40);
+                };
+                const toMarkerColor = (s: number) =>
+                  s < 40 ? "#ef4444" : s < 48 ? "#f59e0b" : s < 60 ? "#a3e635" : "#00ff41";
+                const SCORE_TICKS = [
+                  { left: "0%",   label: "0",   zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
+                  { left: "40%",  label: "40",  zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
+                  { left: "48%",  label: "48",  zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
+                  { left: "100%", label: "100", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"    },
+                ] as const;
                 const miniRows = [
                   { name: "REVENUE", sig: revSig, pts: revPts, cagr: revCagr },
                   { name: "EBITDA",  sig: niSig,  pts: niPts,  cagr: niCagr  },
@@ -1144,45 +1159,72 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         {growthScore.toFixed(1)}%
                       </p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-5">
                       {miniRows.map(({ name, sig, pts, cagr }) => {
-                        const sigColor = sig ? (SIG_COLOR[sig] ?? "#00ff41") : "rgba(0,255,65,0.3)";
-                        const ptsNum   = pts ?? 0;
-                        const benchForRow = cagr == null || !sp500Base ? null
-                          : cagr < 0                ? "DECLINING"
-                          : cagr >= sp500Base * 1.5 ? "EXCEPTIONAL"
-                          : cagr >= sp500Base * 1.2 ? "STRONG"
-                          : cagr >= sp500Base        ? "SOLID"
-                          : "MODERATE";
+                        const ptsNum = pts ?? 0;
+                        const needle = toNeedlePos(ptsNum);
+                        const mc     = pts != null ? toMarkerColor(ptsNum) : "rgba(0,255,65,0.3)";
                         const formulaLabel = cagr != null && sp500Base > 0
                           ? `${(cagr * 100).toFixed(1)}% ÷ ${(sp500Base * 100).toFixed(1)}% S&P = ${(cagr / sp500Base).toFixed(2)}×`
                           : sig && FCF_TREND[sig] ? `${FCF_TREND[sig].arrow} ${FCF_TREND[sig].label}` : "—";
                         return (
-                          <div key={name} className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-mono w-14 shrink-0" style={{ color: "rgba(0,255,65,0.5)" }}>{name}</span>
-                            <span className="text-[9px] font-mono shrink min-w-0 truncate" style={{ color: "rgba(0,255,65,0.4)" }}>
-                              {formulaLabel}
-                            </span>
-                            <span className="text-[9px] font-mono shrink-0" style={{ color: "rgba(0,255,65,0.25)" }}>→</span>
-                            <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(0,255,65,0.1)", minWidth: 20 }}>
-                              <div className="h-full rounded-full" style={{ width: `${ptsNum}%`, background: sigColor }} />
+                          <div key={name}>
+                            <p className="text-[10px] font-mono font-bold mb-0.5" style={{ color: "rgba(0,255,65,0.55)" }}>{name}</p>
+                            <p className="text-[9px] font-mono mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>
+                              {formulaLabel} →
+                            </p>
+                            {/* Needle */}
+                            <div className="relative h-8 mb-0.5">
+                              <div
+                                className="absolute flex flex-col items-center -translate-x-1/2"
+                                style={{ left: `${needle * 100}%`, bottom: 0 }}
+                              >
+                                <span className="text-[9px] font-bold font-mono leading-none" style={{ color: mc }}>
+                                  {pts != null ? `${pts}%` : "—"}
+                                </span>
+                                <span className="text-[9px] leading-none" style={{ color: mc }}>▼</span>
+                              </div>
                             </div>
-                            <span className="text-[10px] font-mono w-8 text-right shrink-0" style={{ color: sigColor }}>
-                              {pts != null ? `${pts}%` : "—"}
-                            </span>
-                            <span className="text-[9px] font-mono w-16 text-right shrink-0" style={{ color: sigColor }}>
-                              {benchForRow ?? ""}
-                            </span>
+                            {/* 4-zone bar */}
+                            <div className="flex w-full h-2 rounded-full overflow-hidden">
+                              <div style={{ width: "40%", background: "rgba(239,68,68,0.5)"   }} />
+                              <div style={{ width: "8%",  background: "rgba(245,158,11,0.55)" }} />
+                              <div style={{ width: "12%", background: "rgba(163,230,53,0.45)" }} />
+                              <div style={{ width: "40%", background: "rgba(0,255,65,0.6)"    }} />
+                            </div>
+                            {/* Tick marks */}
+                            <div className="relative" style={{ height: 38 }}>
+                              {SCORE_TICKS.map(({ left, label }) => (
+                                <div
+                                  key={label}
+                                  className="absolute"
+                                  style={{ left, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
+                                >
+                                  <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
+                                  <span
+                                    className="text-[8px] font-mono whitespace-nowrap block"
+                                    style={{ color: "rgba(0,255,65,0.35)", transform: "rotate(45deg)", transformOrigin: "top left", marginTop: 2 }}
+                                  >
+                                    {label}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            {/* Zone labels */}
+                            <div className="relative" style={{ height: 14 }}>
+                              {SCORE_TICKS.map(({ left, zone, zoneColor }) => (
+                                <span
+                                  key={zone}
+                                  className="absolute text-[8px] font-bold uppercase whitespace-nowrap"
+                                  style={{ left, color: zoneColor, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
+                                >
+                                  {zone}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         );
                       })}
-                      {rawScore != null && (
-                        <div className="flex justify-end">
-                          <span className="text-[10px] font-mono" style={{ color: "rgba(0,255,65,0.25)" }}>
-                            Average → {rawScore}%
-                          </span>
-                        </div>
-                      )}
                     </div>
                     {rawScore != null && (
                       <div className="mt-3 space-y-0.5 font-mono text-[9px]">

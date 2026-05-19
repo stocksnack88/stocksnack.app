@@ -903,14 +903,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     const zeroY      = maxPos            / totalRange * CHART_H;
                     const cagrNum    = cagr != null ? Number(cagr) : null;
                     const benchLabel = cagrNum == null || sp500Cagr == null ? null
-                      : cagrNum < 0              ? "Declining"
-                      : cagrNum >= sp500Cagr * 1.5 ? "Exceptional"
-                      : cagrNum >= sp500Cagr * 1.2 ? "Strong"
-                      : cagrNum >= sp500Cagr       ? "Solid"
-                      : "Moderate";
-                    const benchColor = benchLabel === "Exceptional" || benchLabel === "Strong" || benchLabel === "Solid"
+                      : cagrNum < 0              ? "Declining vs S&P 500"
+                      : cagrNum >= sp500Cagr * 1.5 ? "Exceptional vs S&P 500"
+                      : cagrNum >= sp500Cagr * 1.2 ? "Strong vs S&P 500"
+                      : cagrNum >= sp500Cagr       ? "Solid vs S&P 500"
+                      : "Moderate vs S&P 500";
+                    const benchColor = benchLabel?.startsWith("Exceptional") || benchLabel?.startsWith("Strong") || benchLabel?.startsWith("Solid")
                       ? "#00ff41"
-                      : benchLabel === "Moderate" ? "#f59e0b"
+                      : benchLabel?.startsWith("Moderate") ? "#f59e0b"
                       : "#ef4444";
                     return (
                       <div key={key}>
@@ -920,14 +920,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             <span className="text-xs font-bold tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.7)" }}>
                               {label}
                             </span>
-                            {key === "free_cash_flow" && signal && FCF_TREND[signal] ? (
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap" style={{
-                                color: SIG_COLOR[signal] ?? "#00ff41",
-                                border: `1px solid ${SIG_COLOR[signal] ?? "#00ff41"}`,
-                              }}>
-                                {FCF_TREND[signal].arrow} {FCF_TREND[signal].label}
-                              </span>
-                            ) : null}
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {benchLabel && (
@@ -939,8 +931,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         </div>
                         {/* Bar area */}
                         {(() => {
-                          // Linear regression for trend line
-                          const nBars = vals.length;
+                          const nBars  = vals.length;
+                          const toSvgY = (v: number) =>
+                            Math.max(0, Math.min(CHART_H, zeroY - v / totalRange * CHART_H));
+
+                          // Linear regression for green trend line
                           const rVals = vals.map((d, i) => ({ i, v: d.v })).filter(d => d.v != null);
                           let svgLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
                           if (rVals.length >= 2) {
@@ -952,8 +947,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             const denom = n * sumX2 - sumX * sumX;
                             const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
                             const intercept = (sumY - slope * sumX) / n;
-                            const toSvgY = (v: number) =>
-                              Math.max(0, Math.min(CHART_H, zeroY - v / totalRange * CHART_H));
                             svgLine = {
                               x1: 0.5 / nBars * 100,
                               y1: toSvgY(intercept),
@@ -961,6 +954,19 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                               y2: toSvgY(slope * (nBars - 1) + intercept),
                             };
                           }
+
+                          // S&P reference line: compound from Y1 actual at sp500_cagr
+                          type SpPt = { x: number; y: number };
+                          let spPoints: SpPt[] | null = null;
+                          const baseV = vals[0]?.v;
+                          if (sp500Cagr != null && baseV != null && baseV > 0) {
+                            spPoints = vals.map((_, i) => ({
+                              x: (i + 0.5) / nBars * 100,
+                              y: toSvgY(baseV * Math.pow(1 + sp500Cagr, i)),
+                            }));
+                          }
+                          const lastSp = spPoints?.[spPoints.length - 1] ?? null;
+
                           return (
                             <div className="relative" style={{ height: CHART_H }}>
                               {maxNeg < 0 && (
@@ -985,22 +991,49 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                   );
                                 })}
                               </div>
-                              {svgLine && signal && (
+                              {(svgLine || spPoints) && (
                                 <svg
                                   className="absolute inset-0 pointer-events-none"
                                   width="100%" height={CHART_H}
                                   viewBox={`0 0 100 ${CHART_H}`}
                                   preserveAspectRatio="none"
                                 >
-                                  <line
-                                    x1={svgLine.x1} y1={svgLine.y1}
-                                    x2={svgLine.x2} y2={svgLine.y2}
-                                    stroke={SIG_COLOR[signal] ?? "#00ff41"}
-                                    strokeWidth="1"
-                                    strokeOpacity="0.5"
-                                    vectorEffect="non-scaling-stroke"
-                                  />
+                                  {svgLine && signal && (
+                                    <line
+                                      x1={svgLine.x1} y1={svgLine.y1}
+                                      x2={svgLine.x2} y2={svgLine.y2}
+                                      stroke={SIG_COLOR[signal] ?? "#00ff41"}
+                                      strokeWidth="1"
+                                      strokeOpacity="0.5"
+                                      vectorEffect="non-scaling-stroke"
+                                    />
+                                  )}
+                                  {spPoints && (
+                                    <polyline
+                                      points={spPoints.map(p => `${p.x},${p.y}`).join(" ")}
+                                      fill="none"
+                                      stroke="#ef4444"
+                                      strokeWidth="1"
+                                      strokeDasharray="2,2"
+                                      strokeOpacity="0.5"
+                                      vectorEffect="non-scaling-stroke"
+                                    />
+                                  )}
                                 </svg>
+                              )}
+                              {lastSp && (
+                                <span
+                                  className="absolute text-[8px] font-mono pointer-events-none"
+                                  style={{
+                                    left: `${lastSp.x}%`,
+                                    top: `${lastSp.y}px`,
+                                    transform: "translateX(-100%) translateY(-100%)",
+                                    color: "rgba(239,68,68,0.55)",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  S&P pace
+                                </span>
                               )}
                             </div>
                           );

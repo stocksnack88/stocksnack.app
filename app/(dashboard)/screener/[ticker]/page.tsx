@@ -1012,7 +1012,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                     <polyline
                                       points={spPoints.map(p => `${p.x},${p.y}`).join(" ")}
                                       fill="none"
-                                      stroke="#ef4444"
+                                      stroke="#ff0000"
                                       strokeWidth="1"
                                       strokeDasharray="2,2"
                                       strokeOpacity="0.5"
@@ -1028,7 +1028,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                     left: `${lastSp.x}%`,
                                     top: `${lastSp.y}px`,
                                     transform: "translateX(-100%) translateY(-100%)",
-                                    color: "rgba(239,68,68,0.55)",
+                                    color: "rgba(255,0,0,0.65)",
                                     whiteSpace: "nowrap",
                                   }}
                                 >

@@ -1150,10 +1150,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 const toMarkerColor = (s: number) =>
                   s < 40 ? "#ef4444" : s < 48 ? "#f59e0b" : s < 60 ? "#a3e635" : "#00ff41";
                 const SCORE_TICKS = [
-                  { left: "0%",   label: "0",   zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
-                  { left: "40%",  label: "40",  zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
-                  { left: "48%",  label: "48",  zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
-                  { left: "100%", label: "100", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"    },
+                  { left: "0%",   label: "0×",   zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
+                  { left: "40%",  label: "1×",   zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
+                  { left: "48%",  label: "1.2×", zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
+                  { left: "100%", label: "1.5×", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"    },
                 ] as const;
                 const miniRows = [
                   { name: "REVENUE", sig: revSig, pts: revPts, cagr: revCagr },
@@ -1173,20 +1173,20 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         {growthScore.toFixed(1)}%
                       </p>
                     </div>
-                    <div className="space-y-5">
+                    <div className="space-y-2">
                       {miniRows.map(({ name, sig, pts, cagr }) => {
                         const ptsNum = pts ?? 0;
                         const needle = toNeedlePos(ptsNum);
                         const mc     = pts != null ? toMarkerColor(ptsNum) : "rgba(0,255,65,0.3)";
                         const formulaLabel = cagr != null && sp500Base > 0
-                          ? `${(cagr * 100).toFixed(1)}% ÷ ${(sp500Base * 100).toFixed(1)}% S&P = ${(cagr / sp500Base).toFixed(2)}×`
+                          ? `${ticker} ${(cagr * 100).toFixed(1)}% ÷ S&P ${(sp500Base * 100).toFixed(1)}% = ${(cagr / sp500Base).toFixed(2)}×`
                           : sig && FCF_TREND[sig] ? `${FCF_TREND[sig].arrow} ${FCF_TREND[sig].label}` : "—";
                         return (
                           <div key={name} className="flex items-center gap-3">
                             {/* Left panel — 30% */}
                             <div style={{ width: "30%", flexShrink: 0 }}>
                               <p className="text-[10px] font-mono font-bold" style={{ color: "#00ff41" }}>{name}</p>
-                              <p className="text-[9px] font-mono mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
+                              <p className="text-[9px] font-mono mt-0.5 whitespace-nowrap" style={{ color: "rgba(0,255,65,0.4)" }}>
                                 {formulaLabel}
                               </p>
                             </div>
@@ -1227,18 +1227,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                       {label}
                                     </span>
                                   </div>
-                                ))}
-                              </div>
-                              {/* Zone labels */}
-                              <div className="relative" style={{ height: 14 }}>
-                                {SCORE_TICKS.map(({ left, zone, zoneColor }) => (
-                                  <span
-                                    key={zone}
-                                    className="absolute text-[8px] font-bold uppercase whitespace-nowrap"
-                                    style={{ left, color: zoneColor, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
-                                  >
-                                    {zone}
-                                  </span>
                                 ))}
                               </div>
                             </div>

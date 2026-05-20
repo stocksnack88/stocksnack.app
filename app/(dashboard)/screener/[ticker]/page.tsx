@@ -1243,24 +1243,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                       })}
                     </div>
                     {rawScore != null && (
-                      <div className="font-mono text-center">
-                        <p className="mt-3" style={{ fontSize: 9, color: "rgba(0,255,65,0.5)" }}>
-                          REVENUE {revCagr != null && sp500Base > 0 ? `${(revCagr / sp500Base).toFixed(2)}×` : "—"} → {revPts}%
-                          {" · "}
-                          EBITDA {niCagr != null && sp500Base > 0 ? `${(niCagr / sp500Base).toFixed(2)}×` : "—"} → {niPts}%
-                          {" · "}
-                          FCF {fcfCagr != null && sp500Base > 0 ? `${(fcfCagr / sp500Base).toFixed(2)}×` : "—"} → {fcfPts != null ? `${fcfPts}%` : "N/A"}
-                        </p>
+                      <div className="mt-3 font-mono">
+                        <p style={{ fontSize: 9, color: "rgba(0,255,65,0.4)" }}>Score Breakdown:</p>
                         <p style={{ fontSize: 10, color: "rgba(0,255,65,0.7)" }}>
                           ({revPts}% + {niPts}% + {fcfPts != null ? `${fcfPts}%` : "N/A"}) ÷ 3 × {worstMult.toFixed(2)} = {growthScore.toFixed(1)}%
                         </p>
-                        <p style={{ fontSize: 9, color: worstMult !== 1.0 ? "rgba(245,158,11,0.6)" : "rgba(0,255,65,0.3)" }}>
-                          Trend: {penaltyLabel}
-                        </p>
-                        <p className="mt-1 font-bold" style={{ fontSize: 11, color: scoreColor(growthScore) }}>
-                          Final Score: {growthScore.toFixed(1)}%
-                        </p>
-                        <div className="mt-3 space-y-0.5 font-mono text-[9px]">
+                        <div className="mt-2 space-y-0.5 text-[9px]">
                           <div className="flex">
                             <span className="w-28" style={{ color: "rgba(0,255,65,0.3)" }}>Average score</span>
                             <span style={{ color: "rgba(0,255,65,0.5)" }}>: {rawScore}%</span>

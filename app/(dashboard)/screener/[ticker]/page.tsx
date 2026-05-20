@@ -768,6 +768,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     : "#00ff41";
                   const ticks = [
                     { left: "0%",   cagr: "−S&P", zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
+                    { left: "30%",  cagr: "0",    zone: "",      zoneColor: "rgba(239,68,68,0.4)"   },
                     { left: "50%",  cagr: "S&P",  zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
                     { left: "60%",  cagr: "1.2×", zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
                     { left: "100%", cagr: "1.5×", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"   },
@@ -780,15 +781,16 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           className="absolute flex flex-col items-center -translate-x-1/2"
                           style={{ left: `${needlePos * 100}%`, bottom: 0 }}
                         >
-                          <span className="text-[9px] font-bold font-mono leading-none" style={{ color: markerColor }}>
-                            {ppmCagrPct}%
+                          <span className="text-[9px] font-bold font-mono leading-none" style={{ color: markerColor, background: "rgba(0,0,0,0.8)", border: "1px solid currentColor", borderRadius: 4, padding: "2px 5px" }}>
+                            {ratio}×
                           </span>
                           <span className="text-[9px] leading-none" style={{ color: markerColor }}>▼</span>
                         </div>
                       </div>
                       {/* 4-zone bar */}
                       <div className="flex w-full h-2 rounded-full overflow-hidden">
-                        <div style={{ width: "50%", background: "rgba(239,68,68,0.5)"   }} />
+                        <div style={{ width: "30%", background: "rgba(220,38,38,0.8)"   }} />
+                        <div style={{ width: "20%", background: "rgba(180,40,40,0.4)"   }} />
                         <div style={{ width: "10%", background: "rgba(245,158,11,0.55)" }} />
                         <div style={{ width: "40%", background: "rgba(163,230,53,0.45)" }} />
                       </div>
@@ -1146,6 +1148,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   s < 40 ? "#ef4444" : s < 48 ? "#f59e0b" : s < 60 ? "#a3e635" : "#00ff41";
                 const SCORE_TICKS = [
                   { left: "0%",   label: "0×",   zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
+                  { left: "30%",  label: "0",    zone: "",      zoneColor: "rgba(239,68,68,0.4)"   },
                   { left: "50%",  label: "1×",   zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
                   { left: "60%",  label: "1.2×", zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
                   { left: "100%", label: "1.5×", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"    },
@@ -1188,15 +1191,16 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                   className="absolute flex flex-col items-center -translate-x-1/2"
                                   style={{ left: `${needle * 100}%`, bottom: 0 }}
                                 >
-                                  <span className="text-[9px] font-bold font-mono leading-none" style={{ color: mc }}>
-                                    {pts != null ? `${pts}%` : "—"}
+                                  <span className="text-[9px] font-bold font-mono leading-none" style={{ color: mc, background: "rgba(0,0,0,0.8)", border: "1px solid currentColor", borderRadius: 4, padding: "2px 5px" }}>
+                                    {cagr != null && sp500Base > 0 ? `${(cagr / sp500Base).toFixed(2)}×` : "—"}
                                   </span>
                                   <span className="text-[9px] leading-none" style={{ color: mc }}>▼</span>
                                 </div>
                               </div>
                               {/* 4-zone bar */}
                               <div className="flex w-full h-2 rounded-full overflow-hidden">
-                                <div style={{ width: "50%", background: "rgba(239,68,68,0.5)"   }} />
+                                <div style={{ width: "30%", background: "rgba(220,38,38,0.8)"   }} />
+                                <div style={{ width: "20%", background: "rgba(180,40,40,0.4)"   }} />
                                 <div style={{ width: "10%", background: "rgba(245,158,11,0.55)" }} />
                                 <div style={{ width: "40%", background: "rgba(163,230,53,0.45)" }} />
                               </div>

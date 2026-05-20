@@ -996,8 +996,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                               y: toSvgY(baseV * Math.pow(1 + sp500Cagr, i)),
                             }));
                           }
-                          const lastSp = spPoints?.[spPoints.length - 1] ?? null;
-
                           return (
                             <div className="relative" style={{ height: CHART_H }}>
                               {maxNeg < 0 && (

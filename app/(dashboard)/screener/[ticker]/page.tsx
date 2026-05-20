@@ -802,11 +802,17 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           >
                             <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
                             <span
-                              className="text-[8px] font-mono whitespace-nowrap block"
+                              className="text-[8px] font-mono whitespace-nowrap"
                               style={{
                                 color: "rgba(0,255,65,0.35)",
                                 marginTop: 2,
-                                transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)",
+                                display: "inline-block",
+                                transform: "rotate(-90deg)",
+                                transformOrigin: "top center",
+                                background: "rgba(0,0,0,0.6)",
+                                border: "1px solid rgba(0,255,65,0.25)",
+                                borderRadius: 3,
+                                padding: "1px 3px",
                               }}
                             >
                               {cagr}
@@ -1205,8 +1211,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                     <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
                                     {rowIdx === miniRows.length - 1 && (
                                       <span
-                                        className="text-[8px] font-mono whitespace-nowrap block"
-                                        style={{ color: "rgba(0,255,65,0.35)", marginTop: 2, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
+                                        className="text-[8px] font-mono whitespace-nowrap"
+                                        style={{ color: "rgba(0,255,65,0.35)", marginTop: 2, display: "inline-block", transform: "rotate(-90deg)", transformOrigin: "top center", background: "rgba(0,0,0,0.6)", border: "1px solid rgba(0,255,65,0.25)", borderRadius: 3, padding: "1px 3px" }}
                                       >
                                         {label}
                                       </span>

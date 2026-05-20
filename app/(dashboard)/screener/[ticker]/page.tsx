@@ -1183,58 +1183,59 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           ? `${ticker} ${(cagr * 100).toFixed(1)}% ÷ S&P ${(sp500Base * 100).toFixed(1)}% = ${(cagr / sp500Base).toFixed(2)}×`
                           : sig && FCF_TREND[sig] ? `${FCF_TREND[sig].arrow} ${FCF_TREND[sig].label}` : "—";
                         return (
-                          <div key={name} className="flex items-end gap-2">
-                            {/* Metric name — fixed 60px */}
-                            <p className="text-[10px] font-mono font-bold shrink-0" title={formulaLabel} style={{ width: 60, color: "#00ff41", cursor: "help" }}>{name}</p>
-                            {/* Bar — fills remaining width */}
-                            <div className="flex-1 min-w-0">
-                              {/* Needle */}
-                              <div className="relative mb-0.5" style={{ height: 20 }}>
-                                <div
-                                  className="absolute flex flex-col items-center -translate-x-1/2"
-                                  style={{ left: `${needle * 100}%`, bottom: 0 }}
-                                >
-                                  <span className="text-[9px] font-bold font-mono leading-none" style={{ color: mc, background: "rgba(0,0,0,0.8)", border: "1px solid currentColor", borderRadius: 4, padding: "2px 5px" }}>
-                                    {cagr != null && sp500Base > 0 ? `${(cagr / sp500Base).toFixed(2)}×` : "—"}
-                                  </span>
-                                  <span className="text-[9px] leading-none" style={{ color: mc }}>▼</span>
+                          <div key={name}>
+                            {/* Needle — offset by 68px (60px name + 8px gap) to align with bar column */}
+                            <div className="relative mb-0.5" style={{ height: 20, marginLeft: 68 }}>
+                              <div
+                                className="absolute flex flex-col items-center -translate-x-1/2"
+                                style={{ left: `${needle * 100}%`, bottom: 0 }}
+                              >
+                                <span className="text-[9px] font-bold font-mono leading-none" style={{ color: mc, background: "rgba(0,0,0,0.8)", border: "1px solid currentColor", borderRadius: 4, padding: "2px 5px" }}>
+                                  {cagr != null && sp500Base > 0 ? `${(cagr / sp500Base).toFixed(2)}×` : "—"}
+                                </span>
+                                <span className="text-[9px] leading-none" style={{ color: mc }}>▼</span>
+                              </div>
+                            </div>
+                            {/* Name + bar in a flex row — name aligns with bar stripe */}
+                            <div className="flex items-center gap-2">
+                              <p className="text-[10px] font-mono font-bold shrink-0" title={formulaLabel} style={{ width: 60, color: "#00ff41", cursor: "help" }}>{name}</p>
+                              <div className="flex-1 min-w-0">
+                                {/* 4-zone bar */}
+                                <div className="flex w-full h-2 rounded-full overflow-hidden">
+                                  <div style={{ width: "30%", background: "rgba(220,38,38,0.8)"   }} />
+                                  <div style={{ width: "20%", background: "rgba(180,40,40,0.4)"   }} />
+                                  <div style={{ width: "10%", background: "rgba(245,158,11,0.55)" }} />
+                                  <div style={{ width: "40%", background: "rgba(163,230,53,0.45)" }} />
                                 </div>
-                              </div>
-                              {/* 4-zone bar */}
-                              <div className="flex w-full h-2 rounded-full overflow-hidden">
-                                <div style={{ width: "30%", background: "rgba(220,38,38,0.8)"   }} />
-                                <div style={{ width: "20%", background: "rgba(180,40,40,0.4)"   }} />
-                                <div style={{ width: "10%", background: "rgba(245,158,11,0.55)" }} />
-                                <div style={{ width: "40%", background: "rgba(163,230,53,0.45)" }} />
-                              </div>
-                              {/* Tick marks and zone labels */}
-                              <div className="relative" style={{ height: rowIdx === miniRows.length - 1 ? 48 : 8 }}>
-                                {/* Tick nubs */}
-                                {(["0%", "30%", "50%", "60%", "100%"] as const).map(left => (
-                                  <div key={left} className="absolute" style={{ left, top: 0, width: 1, height: 8, background: "rgba(255,255,255,0.4)", transform: "translateX(-50%)" }} />
-                                ))}
-                                {/* Tick labels (last row only) */}
-                                {rowIdx === miniRows.length - 1 && SCORE_TICKS.map(({ left, label }) => (
-                                  <span
-                                    key={label}
-                                    className="absolute"
-                                    style={{
-                                      left,
-                                      top: 10,
-                                      transform: left === "0%" ? "translateX(0%)" : left === "100%" ? "translateX(-100%)" : left === "50%" ? "translateX(-80%)" : left === "60%" ? "translateX(-20%)" : "translateX(-50%)",
-                                      background: "rgba(0,0,0,0.8)",
-                                      border: "1px solid rgba(255,255,255,0.2)",
-                                      borderRadius: 3,
-                                      padding: "2px 4px",
-                                      fontSize: 8,
-                                      fontFamily: "monospace",
-                                      color: "rgba(0,255,65,0.7)",
-                                      whiteSpace: "nowrap",
-                                    }}
-                                  >
-                                    {label}
-                                  </span>
-                                ))}
+                                {/* Tick marks and zone labels */}
+                                <div className="relative" style={{ height: rowIdx === miniRows.length - 1 ? 48 : 8 }}>
+                                  {/* Tick nubs */}
+                                  {(["0%", "30%", "50%", "60%", "100%"] as const).map(left => (
+                                    <div key={left} className="absolute" style={{ left, top: 0, width: 1, height: 8, background: "rgba(255,255,255,0.4)", transform: "translateX(-50%)" }} />
+                                  ))}
+                                  {/* Tick labels (last row only) */}
+                                  {rowIdx === miniRows.length - 1 && SCORE_TICKS.map(({ left, label }) => (
+                                    <span
+                                      key={label}
+                                      className="absolute"
+                                      style={{
+                                        left,
+                                        top: 10,
+                                        transform: left === "0%" ? "translateX(0%)" : left === "100%" ? "translateX(-100%)" : left === "50%" ? "translateX(-80%)" : left === "60%" ? "translateX(-20%)" : "translateX(-50%)",
+                                        background: "rgba(0,0,0,0.8)",
+                                        border: "1px solid rgba(255,255,255,0.2)",
+                                        borderRadius: 3,
+                                        padding: "2px 4px",
+                                        fontSize: 8,
+                                        fontFamily: "monospace",
+                                        color: "rgba(0,255,65,0.7)",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {label}
+                                    </span>
+                                  ))}
+                                </div>
                               </div>
                             </div>
                           </div>

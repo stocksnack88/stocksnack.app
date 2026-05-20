@@ -1163,7 +1163,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         {growthScore.toFixed(1)}%
                       </p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-0">
                       {miniRows.map(({ name, sig, pts, cagr }, rowIdx) => {
                         const ptsNum = pts ?? 0;
                         const needle = toNeedlePos(ptsNum);
@@ -1172,15 +1172,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           ? `${ticker} ${(cagr * 100).toFixed(1)}% ÷ S&P ${(sp500Base * 100).toFixed(1)}% = ${(cagr / sp500Base).toFixed(2)}×`
                           : sig && FCF_TREND[sig] ? `${FCF_TREND[sig].arrow} ${FCF_TREND[sig].label}` : "—";
                         return (
-                          <div key={name} className="flex items-center gap-3">
-                            {/* Left panel — 30% */}
-                            <div style={{ width: "30%", flexShrink: 0 }}>
-                              <p className="text-[10px] font-mono font-bold" title={formulaLabel} style={{ color: "#00ff41", cursor: "help" }}>{name}</p>
-                            </div>
-                            {/* Right panel — 70% */}
-                            <div style={{ width: "70%" }}>
+                          <div key={name} className="flex items-center gap-2">
+                            {/* Metric name — fixed 60px */}
+                            <p className="text-[10px] font-mono font-bold shrink-0" title={formulaLabel} style={{ width: 60, color: "#00ff41", cursor: "help" }}>{name}</p>
+                            {/* Bar — fills remaining width */}
+                            <div className="flex-1 min-w-0">
                               {/* Needle */}
-                              <div className="relative h-8 mb-0.5">
+                              <div className="relative mb-0.5" style={{ height: 20 }}>
                                 <div
                                   className="absolute flex flex-col items-center -translate-x-1/2"
                                   style={{ left: `${needle * 100}%`, bottom: 0 }}

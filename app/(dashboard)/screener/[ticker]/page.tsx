@@ -1168,7 +1168,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                       </p>
                     </div>
                     <div className="space-y-2">
-                      {miniRows.map(({ name, sig, pts, cagr }) => {
+                      {miniRows.map(({ name, sig, pts, cagr }, rowIdx) => {
                         const ptsNum = pts ?? 0;
                         const needle = toNeedlePos(ptsNum);
                         const mc     = pts != null ? toMarkerColor(ptsNum) : "rgba(0,255,65,0.3)";
@@ -1179,10 +1179,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           <div key={name} className="flex items-center gap-3">
                             {/* Left panel — 30% */}
                             <div style={{ width: "30%", flexShrink: 0 }}>
-                              <p className="text-[10px] font-mono font-bold" style={{ color: "#00ff41" }}>{name}</p>
-                              <p className="text-[9px] font-mono mt-0.5 whitespace-nowrap" style={{ color: "rgba(0,255,65,0.4)" }}>
-                                {formulaLabel}
-                              </p>
+                              <p className="text-[10px] font-mono font-bold" title={formulaLabel} style={{ color: "#00ff41", cursor: "help" }}>{name}</p>
                             </div>
                             {/* Right panel — 70% */}
                             <div style={{ width: "70%" }}>
@@ -1206,7 +1203,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                 <div style={{ width: "40%", background: "rgba(0,255,65,0.6)"    }} />
                               </div>
                               {/* Tick marks */}
-                              <div className="relative" style={{ height: 38 }}>
+                              <div className="relative" style={{ height: rowIdx === miniRows.length - 1 ? 38 : 8 }}>
                                 {SCORE_TICKS.map(({ left, label }) => (
                                   <div
                                     key={label}
@@ -1214,12 +1211,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                     style={{ left, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
                                   >
                                     <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
-                                    <span
-                                      className="text-[8px] font-mono whitespace-nowrap block"
-                                      style={{ color: "rgba(0,255,65,0.35)", transform: "rotate(45deg)", transformOrigin: "top left", marginTop: 2 }}
-                                    >
-                                      {label}
-                                    </span>
+                                    {rowIdx === miniRows.length - 1 && (
+                                      <span
+                                        className="text-[8px] font-mono whitespace-nowrap block"
+                                        style={{ color: "rgba(0,255,65,0.35)", transform: "rotate(45deg)", transformOrigin: "top left", marginTop: 2 }}
+                                      >
+                                        {label}
+                                      </span>
+                                    )}
                                   </div>
                                 ))}
                               </div>

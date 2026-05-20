@@ -798,16 +798,15 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           <div
                             key={cagr}
                             className="absolute"
-                            style={{ left, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
+                            style={{ left }}
                           >
                             <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
                             <span
                               className="text-[8px] font-mono whitespace-nowrap block"
                               style={{
                                 color: "rgba(0,255,65,0.35)",
-                                transform: "rotate(45deg)",
-                                transformOrigin: "top left",
                                 marginTop: 2,
+                                transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)",
                               }}
                             >
                               {cagr}
@@ -1201,13 +1200,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                   <div
                                     key={label}
                                     className="absolute"
-                                    style={{ left, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
+                                    style={{ left }}
                                   >
                                     <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
                                     {rowIdx === miniRows.length - 1 && (
                                       <span
                                         className="text-[8px] font-mono whitespace-nowrap block"
-                                        style={{ color: "rgba(0,255,65,0.35)", transform: "rotate(45deg)", transformOrigin: "top left", marginTop: 2 }}
+                                        style={{ color: "rgba(0,255,65,0.35)", marginTop: 2, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
                                       >
                                         {label}
                                       </span>

@@ -900,7 +900,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     const sp500Y5 = sp500Cagr != null && baseV0 != null && baseV0 > 0
                       ? baseV0 * Math.pow(1 + sp500Cagr, nonNull.length - 1)
                       : 0;
-                    const maxPos     = Math.max(0, ...nonNull, sp500Y5);
+                    const greenY5 = cagr != null && baseV0 != null && baseV0 > 0
+                      ? baseV0 * Math.pow(1 + Number(cagr), nonNull.length - 1)
+                      : 0;
+                    const maxPos     = Math.max(0, ...nonNull, sp500Y5, greenY5);
                     const maxNeg     = Math.min(0, ...nonNull);
                     const totalRange = maxPos - maxNeg || 1;
                     const negH       = Math.abs(maxNeg) / totalRange * CHART_H;
@@ -964,24 +967,16 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           const toSvgY = (v: number) =>
                             Math.max(0, Math.min(CHART_H, zeroY - v / totalRange * CHART_H));
 
-                          // Linear regression for green trend line
-                          const rVals = vals.map((d, i) => ({ i, v: d.v })).filter(d => d.v != null);
-                          let svgLine: { x1: number; y1: number; x2: number; y2: number } | null = null;
-                          if (rVals.length >= 2) {
-                            const n = rVals.length;
-                            const sumX  = rVals.reduce((s, p) => s + p.i, 0);
-                            const sumY  = rVals.reduce((s, p) => s + (p.v as number), 0);
-                            const sumXY = rVals.reduce((s, p) => s + p.i * (p.v as number), 0);
-                            const sumX2 = rVals.reduce((s, p) => s + p.i * p.i, 0);
-                            const denom = n * sumX2 - sumX * sumX;
-                            const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
-                            const intercept = (sumY - slope * sumX) / n;
-                            svgLine = {
-                              x1: 0.5 / nBars * 100,
-                              y1: toSvgY(intercept),
-                              x2: (nBars - 0.5) / nBars * 100,
-                              y2: toSvgY(slope * (nBars - 1) + intercept),
-                            };
+                          const baseV = vals[0]?.v;
+
+                          // Compound green trend line from Y1 at weighted CAGR
+                          type GreenPt = { x: number; y: number };
+                          let greenPoints: GreenPt[] | null = null;
+                          if (cagrNum != null && baseV != null && baseV > 0) {
+                            greenPoints = vals.map((_, i) => ({
+                              x: (i + 0.5) / nBars * 100,
+                              y: toSvgY(baseV * Math.pow(1 + cagrNum, i)),
+                            }));
                           }
 
                           // S&P reference line: compound from Y1 actual at sp500_cagr
@@ -989,7 +984,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           // (fundamentals queried ORDER BY fiscal_year ASC, so index 0 = leftmost bar)
                           type SpPt = { x: number; y: number };
                           let spPoints: SpPt[] | null = null;
-                          const baseV = vals[0]?.v;
                           if (sp500Cagr != null && baseV != null && baseV > 0) {
                             spPoints = vals.map((_, i) => ({
                               x: (i + 0.5) / nBars * 100,
@@ -1020,17 +1014,17 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                   );
                                 })}
                               </div>
-                              {(svgLine || spPoints) && (
+                              {(greenPoints || spPoints) && (
                                 <svg
                                   className="absolute inset-0 pointer-events-none"
                                   width="100%" height={CHART_H}
                                   viewBox={`0 0 100 ${CHART_H}`}
                                   preserveAspectRatio="none"
                                 >
-                                  {svgLine && signal && (
-                                    <line
-                                      x1={svgLine.x1} y1={svgLine.y1}
-                                      x2={svgLine.x2} y2={svgLine.y2}
+                                  {greenPoints && signal && (
+                                    <polyline
+                                      points={greenPoints.map(p => `${p.x},${p.y}`).join(" ")}
+                                      fill="none"
                                       stroke={SIG_COLOR[signal] ?? "#00ff41"}
                                       strokeWidth="1"
                                       strokeOpacity="0.5"

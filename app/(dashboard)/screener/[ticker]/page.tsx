@@ -1197,7 +1197,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                               </div>
                             </div>
                             {/* Name + bar in a flex row — name aligns with bar stripe */}
-                            <div className={rowIdx === miniRows.length - 1 ? "flex items-end gap-2" : "flex items-center gap-2"}>
+                            <div className={rowIdx === miniRows.length - 1 ? "flex items-start gap-2" : "flex items-center gap-2"}>
                               <p className="text-[10px] font-mono font-bold shrink-0" title={formulaLabel} style={{ width: 60, color: "#00ff41", cursor: "help" }}>{name}</p>
                               <div className="flex-1 min-w-0">
                                 {/* 4-zone bar */}

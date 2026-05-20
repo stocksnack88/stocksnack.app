@@ -11,7 +11,27 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        batch: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+        include:
+          - { offset: 0 }
+          - { offset: 25 }
+          - { offset: 50 }
+          - { offset: 75 }
+          - { offset: 100 }
+          - { offset: 125 }
+          - { offset: 150 }
+          - { offset: 175 }
+          - { offset: 200 }
+          - { offset: 225 }
+          - { offset: 250 }
+          - { offset: 275 }
+          - { offset: 300 }
+          - { offset: 325 }
+          - { offset: 350 }
+          - { offset: 375 }
+          - { offset: 400 }
+          - { offset: 425 }
+          - { offset: 450 }
+          - { offset: 475 }
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
@@ -22,7 +42,7 @@ jobs:
           cache-dependency-path: pipeline/requirements.txt
       - run: pip install -r pipeline/requirements.txt
         working-directory: pipeline
-      - run: python3 sec/run_sec.py --offset ${{ matrix.batch * 25 }} --limit 25
+      - run: python3 sec/run_sec.py --offset ${{ matrix.offset }} --limit 25
         working-directory: pipeline
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

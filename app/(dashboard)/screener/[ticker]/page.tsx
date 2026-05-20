@@ -920,6 +920,18 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             <span className="text-xs font-bold tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.7)" }}>
                               {label}
                             </span>
+                            {cagrNum != null && (
+                              <span
+                                className="text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0"
+                                style={{
+                                  background: "rgba(0,255,65,0.15)",
+                                  border: "1px solid #00ff41",
+                                  color: "#00ff41",
+                                }}
+                              >
+                                Avg. Growth {cagrNum >= 0 ? "+" : ""}{(cagrNum * 100).toFixed(1)}%
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {benchLabel && (

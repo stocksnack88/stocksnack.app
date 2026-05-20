@@ -1171,6 +1171,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         {growthScore.toFixed(1)}%
                       </p>
                     </div>
+                    <p className="text-[10px] font-mono text-center mb-2" style={{ color: "rgba(0,255,65,0.4)" }}>
+                      Scored on Avg. Growth Rate vs S&P 500
+                    </p>
                     <div className="space-y-0">
                       {miniRows.map(({ name, sig, pts, cagr }, rowIdx) => {
                         const ptsNum = pts ?? 0;

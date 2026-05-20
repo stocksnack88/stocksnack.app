@@ -929,7 +929,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         </div>
                         {/* Avg. Growth badge */}
                         {cagrNum != null && (
-                          <div className="mt-1 mb-2">
+                          <div className="mb-2" style={{ marginTop: 2 }}>
                             <span
                               className="text-[10px] font-mono px-1.5 py-0.5 rounded"
                               style={{

@@ -800,17 +800,17 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           <div
                             key={cagr}
                             className="absolute"
-                            style={{ left }}
+                            style={{ left, transform: "translateX(-50%)" }}
                           >
-                            <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
+                            <div className="w-px" style={{ height: 8, background: "rgba(255,255,255,0.4)" }} />
                             <span
                               className="text-[8px] font-mono whitespace-nowrap"
                               style={{
                                 color: "rgba(0,255,65,0.35)",
-                                marginTop: 2,
+                                marginLeft: -4,
                                 display: "inline-block",
-                                transform: "rotate(-90deg)",
-                                transformOrigin: "top center",
+                                transform: "rotate(-90deg) translateX(-50%)",
+                                transformOrigin: "left center",
                                 background: "rgba(0,0,0,0.6)",
                                 border: "1px solid rgba(0,255,65,0.25)",
                                 borderRadius: 3,
@@ -1210,13 +1210,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                   <div
                                     key={label}
                                     className="absolute"
-                                    style={{ left }}
+                                    style={{ left, transform: "translateX(-50%)" }}
                                   >
-                                    <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
+                                    <div className="w-px" style={{ height: 8, background: "rgba(255,255,255,0.4)" }} />
                                     {rowIdx === miniRows.length - 1 && (
                                       <span
                                         className="text-[8px] font-mono whitespace-nowrap"
-                                        style={{ color: "rgba(0,255,65,0.35)", marginTop: 2, display: "inline-block", transform: "rotate(-90deg)", transformOrigin: "top center", background: "rgba(0,0,0,0.6)", border: "1px solid rgba(0,255,65,0.25)", borderRadius: 3, padding: "1px 3px" }}
+                                        style={{ color: "rgba(0,255,65,0.35)", marginLeft: -4, display: "inline-block", transform: "rotate(-90deg) translateX(-50%)", transformOrigin: "left center", background: "rgba(0,0,0,0.6)", border: "1px solid rgba(0,255,65,0.25)", borderRadius: 3, padding: "1px 3px" }}
                                       >
                                         {label}
                                       </span>

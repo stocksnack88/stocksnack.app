@@ -735,16 +735,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const ppmCagrPct  = (ppmCagr * 100).toFixed(1);
             const sp500CagrPct = (sp500Cagr * 100).toFixed(1);
             const ratio       = sp500Cagr !== 0 ? (ppmCagr / sp500Cagr).toFixed(2) : "—";
-            // Needle: piecewise linear mapping to zones SELL=40% HOLD=8% BUY=12% BUY+=40%
-            // Zone boundaries: SELL[-S&P → S&P] HOLD[S&P → 1.2×] BUY[1.2× → 1.5×] BUY+[1.5×→]
+            // Needle: piecewise linear mapping to zones SELL=50% HOLD=10% BUY=40%
+            // Zone boundaries: SELL[-S&P → S&P] HOLD[S&P → 1.2×] BUY[1.2×→]
             const needlePos = (() => {
               if (ppmCagr < sp500Cagr)
-                return Math.max(0, (ppmCagr + sp500Cagr) / (2 * sp500Cagr) * 0.40);
+                return Math.max(0, (ppmCagr + sp500Cagr) / (2 * sp500Cagr) * 0.50);
               if (ppmCagr < 1.2 * sp500Cagr)
-                return 0.40 + (ppmCagr - sp500Cagr) / (0.2 * sp500Cagr) * 0.08;
-              if (ppmCagr < 1.5 * sp500Cagr)
-                return 0.48 + (ppmCagr - 1.2 * sp500Cagr) / (0.3 * sp500Cagr) * 0.12;
-              return 1.0; // BUY+: clamp needle to right edge
+                return 0.50 + (ppmCagr - sp500Cagr) / (0.2 * sp500Cagr) * 0.10;
+              return Math.min(1.0, 0.60 + (ppmCagr - 1.2 * sp500Cagr) / (0.3 * sp500Cagr) * 0.40);
             })();
             return (
               <div className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
@@ -760,7 +758,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 <p className="text-[11px] italic text-center" style={{ color: "rgba(0,255,65,0.8)" }}>
                   {ppmCagrPct}% ÷ {sp500CagrPct}% = {ratio}× → {ppmScore.toFixed(1)}%
                 </p>
-                {/* Benchmark bar: SELL=40% HOLD=8% BUY=12% BUY+=40%
+                {/* Benchmark bar: SELL=50% HOLD=10% BUY=40%
                     Range: [-S&P, BUY+] — needle is piecewise linear, zone-accurate */}
                 {(() => {
                   const markerColor =
@@ -769,10 +767,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     : ppmCagr < 1.5 * sp500Cagr ? "#a3e635"
                     : "#00ff41";
                   const ticks = [
-                    { left: "0%",  cagr: "−S&P", zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
-                    { left: "40%", cagr: "S&P",  zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
-                    { left: "48%", cagr: "1.2×", zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
-                    { left: "100%", cagr: "1.5×", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"  },
+                    { left: "0%",   cagr: "−S&P", zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
+                    { left: "50%",  cagr: "S&P",  zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
+                    { left: "60%",  cagr: "1.2×", zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
+                    { left: "100%", cagr: "1.5×", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"   },
                   ] as const;
                   return (
                     <div className="mt-3">
@@ -790,10 +788,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                       </div>
                       {/* 4-zone bar */}
                       <div className="flex w-full h-2 rounded-full overflow-hidden">
-                        <div style={{ width: "40%", background: "rgba(239,68,68,0.5)"   }} />
-                        <div style={{ width: "8%",  background: "rgba(245,158,11,0.55)" }} />
-                        <div style={{ width: "12%", background: "rgba(163,230,53,0.45)" }} />
-                        <div style={{ width: "40%", background: "rgba(0,255,65,0.6)"    }} />
+                        <div style={{ width: "50%", background: "rgba(239,68,68,0.5)"   }} />
+                        <div style={{ width: "10%", background: "rgba(245,158,11,0.55)" }} />
+                        <div style={{ width: "40%", background: "rgba(163,230,53,0.45)" }} />
                       </div>
                       {/* Tick marks with 45° rotated CAGR labels */}
                       <div className="relative" style={{ height: 38 }}>
@@ -1136,17 +1133,16 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 const hasPenalty = worstMult <= 0.75;
                 const toNeedlePos = (s: number): number => {
                   if (s <= 0)  return 0;
-                  if (s <= 40) return s / 40 * 0.40;
-                  if (s <= 48) return 0.40 + (s - 40) / 8 * 0.08;
-                  if (s <= 60) return 0.48 + (s - 48) / 12 * 0.12;
-                  return Math.min(1.0, 0.60 + (s - 60) / 40 * 0.40);
+                  if (s <= 40) return s / 40 * 0.50;
+                  if (s <= 48) return 0.50 + (s - 40) / 8 * 0.10;
+                  return Math.min(1.0, 0.60 + (s - 48) / 52 * 0.40);
                 };
                 const toMarkerColor = (s: number) =>
                   s < 40 ? "#ef4444" : s < 48 ? "#f59e0b" : s < 60 ? "#a3e635" : "#00ff41";
                 const SCORE_TICKS = [
                   { left: "0%",   label: "0×",   zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
-                  { left: "40%",  label: "1×",   zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
-                  { left: "48%",  label: "1.2×", zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
+                  { left: "50%",  label: "1×",   zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
+                  { left: "60%",  label: "1.2×", zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
                   { left: "100%", label: "1.5×", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"    },
                 ] as const;
                 const miniRows = [
@@ -1197,10 +1193,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                               </div>
                               {/* 4-zone bar */}
                               <div className="flex w-full h-2 rounded-full overflow-hidden">
-                                <div style={{ width: "40%", background: "rgba(239,68,68,0.5)"   }} />
-                                <div style={{ width: "8%",  background: "rgba(245,158,11,0.55)" }} />
-                                <div style={{ width: "12%", background: "rgba(163,230,53,0.45)" }} />
-                                <div style={{ width: "40%", background: "rgba(0,255,65,0.6)"    }} />
+                                <div style={{ width: "50%", background: "rgba(239,68,68,0.5)"   }} />
+                                <div style={{ width: "10%", background: "rgba(245,158,11,0.55)" }} />
+                                <div style={{ width: "40%", background: "rgba(163,230,53,0.45)" }} />
                               </div>
                               {/* Tick marks */}
                               <div className="relative" style={{ height: rowIdx === miniRows.length - 1 ? 38 : 8 }}>

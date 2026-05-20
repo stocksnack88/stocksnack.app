@@ -1083,7 +1083,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                     )}
                                   </>
                                 )}
-                                <span className="block text-[10px] font-mono leading-tight" style={{ color: "rgba(0,255,65,0.2)" }}>
+                                <span className="block text-[10px] font-mono leading-tight" style={{ color: "rgba(255,255,255,0.5)" }}>
                                   {year}
                                 </span>
                               </div>

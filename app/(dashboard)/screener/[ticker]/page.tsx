@@ -1191,13 +1191,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                 style={{ left: `${needle * 100}%`, bottom: 0 }}
                               >
                                 <span className="text-[9px] font-bold font-mono leading-none" style={{ color: mc, background: "rgba(0,0,0,0.8)", border: "1px solid currentColor", borderRadius: 4, padding: "2px 5px" }}>
-                                  {cagr != null && sp500Base > 0 ? `${(cagr / sp500Base).toFixed(2)}×` : "—"}
+                                  {cagr != null && sp500Base > 0 ? `${(cagr / sp500Base).toFixed(2)}× → ${pts != null ? `${pts}%` : "N/A"}` : "—"}
                                 </span>
                                 <span className="text-[9px] leading-none" style={{ color: mc }}>▼</span>
                               </div>
                             </div>
                             {/* Name + bar in a flex row — name aligns with bar stripe */}
-                            <div className="flex items-center gap-2">
+                            <div className={rowIdx === miniRows.length - 1 ? "flex items-end gap-2" : "flex items-center gap-2"}>
                               <p className="text-[10px] font-mono font-bold shrink-0" title={formulaLabel} style={{ width: 60, color: "#00ff41", cursor: "help" }}>{name}</p>
                               <div className="flex-1 min-w-0">
                                 {/* 4-zone bar */}
@@ -1260,6 +1260,20 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         <p className="mt-1 font-bold" style={{ fontSize: 11, color: scoreColor(growthScore) }}>
                           Final Score: {growthScore.toFixed(1)}%
                         </p>
+                        <div className="mt-3 space-y-0.5 font-mono text-[9px]">
+                          <div className="flex">
+                            <span className="w-28" style={{ color: "rgba(0,255,65,0.3)" }}>Average score</span>
+                            <span style={{ color: "rgba(0,255,65,0.5)" }}>: {rawScore}%</span>
+                          </div>
+                          <div className="flex">
+                            <span className="w-28" style={{ color: worstMult !== 1.0 ? "rgba(245,158,11,0.7)" : "rgba(0,255,65,0.3)" }}>Trend penalty</span>
+                            <span style={{ color: worstMult !== 1.0 ? "rgba(245,158,11,0.7)" : "rgba(0,255,65,0.5)" }}>: {penaltyLabel}</span>
+                          </div>
+                          <div className="flex">
+                            <span className="w-28" style={{ color: "rgba(0,255,65,0.5)" }}>Final score</span>
+                            <span style={{ color: scoreColor(growthScore) }}>: {growthScore.toFixed(1)}%</span>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

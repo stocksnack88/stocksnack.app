@@ -1183,7 +1183,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           ? `${ticker} ${(cagr * 100).toFixed(1)}% ÷ S&P ${(sp500Base * 100).toFixed(1)}% = ${(cagr / sp500Base).toFixed(2)}×`
                           : sig && FCF_TREND[sig] ? `${FCF_TREND[sig].arrow} ${FCF_TREND[sig].label}` : "—";
                         return (
-                          <div key={name} className="flex items-center gap-2">
+                          <div key={name} className="flex items-end gap-2">
                             {/* Metric name — fixed 60px */}
                             <p className="text-[10px] font-mono font-bold shrink-0" title={formulaLabel} style={{ width: 60, color: "#00ff41", cursor: "help" }}>{name}</p>
                             {/* Bar — fills remaining width */}
@@ -1235,20 +1235,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                     {label}
                                   </span>
                                 ))}
-                                {/* Zone labels (last row only) */}
-                                {rowIdx === miniRows.length - 1 && [
-                                  { left: "15%", zone: "SELL", color: "rgba(239,68,68,0.7)"  },
-                                  { left: "55%", zone: "HOLD", color: "rgba(245,158,11,0.7)" },
-                                  { left: "80%", zone: "BUY",  color: "rgba(163,230,53,0.7)" },
-                                ].map(({ left, zone, color }) => (
-                                  <span
-                                    key={zone}
-                                    className="absolute uppercase"
-                                    style={{ left, top: 32, transform: "translateX(-50%)", color, fontSize: 9, fontWeight: "bold" }}
-                                  >
-                                    {zone}
-                                  </span>
-                                ))}
                               </div>
                             </div>
                           </div>
@@ -1257,8 +1243,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     </div>
                     {rawScore != null && (
                       <div className="font-mono text-center">
-                        <p className="mt-3" style={{ fontSize: 9, color: "rgba(0,255,65,0.4)" }}>
-                          REVENUE  ·  EBITDA  ·  FCF
+                        <p className="mt-3" style={{ fontSize: 9, color: "rgba(0,255,65,0.5)" }}>
+                          REVENUE {revCagr != null && sp500Base > 0 ? `${(revCagr / sp500Base).toFixed(2)}×` : "—"} → {revPts}%
+                          {" · "}
+                          EBITDA {niCagr != null && sp500Base > 0 ? `${(niCagr / sp500Base).toFixed(2)}×` : "—"} → {niPts}%
+                          {" · "}
+                          FCF {fcfCagr != null && sp500Base > 0 ? `${(fcfCagr / sp500Base).toFixed(2)}×` : "—"} → {fcfPts != null ? `${fcfPts}%` : "N/A"}
                         </p>
                         <p style={{ fontSize: 10, color: "rgba(0,255,65,0.7)" }}>
                           ({revPts}% + {niPts}% + {fcfPts != null ? `${fcfPts}%` : "N/A"}) ÷ 3 × {worstMult.toFixed(2)} = {growthScore.toFixed(1)}%

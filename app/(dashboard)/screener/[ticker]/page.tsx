@@ -1190,59 +1190,65 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           ? `${(cagr * 100).toFixed(1)}% ÷ ${(sp500Base * 100).toFixed(1)}% S&P = ${(cagr / sp500Base).toFixed(2)}×`
                           : sig && FCF_TREND[sig] ? `${FCF_TREND[sig].arrow} ${FCF_TREND[sig].label}` : "—";
                         return (
-                          <div key={name}>
-                            <p className="text-[10px] font-mono font-bold mb-0.5" style={{ color: "rgba(0,255,65,0.55)" }}>{name}</p>
-                            <p className="text-[9px] font-mono mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>
-                              {formulaLabel} →
-                            </p>
-                            {/* Needle */}
-                            <div className="relative h-8 mb-0.5">
-                              <div
-                                className="absolute flex flex-col items-center -translate-x-1/2"
-                                style={{ left: `${needle * 100}%`, bottom: 0 }}
-                              >
-                                <span className="text-[9px] font-bold font-mono leading-none" style={{ color: mc }}>
-                                  {pts != null ? `${pts}%` : "—"}
-                                </span>
-                                <span className="text-[9px] leading-none" style={{ color: mc }}>▼</span>
-                              </div>
+                          <div key={name} className="flex items-center gap-3">
+                            {/* Left panel — 30% */}
+                            <div style={{ width: "30%", flexShrink: 0 }}>
+                              <p className="text-[10px] font-mono font-bold" style={{ color: "#00ff41" }}>{name}</p>
+                              <p className="text-[9px] font-mono mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
+                                {formulaLabel}
+                              </p>
                             </div>
-                            {/* 4-zone bar */}
-                            <div className="flex w-full h-2 rounded-full overflow-hidden">
-                              <div style={{ width: "40%", background: "rgba(239,68,68,0.5)"   }} />
-                              <div style={{ width: "8%",  background: "rgba(245,158,11,0.55)" }} />
-                              <div style={{ width: "12%", background: "rgba(163,230,53,0.45)" }} />
-                              <div style={{ width: "40%", background: "rgba(0,255,65,0.6)"    }} />
-                            </div>
-                            {/* Tick marks */}
-                            <div className="relative" style={{ height: 38 }}>
-                              {SCORE_TICKS.map(({ left, label }) => (
+                            {/* Right panel — 70% */}
+                            <div style={{ width: "70%" }}>
+                              {/* Needle */}
+                              <div className="relative h-8 mb-0.5">
                                 <div
-                                  key={label}
-                                  className="absolute"
-                                  style={{ left, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
+                                  className="absolute flex flex-col items-center -translate-x-1/2"
+                                  style={{ left: `${needle * 100}%`, bottom: 0 }}
                                 >
-                                  <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
-                                  <span
-                                    className="text-[8px] font-mono whitespace-nowrap block"
-                                    style={{ color: "rgba(0,255,65,0.35)", transform: "rotate(45deg)", transformOrigin: "top left", marginTop: 2 }}
-                                  >
-                                    {label}
+                                  <span className="text-[9px] font-bold font-mono leading-none" style={{ color: mc }}>
+                                    {pts != null ? `${pts}%` : "—"}
                                   </span>
+                                  <span className="text-[9px] leading-none" style={{ color: mc }}>▼</span>
                                 </div>
-                              ))}
-                            </div>
-                            {/* Zone labels */}
-                            <div className="relative" style={{ height: 14 }}>
-                              {SCORE_TICKS.map(({ left, zone, zoneColor }) => (
-                                <span
-                                  key={zone}
-                                  className="absolute text-[8px] font-bold uppercase whitespace-nowrap"
-                                  style={{ left, color: zoneColor, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
-                                >
-                                  {zone}
-                                </span>
-                              ))}
+                              </div>
+                              {/* 4-zone bar */}
+                              <div className="flex w-full h-2 rounded-full overflow-hidden">
+                                <div style={{ width: "40%", background: "rgba(239,68,68,0.5)"   }} />
+                                <div style={{ width: "8%",  background: "rgba(245,158,11,0.55)" }} />
+                                <div style={{ width: "12%", background: "rgba(163,230,53,0.45)" }} />
+                                <div style={{ width: "40%", background: "rgba(0,255,65,0.6)"    }} />
+                              </div>
+                              {/* Tick marks */}
+                              <div className="relative" style={{ height: 38 }}>
+                                {SCORE_TICKS.map(({ left, label }) => (
+                                  <div
+                                    key={label}
+                                    className="absolute"
+                                    style={{ left, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
+                                  >
+                                    <div className="w-px" style={{ height: 6, background: "rgba(255,255,255,0.25)" }} />
+                                    <span
+                                      className="text-[8px] font-mono whitespace-nowrap block"
+                                      style={{ color: "rgba(0,255,65,0.35)", transform: "rotate(45deg)", transformOrigin: "top left", marginTop: 2 }}
+                                    >
+                                      {label}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                              {/* Zone labels */}
+                              <div className="relative" style={{ height: 14 }}>
+                                {SCORE_TICKS.map(({ left, zone, zoneColor }) => (
+                                  <span
+                                    key={zone}
+                                    className="absolute text-[8px] font-bold uppercase whitespace-nowrap"
+                                    style={{ left, color: zoneColor, transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)" }}
+                                  >
+                                    {zone}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         );

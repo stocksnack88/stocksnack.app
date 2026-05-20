@@ -827,6 +827,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           { left: "15%", zone: "SELL", color: "rgba(239,68,68,0.7)"  },
                           { left: "55%", zone: "HOLD", color: "rgba(245,158,11,0.7)" },
                           { left: "80%", zone: "BUY",  color: "rgba(163,230,53,0.7)" },
+                          { left: "92%", zone: "BUY+", color: "rgba(0,255,65,0.7)"   },
                         ].map(({ left, zone, color }) => (
                           <span
                             key={zone}

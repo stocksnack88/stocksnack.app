@@ -1256,19 +1256,19 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                       })}
                     </div>
                     {rawScore != null && (
-                      <div className="mt-3 space-y-0.5 font-mono text-[9px]">
-                        <div className="flex">
-                          <span className="w-28 shrink-0" style={{ color: "rgba(0,255,65,0.3)" }}>Average score</span>
-                          <span style={{ color: "rgba(0,255,65,0.3)" }}>: {rawScore}%</span>
-                        </div>
-                        <div className="flex">
-                          <span className="w-28 shrink-0" style={{ color: hasPenalty ? "rgba(251,191,36,0.5)" : "rgba(0,255,65,0.3)" }}>Trend penalty</span>
-                          <span style={{ color: hasPenalty ? "rgba(251,191,36,0.7)" : "rgba(0,255,65,0.3)" }}>: {penaltyLabel}</span>
-                        </div>
-                        <div className="flex">
-                          <span className="w-28 shrink-0" style={{ color: "rgba(0,255,65,0.5)" }}>Final score</span>
-                          <span style={{ color: scoreColor(growthScore) }}>: {growthScore.toFixed(1)}%</span>
-                        </div>
+                      <div className="font-mono text-center">
+                        <p className="mt-3" style={{ fontSize: 9, color: "rgba(0,255,65,0.4)" }}>
+                          REVENUE  ·  EBITDA  ·  FCF
+                        </p>
+                        <p style={{ fontSize: 10, color: "rgba(0,255,65,0.7)" }}>
+                          ({revPts}% + {niPts}% + {fcfPts != null ? `${fcfPts}%` : "N/A"}) ÷ 3 × {worstMult.toFixed(2)} = {growthScore.toFixed(1)}%
+                        </p>
+                        <p style={{ fontSize: 9, color: worstMult !== 1.0 ? "rgba(245,158,11,0.6)" : "rgba(0,255,65,0.3)" }}>
+                          Trend: {penaltyLabel}
+                        </p>
+                        <p className="mt-1 font-bold" style={{ fontSize: 11, color: scoreColor(growthScore) }}>
+                          Final Score: {growthScore.toFixed(1)}%
+                        </p>
                       </div>
                     )}
                   </div>

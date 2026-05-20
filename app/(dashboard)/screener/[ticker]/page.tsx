@@ -1028,7 +1028,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                       points={spPoints.map(p => `${p.x},${p.y}`).join(" ")}
                                       fill="none"
                                       stroke="#ff0000"
-                                      strokeWidth="3"
+                                      strokeWidth="1"
                                       strokeOpacity="0.6"
                                       vectorEffect="non-scaling-stroke"
                                     />
@@ -1041,9 +1041,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                   style={{
                                     left: `${lastSp.x}%`,
                                     top: `${lastSp.y}px`,
-                                    transform: "translateX(-100%) translateY(-100%)",
-                                    color: "rgba(255,0,0,0.65)",
+                                    transform: "translateX(-100%)",
+                                    color: "#ff0000",
                                     whiteSpace: "nowrap",
+                                    background: "rgba(255,0,0,0.15)",
+                                    border: "1px solid #ff0000",
+                                    borderRadius: 3,
+                                    padding: "1px 4px",
                                   }}
                                 >
                                   S&P pace

@@ -914,25 +914,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                       : "#ef4444";
                     return (
                       <div key={key}>
-                        {/* Header: name+badge left · signal+stars right */}
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-xs font-bold tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.7)" }}>
-                              {label}
-                            </span>
-                            {cagrNum != null && (
-                              <span
-                                className="text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0"
-                                style={{
-                                  background: "rgba(0,255,65,0.15)",
-                                  border: "1px solid #00ff41",
-                                  color: "#00ff41",
-                                }}
-                              >
-                                Avg. Growth {cagrNum >= 0 ? "+" : ""}{(cagrNum * 100).toFixed(1)}%
-                              </span>
-                            )}
-                          </div>
+                        {/* Header: name left · signal right */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.7)" }}>
+                            {label}
+                          </span>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {benchLabel && (
                               <span className="text-[10px] font-mono font-bold tracking-wider" style={{ color: benchColor }}>
@@ -941,6 +927,21 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             )}
                           </div>
                         </div>
+                        {/* Avg. Growth badge */}
+                        {cagrNum != null && (
+                          <div className="mt-1 mb-2">
+                            <span
+                              className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                              style={{
+                                background: "rgba(0,255,65,0.15)",
+                                border: "1px solid #00ff41",
+                                color: "#00ff41",
+                              }}
+                            >
+                              Avg. Growth {cagrNum >= 0 ? "+" : ""}{(cagrNum * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
                         {/* Bar area */}
                         {(() => {
                           const nBars  = vals.length;
@@ -976,6 +977,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                               x: (i + 0.5) / nBars * 100,
                               y: toSvgY(baseV * Math.pow(1 + sp500Cagr, i)),
                             }));
+                            console.log(`[S&P ref] ${key} | baseV=${baseV} | sp500Cagr=${sp500Cagr} | projected=`, spPoints.map((_, i) => +(baseV * Math.pow(1 + sp500Cagr, i)).toFixed(0)));
                           }
                           const lastSp = spPoints?.[spPoints.length - 1] ?? null;
 

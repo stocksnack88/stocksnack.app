@@ -896,7 +896,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     });
                     const nonNull = vals.filter(x => x.v != null).map(x => x.v as number);
                     if (!nonNull.length) return null;
-                    const maxPos     = Math.max(0, ...nonNull);
+                    const baseV0  = vals[0]?.v;
+                    const sp500Y5 = sp500Cagr != null && baseV0 != null && baseV0 > 0
+                      ? baseV0 * Math.pow(1 + sp500Cagr, nonNull.length - 1)
+                      : 0;
+                    const maxPos     = Math.max(0, ...nonNull, sp500Y5);
                     const maxNeg     = Math.min(0, ...nonNull);
                     const totalRange = maxPos - maxNeg || 1;
                     const negH       = Math.abs(maxNeg) / totalRange * CHART_H;

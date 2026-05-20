@@ -931,9 +931,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             )}
                           </div>
                         </div>
-                        {/* Avg. Growth badge */}
+                        {/* Avg. Growth + S&P badges */}
                         {cagrNum != null && (
-                          <div className="mb-2" style={{ marginTop: 2 }}>
+                          <div className="flex items-center gap-1.5 mb-2" style={{ marginTop: 2 }}>
                             <span
                               className="text-[10px] font-mono px-1.5 py-0.5 rounded"
                               style={{
@@ -944,6 +944,18 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                             >
                               Avg. Growth {cagrNum >= 0 ? "+" : ""}{(cagrNum * 100).toFixed(1)}%
                             </span>
+                            {sp500Cagr != null && (
+                              <span
+                                className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                                style={{
+                                  background: "rgba(255,0,0,0.15)",
+                                  border: "1px solid #ff0000",
+                                  color: "#ff0000",
+                                }}
+                              >
+                                S&P {sp500Cagr >= 0 ? "+" : ""}{(sp500Cagr * 100).toFixed(1)}%
+                              </span>
+                            )}
                           </div>
                         )}
                         {/* Bar area */}
@@ -1038,24 +1050,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                     />
                                   )}
                                 </svg>
-                              )}
-                              {lastSp && (
-                                <span
-                                  className="absolute text-[8px] font-mono pointer-events-none"
-                                  style={{
-                                    left: `${lastSp.x}%`,
-                                    top: `${lastSp.y}px`,
-                                    transform: "translateX(-100%)",
-                                    color: "#ff0000",
-                                    whiteSpace: "nowrap",
-                                    background: "rgba(255,0,0,0.15)",
-                                    border: "1px solid #ff0000",
-                                    borderRadius: 3,
-                                    padding: "1px 4px",
-                                  }}
-                                >
-                                  S&P pace
-                                </span>
                               )}
                             </div>
                           );

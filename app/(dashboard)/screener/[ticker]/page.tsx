@@ -794,45 +794,41 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         <div style={{ width: "10%", background: "rgba(245,158,11,0.55)" }} />
                         <div style={{ width: "40%", background: "rgba(163,230,53,0.45)" }} />
                       </div>
-                      {/* Tick marks with 45° rotated CAGR labels */}
-                      <div className="relative" style={{ height: 38 }}>
+                      {/* Tick marks and zone labels */}
+                      <div className="relative" style={{ height: 36 }}>
                         {ticks.map(({ left, cagr }) => (
                           <div
                             key={cagr}
                             className="absolute"
-                            style={{ left, transform: "translateX(-50%)" }}
+                            style={{ left, top: 0, transform: "translateX(-50%)" }}
                           >
                             <div className="w-px" style={{ height: 8, background: "rgba(255,255,255,0.4)" }} />
                             <span
-                              className="text-[8px] font-mono whitespace-nowrap"
+                              className="font-mono whitespace-nowrap"
                               style={{
-                                color: "rgba(0,255,65,0.35)",
-                                marginLeft: -4,
                                 display: "inline-block",
-                                transform: "rotate(-90deg) translateX(-50%)",
-                                transformOrigin: "left center",
-                                background: "rgba(0,0,0,0.6)",
-                                border: "1px solid rgba(0,255,65,0.25)",
-                                borderRadius: 3,
-                                padding: "1px 3px",
+                                transform: "translateX(-50%)",
+                                fontSize: 8,
+                                color: "rgba(0,255,65,0.7)",
+                                background: "rgba(0,0,0,0.8)",
+                                border: "1px solid rgba(255,255,255,0.25)",
+                                borderRadius: 4,
+                                padding: "2px 5px",
                               }}
                             >
                               {cagr}
                             </span>
                           </div>
                         ))}
-                      </div>
-                      {/* Zone names below each tick */}
-                      <div className="relative" style={{ height: 14 }}>
-                        {ticks.map(({ left, zone, zoneColor }) => (
+                        {[
+                          { left: "15%", zone: "SELL", color: "rgba(239,68,68,0.6)"   },
+                          { left: "55%", zone: "HOLD", color: "rgba(245,158,11,0.65)" },
+                          { left: "80%", zone: "BUY",  color: "rgba(163,230,53,0.65)" },
+                        ].map(({ left, zone, color }) => (
                           <span
                             key={zone}
-                            className="absolute text-[8px] font-bold uppercase whitespace-nowrap"
-                            style={{
-                              left,
-                              color: zoneColor,
-                              transform: left === "0%" ? "none" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)",
-                            }}
+                            className="absolute font-bold uppercase whitespace-nowrap"
+                            style={{ left, bottom: 0, fontSize: 9, color, transform: "translateX(-50%)" }}
                           >
                             {zone}
                           </span>
@@ -1204,24 +1200,37 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                 <div style={{ width: "10%", background: "rgba(245,158,11,0.55)" }} />
                                 <div style={{ width: "40%", background: "rgba(163,230,53,0.45)" }} />
                               </div>
-                              {/* Tick marks */}
-                              <div className="relative" style={{ height: rowIdx === miniRows.length - 1 ? 38 : 8 }}>
+                              {/* Tick marks and zone labels */}
+                              <div className="relative" style={{ height: rowIdx === miniRows.length - 1 ? 36 : 8 }}>
                                 {SCORE_TICKS.map(({ left, label }) => (
                                   <div
                                     key={label}
                                     className="absolute"
-                                    style={{ left, transform: "translateX(-50%)" }}
+                                    style={{ left, top: 0, transform: "translateX(-50%)" }}
                                   >
                                     <div className="w-px" style={{ height: 8, background: "rgba(255,255,255,0.4)" }} />
                                     {rowIdx === miniRows.length - 1 && (
                                       <span
-                                        className="text-[8px] font-mono whitespace-nowrap"
-                                        style={{ color: "rgba(0,255,65,0.35)", marginLeft: -4, display: "inline-block", transform: "rotate(-90deg) translateX(-50%)", transformOrigin: "left center", background: "rgba(0,0,0,0.6)", border: "1px solid rgba(0,255,65,0.25)", borderRadius: 3, padding: "1px 3px" }}
+                                        className="font-mono whitespace-nowrap"
+                                        style={{ display: "inline-block", transform: "translateX(-50%)", fontSize: 8, color: "rgba(0,255,65,0.7)", background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 4, padding: "2px 5px" }}
                                       >
                                         {label}
                                       </span>
                                     )}
                                   </div>
+                                ))}
+                                {rowIdx === miniRows.length - 1 && [
+                                  { left: "15%", zone: "SELL", color: "rgba(239,68,68,0.6)"   },
+                                  { left: "55%", zone: "HOLD", color: "rgba(245,158,11,0.65)" },
+                                  { left: "80%", zone: "BUY",  color: "rgba(163,230,53,0.65)" },
+                                ].map(({ left, zone, color }) => (
+                                  <span
+                                    key={zone}
+                                    className="absolute font-bold uppercase whitespace-nowrap"
+                                    style={{ left, bottom: 0, fontSize: 9, color, transform: "translateX(-50%)" }}
+                                  >
+                                    {zone}
+                                  </span>
                                 ))}
                               </div>
                             </div>

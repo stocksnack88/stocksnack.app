@@ -442,6 +442,10 @@ def main() -> None:
         metavar="N", help="Process at most N tickers (useful for testing)",
     )
     parser.add_argument(
+        "--offset", type=int, default=0,
+        help="Skip the first N tickers from the S&P 500 list before applying --limit",
+    )
+    parser.add_argument(
         "--dry-run", action="store_true",
         help="Run scoring but do NOT write to Supabase",
     )
@@ -452,8 +456,9 @@ def main() -> None:
     else:
         tickers = _load_sp500_tickers()
 
+    tickers = tickers[args.offset:]
     if args.limit:
-        tickers = tickers[: args.limit]
+        tickers = tickers[:args.limit]
 
     dry_run: bool = args.dry_run
 

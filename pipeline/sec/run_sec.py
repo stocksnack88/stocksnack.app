@@ -429,6 +429,15 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
         return False, None, None
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def pre_register_tickers(tickers: list[str], writer: "SupabaseWriter") -> None:
+    """Ensure every ticker exists in the stocks table before scoring begins."""
+    rows = [{"ticker": t} for t in tickers]
+    writer.client.table("stocks").upsert(rows, on_conflict="ticker").execute()
+    log.info("Pre-registered %d tickers in stocks table", len(rows))
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -466,6 +475,9 @@ def main() -> None:
              len(tickers), "  [DRY RUN]" if dry_run else "")
 
     writer = None if dry_run else SupabaseWriter(SUPABASE_URL, SUPABASE_KEY)
+
+    if writer is not None:
+        pre_register_tickers(tickers, writer)
 
     log.info("Fetching S&P 500 benchmark…")
     spy = compute_spy_benchmark({}, [])

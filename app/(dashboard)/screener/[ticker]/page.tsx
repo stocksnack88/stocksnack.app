@@ -1146,9 +1146,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 const toMarkerColor = (s: number) =>
                   s < 40 ? "#ef4444" : s < 48 ? "#f59e0b" : s < 60 ? "#a3e635" : "#00ff41";
                 const SCORE_TICKS = [
-                  { left: "0%",   label: "0×",   zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
+                  { left: "0%",   label: "-S&P", zone: "SELL", zoneColor: "rgba(239,68,68,0.6)"   },
                   { left: "30%",  label: "0",    zone: "",      zoneColor: "rgba(239,68,68,0.4)"   },
-                  { left: "50%",  label: "1×",   zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
+                  { left: "50%",  label: "S&P",  zone: "HOLD", zoneColor: "rgba(245,158,11,0.65)" },
                   { left: "60%",  label: "1.2×", zone: "BUY",  zoneColor: "rgba(163,230,53,0.65)" },
                   { left: "100%", label: "1.5×", zone: "BUY+", zoneColor: "rgba(0,255,65,0.7)"    },
                 ] as const;
@@ -1217,7 +1217,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                     style={{
                                       left,
                                       top: 10,
-                                      transform: left === "0%" ? "translateX(0%)" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)",
+                                      transform: left === "0%" ? "translateX(0%)" : left === "100%" ? "translateX(-100%)" : left === "50%" ? "translateX(-80%)" : left === "60%" ? "translateX(-20%)" : "translateX(-50%)",
                                       background: "rgba(0,0,0,0.8)",
                                       border: "1px solid rgba(255,255,255,0.2)",
                                       borderRadius: 3,

@@ -795,40 +795,43 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                         <div style={{ width: "40%", background: "rgba(163,230,53,0.45)" }} />
                       </div>
                       {/* Tick marks and zone labels */}
-                      <div className="relative" style={{ height: 36 }}>
+                      <div className="relative" style={{ height: 48 }}>
+                        {/* Tick nubs */}
+                        {(["0%", "30%", "50%", "60%", "100%"] as const).map(left => (
+                          <div key={left} className="absolute" style={{ left, top: 0, width: 1, height: 8, background: "rgba(255,255,255,0.4)", transform: "translateX(-50%)" }} />
+                        ))}
+                        {/* Tick labels */}
                         {ticks.map(({ left, cagr }) => (
-                          <div
+                          <span
                             key={cagr}
                             className="absolute"
-                            style={{ left, top: 0, transform: "translateX(-50%)" }}
+                            style={{
+                              left,
+                              top: 10,
+                              transform: left === "0%" ? "translateX(0%)" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)",
+                              background: "rgba(0,0,0,0.8)",
+                              border: "1px solid rgba(255,255,255,0.2)",
+                              borderRadius: 3,
+                              padding: "2px 4px",
+                              fontSize: 8,
+                              fontFamily: "monospace",
+                              color: "rgba(0,255,65,0.7)",
+                              whiteSpace: "nowrap",
+                            }}
                           >
-                            <div className="w-px" style={{ height: 8, background: "rgba(255,255,255,0.4)" }} />
-                            <span
-                              className="font-mono whitespace-nowrap"
-                              style={{
-                                display: "inline-block",
-                                transform: "translateX(-50%)",
-                                fontSize: 8,
-                                color: "rgba(0,255,65,0.7)",
-                                background: "rgba(0,0,0,0.8)",
-                                border: "1px solid rgba(255,255,255,0.25)",
-                                borderRadius: 4,
-                                padding: "2px 5px",
-                              }}
-                            >
-                              {cagr}
-                            </span>
-                          </div>
+                            {cagr}
+                          </span>
                         ))}
+                        {/* Zone labels */}
                         {[
-                          { left: "15%", zone: "SELL", color: "rgba(239,68,68,0.6)"   },
-                          { left: "55%", zone: "HOLD", color: "rgba(245,158,11,0.65)" },
-                          { left: "80%", zone: "BUY",  color: "rgba(163,230,53,0.65)" },
+                          { left: "15%", zone: "SELL", color: "rgba(239,68,68,0.7)"  },
+                          { left: "55%", zone: "HOLD", color: "rgba(245,158,11,0.7)" },
+                          { left: "80%", zone: "BUY",  color: "rgba(163,230,53,0.7)" },
                         ].map(({ left, zone, color }) => (
                           <span
                             key={zone}
-                            className="absolute font-bold uppercase whitespace-nowrap"
-                            style={{ left, bottom: 0, fontSize: 9, color, transform: "translateX(-50%)" }}
+                            className="absolute uppercase"
+                            style={{ left, top: 32, transform: "translateX(-50%)", color, fontSize: 9, fontWeight: "bold" }}
                           >
                             {zone}
                           </span>
@@ -1201,33 +1204,43 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                 <div style={{ width: "40%", background: "rgba(163,230,53,0.45)" }} />
                               </div>
                               {/* Tick marks and zone labels */}
-                              <div className="relative" style={{ height: rowIdx === miniRows.length - 1 ? 36 : 8 }}>
-                                {SCORE_TICKS.map(({ left, label }) => (
-                                  <div
+                              <div className="relative" style={{ height: rowIdx === miniRows.length - 1 ? 48 : 8 }}>
+                                {/* Tick nubs */}
+                                {(["0%", "30%", "50%", "60%", "100%"] as const).map(left => (
+                                  <div key={left} className="absolute" style={{ left, top: 0, width: 1, height: 8, background: "rgba(255,255,255,0.4)", transform: "translateX(-50%)" }} />
+                                ))}
+                                {/* Tick labels (last row only) */}
+                                {rowIdx === miniRows.length - 1 && SCORE_TICKS.map(({ left, label }) => (
+                                  <span
                                     key={label}
                                     className="absolute"
-                                    style={{ left, top: 0, transform: "translateX(-50%)" }}
+                                    style={{
+                                      left,
+                                      top: 10,
+                                      transform: left === "0%" ? "translateX(0%)" : left === "100%" ? "translateX(-100%)" : "translateX(-50%)",
+                                      background: "rgba(0,0,0,0.8)",
+                                      border: "1px solid rgba(255,255,255,0.2)",
+                                      borderRadius: 3,
+                                      padding: "2px 4px",
+                                      fontSize: 8,
+                                      fontFamily: "monospace",
+                                      color: "rgba(0,255,65,0.7)",
+                                      whiteSpace: "nowrap",
+                                    }}
                                   >
-                                    <div className="w-px" style={{ height: 8, background: "rgba(255,255,255,0.4)" }} />
-                                    {rowIdx === miniRows.length - 1 && (
-                                      <span
-                                        className="font-mono whitespace-nowrap"
-                                        style={{ display: "inline-block", transform: "translateX(-50%)", fontSize: 8, color: "rgba(0,255,65,0.7)", background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 4, padding: "2px 5px" }}
-                                      >
-                                        {label}
-                                      </span>
-                                    )}
-                                  </div>
+                                    {label}
+                                  </span>
                                 ))}
+                                {/* Zone labels (last row only) */}
                                 {rowIdx === miniRows.length - 1 && [
-                                  { left: "15%", zone: "SELL", color: "rgba(239,68,68,0.6)"   },
-                                  { left: "55%", zone: "HOLD", color: "rgba(245,158,11,0.65)" },
-                                  { left: "80%", zone: "BUY",  color: "rgba(163,230,53,0.65)" },
+                                  { left: "15%", zone: "SELL", color: "rgba(239,68,68,0.7)"  },
+                                  { left: "55%", zone: "HOLD", color: "rgba(245,158,11,0.7)" },
+                                  { left: "80%", zone: "BUY",  color: "rgba(163,230,53,0.7)" },
                                 ].map(({ left, zone, color }) => (
                                   <span
                                     key={zone}
-                                    className="absolute font-bold uppercase whitespace-nowrap"
-                                    style={{ left, bottom: 0, fontSize: 9, color, transform: "translateX(-50%)" }}
+                                    className="absolute uppercase"
+                                    style={{ left, top: 32, transform: "translateX(-50%)", color, fontSize: 9, fontWeight: "bold" }}
                                   >
                                     {zone}
                                   </span>

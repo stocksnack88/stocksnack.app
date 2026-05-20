@@ -969,6 +969,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                           }
 
                           // S&P reference line: compound from Y1 actual at sp500_cagr
+                          // baseV = vals[0].v = oldest fiscal year's actual value
+                          // (fundamentals queried ORDER BY fiscal_year ASC, so index 0 = leftmost bar)
                           type SpPt = { x: number; y: number };
                           let spPoints: SpPt[] | null = null;
                           const baseV = vals[0]?.v;
@@ -977,7 +979,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                               x: (i + 0.5) / nBars * 100,
                               y: toSvgY(baseV * Math.pow(1 + sp500Cagr, i)),
                             }));
-                            console.log(`[S&P ref] ${key} | baseV=${baseV} | sp500Cagr=${sp500Cagr} | projected=`, spPoints.map((_, i) => +(baseV * Math.pow(1 + sp500Cagr, i)).toFixed(0)));
                           }
                           const lastSp = spPoints?.[spPoints.length - 1] ?? null;
 
@@ -1027,9 +1028,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                                       points={spPoints.map(p => `${p.x},${p.y}`).join(" ")}
                                       fill="none"
                                       stroke="#ff0000"
-                                      strokeWidth="1"
-                                      strokeDasharray="2,2"
-                                      strokeOpacity="0.5"
+                                      strokeWidth="3"
+                                      strokeOpacity="0.6"
                                       vectorEffect="non-scaling-stroke"
                                     />
                                   )}

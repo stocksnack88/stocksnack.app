@@ -419,6 +419,7 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
         if dry_run:
             log.info("[%s] --dry-run: skipping Supabase write", ticker)
         else:
+            writer.upsert_stock(ticker, data)
             writer.upsert_scores(ticker, ppm, growth, health, final, spy, segments, hazard)
 
         log.info("[%s] ✓ Done", ticker)

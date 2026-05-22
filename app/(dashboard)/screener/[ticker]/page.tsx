@@ -438,7 +438,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
           {/* 3 method cards — flat CSS grid: each step is a shared row across all 3 columns */}
           {(() => {
-            const m3na = scoreEx?.m3_applicable === false || !score?.ppm_m3_price || Number(score.ppm_m3_price) === 0;
+            const m3na = scoreEx?.m3_applicable === false || !score?.ppm_m3_price || Number(score.ppm_m3_price) === 0 || (scoreEx?.m3_div_yield != null && Number(scoreEx.m3_div_yield) < 0.04);
             const m2na = !score?.ppm_m2_price || Number(score.ppm_m2_price) === 0;
             const stepBox = "border border-[rgba(0,255,65,0.1)] rounded p-1 text-center";
             const cb  = "border-r border-[rgba(0,255,65,0.1)]"; // column divider for M1 and M2 cells

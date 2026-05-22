@@ -151,6 +151,7 @@ class SupabaseWriter:
         spy: dict,
         segments: dict,
         hazard: dict | None = None,
+        sector_override: str | None = None,
     ) -> None:
         self.client.table("stock_scores").upsert({
             "ticker":             ticker,
@@ -210,6 +211,7 @@ class SupabaseWriter:
             # Hazard flags
             "has_anomaly":        (hazard or {}).get("has_anomaly", False),
             "anomaly_reasons":    ", ".join((hazard or {}).get("reasons", [])) or None,
+            "sector_override":    sector_override,
             "updated_at":         _now(),
         }).execute()
 

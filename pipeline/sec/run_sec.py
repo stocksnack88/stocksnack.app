@@ -40,7 +40,9 @@ from scoring.spy_benchmark import compute_spy_benchmark
 from supabase_writer import SupabaseWriter
 from config import SUPABASE_URL, SUPABASE_KEY
 
-BANK_TICKERS = ["JPM", "BAC"]
+BANK_TICKERS       = ["JPM", "BAC", "BK", "RF"]
+FINANCIAL_TICKERS  = ["EG", "IVZ", "PFG", "PRU", "RJF", "TROW"]
+REIT_TICKERS       = ["ARE", "BXP", "CPT", "DOC", "EQR", "INVH", "MAA", "SBAC", "SPG", "WELL"]
 
 _SP500_CACHE     = _SEC_DIR / "sp500_tickers.csv"
 _CACHE_TTL_DAYS  = 7
@@ -359,6 +361,20 @@ def build_data_dict(ticker: str, years: int = 5) -> dict:
         for bal in balance_list:
             bal["netDebt"] = 0.0
 
+    if ticker.upper() in FINANCIAL_TICKERS:
+        for inc in income_list:
+            inc["ebitda"] = inc.get("pretax_income") or inc.get("netIncome", 0)
+        for bal in balance_list:
+            bal["netDebt"] = 0.0
+
+    if ticker.upper() in REIT_TICKERS:
+        for inc in income_list:
+            da = inc.get("depreciation_amortization") or 0
+            ni = inc.get("netIncome") or 0
+            inc["ebitda"] = ni + da  # FFO proxy
+        for bal in balance_list:
+            bal["netDebt"] = 0.0
+
     log.info("[%s] Building data dict…", ticker)
     return {
         "profile":           profile,
@@ -416,11 +432,21 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
         else:
             log.info("[%s] Segments: not available", ticker)
 
+        t_upper = ticker.upper()
+        if t_upper in BANK_TICKERS:
+            sector_override = "Bank"
+        elif t_upper in FINANCIAL_TICKERS:
+            sector_override = "Financial"
+        elif t_upper in REIT_TICKERS:
+            sector_override = "REIT"
+        else:
+            sector_override = None
+
         if dry_run:
             log.info("[%s] --dry-run: skipping Supabase write", ticker)
         else:
             writer.upsert_stock(ticker, data)
-            writer.upsert_scores(ticker, ppm, growth, health, final, spy, segments, hazard)
+            writer.upsert_scores(ticker, ppm, growth, health, final, spy, segments, hazard, sector_override)
 
         log.info("[%s] ✓ Done", ticker)
         return True, len(prod) if prod else None, len(geo) if geo else None

@@ -10,6 +10,8 @@ CostOfGoodsSold,cost_of_revenue,2,2026-05-17,older tag name for same concept
 CostOfGoodsAndServicesSold,cost_of_revenue,3,2026-05-17,alternative combined tag
 OperatingIncomeLoss,operating_income,1,2026-05-16,confirmed AAPL
 IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest,operating_income,2,2026-05-17,JNJ substitute — pre-tax income from continuing ops. OperatingIncomeLoss stopped being filed by JNJ after FY2012.
+IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments,operating_income,3,2026-05-19,CVX substitute — pre-tax income including equity method investments. CVX does not file OperatingIncomeLoss.
+IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic,operating_income,4,2026-05-22,PSX substitute — domestic pre-tax income used when OperatingIncomeLoss is absent
 NetIncomeLoss,net_income,1,2026-05-16,confirmed AAPL
 NetIncome,net_income,2,2026-05-16,
 ProfitLoss,net_income,3,2026-05-16,
@@ -30,6 +32,7 @@ NetCashProvidedByUsedInOperatingActivitiesContinuingOperations,operating_cash_fl
 PaymentsToAcquirePropertyPlantAndEquipment,capital_expenditure,1,2026-05-16,confirmed AAPL
 CapitalExpendituresIncurredButNotYetPaid,capital_expenditure,2,2026-05-16,
 PaymentsForCapitalImprovements,capital_expenditure,3,2026-05-16,
+PaymentsToAcquireOilAndGasPropertyAndEquipment,capital_expenditure,4,2026-05-22,CVX oil & gas property — substitute when PaymentsToAcquirePropertyPlantAndEquipment is absent
 AllocatedShareBasedCompensationExpense,stock_based_compensation,1,2026-05-16,confirmed AAPL
 ShareBasedCompensation,stock_based_compensation,2,2026-05-16,
 PaymentsOfDividends,dividends_paid,1,2026-05-16,confirmed AAPL
@@ -42,6 +45,7 @@ DepreciationAndAmortization,depreciation_amortization,2,2026-05-17,partial (PP&E
 Depreciation,depreciation_amortization,3,2026-05-17,partial (PP&E only; component for sum)
 AmortizationOfIntangibleAssets,depreciation_amortization,4,2026-05-17,partial (intangibles only; component for sum)
 DepreciationAmortizationAndAccretionNet,depreciation_amortization,5,2026-05-17,alternative complete — last resort
+DepreciationDepletionAndAmortization,depreciation_amortization,4,2026-05-22,PCG — duplicate entry at lower priority to handle staleness fallback
 CashAndCashEquivalentsAtCarryingValue,cash_and_equivalents,1,2026-05-16,confirmed AAPL
 CashAndCashEquivalents,cash_and_equivalents,2,2026-05-16,
 CashCashEquivalentsAndShortTermInvestments,cash_and_equivalents,3,2026-05-16,

@@ -13,6 +13,7 @@ Run:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from datetime import datetime, timezone
@@ -32,8 +33,9 @@ except ImportError:
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
-VALID_SIGNALS  = {"BUY+", "BUY", "HOLD", "SELL"}
-STALENESS_DAYS = 8
+VALID_SIGNALS        = {"BUY+", "BUY", "HOLD", "SELL"}
+STALENESS_DAYS       = 8
+_SEGMENT_ROLLUP_NAMES = {"worldwide", "consolidated"}
 
 # ── check helpers ─────────────────────────────────────────────────────────────
 
@@ -143,6 +145,31 @@ def run_checks(row: dict) -> list[tuple[str, str, str]]:
     else:
         add("signal", sig, "PASS")
 
+    # ── EBITDA NEGATIVE ───────────────────────────────────────────────────────
+    ebitda = _val(row, "m1_ebitda_current")
+    if ebitda is not None and ebitda < 0:
+        add("ebitda:negative", ebitda, "WARN")
+
+    # ── EBITDA DEPTH ──────────────────────────────────────────────────────────
+    # TODO: add ebitda_years_count to stock_scores for depth checking
+
+    # ── SEGMENT ROLLUP ────────────────────────────────────────────────────────
+    for seg_field in ("geo_segments", "product_segments"):
+        raw = _val(row, seg_field)
+        if not raw:
+            continue
+        segments = json.loads(raw) if isinstance(raw, str) else raw
+        for seg in (segments if isinstance(segments, list) else []):
+            name = (seg.get("name") or "").lower()
+            if name.startswith("total") or name in _SEGMENT_ROLLUP_NAMES:
+                add(f"segment_rollup:{seg_field}", seg.get("name"), "FAIL")
+
+    # ── SEGMENT COVERAGE ──────────────────────────────────────────────────────
+    geo  = _val(row, "geo_segments")
+    prod = _val(row, "product_segments")
+    if not geo and not prod:
+        add("segment_coverage", "both NULL", "WARN")
+
     return results
 
 
@@ -165,7 +192,7 @@ def main() -> int:
     scores_query = client.table("stock_scores").select(
         "ticker, final_score, ppm_score, growth_score, health_score, "
         "health_passes, m1_ebitda_current, ppm_blended_price, "
-        "ppm_cagr, signal, updated_at"
+        "ppm_cagr, signal, updated_at, geo_segments, product_segments"
     )
     if args.ticker:
         scores_query = scores_query.eq("ticker", args.ticker.upper())

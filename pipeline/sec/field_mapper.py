@@ -299,6 +299,33 @@ def extract_annual_series(
                             f"tag={p1} value={d['value']/1e6:.0f}M",
                             file=sys.stderr,
                         )
+                    # Backfill missing years from lower-priority tags when P1 doesn't
+                    # reach back `years` years (e.g. a tag switch mid-history).
+                    if len(result) < years:
+                        covered = {d["year"] for d in result}
+                        merged  = list(result)
+                        for idx2, tag2 in enumerate(tags):
+                            if idx2 == 0:
+                                continue  # skip P1 (already primary)
+                            if len(merged) >= years:
+                                break
+                            if tag2 not in tag_data:
+                                continue
+                            series2, _ = tag_data[tag2]
+                            for d2 in sorted(series2, key=lambda x: x["year"]):
+                                if len(merged) >= years:
+                                    break
+                                if d2["year"] in covered:
+                                    continue
+                                covered.add(d2["year"])
+                                merged.append(d2)
+                                print(
+                                    f"[field_mapper] WARNING: [{ticker}] depreciation_amortization "
+                                    f"year {d2['year']} backfilled from fallback tag "
+                                    f"(priority {idx2 + 1}): {tag2}",
+                                    file=sys.stderr,
+                                )
+                        result = sorted(merged, key=lambda d: d["year"])[-years:]
                     return result
                 print(
                     f"[field_mapper] WARNING: {ticker} depreciation_amortization tag '{p1}' "
@@ -405,6 +432,11 @@ def extract_annual_series(
             return []
 
         # ── Step 3: priority-first selection for all other fields ─────────────
+        # Phase A: find primary — the highest-priority tag that passes staleness.
+        primary_result: list[dict] | None = None
+        primary_idx:    int               = -1
+        primary_tag:    str               = ""
+
         for idx, tag in enumerate(tags):
             if tag not in tag_data:
                 continue
@@ -417,30 +449,64 @@ def extract_annual_series(
                     file=sys.stderr,
                 )
                 continue
-            result = sorted(series, key=lambda d: d["year"])[-years:]
-            priority_num = idx + 1
-            if priority_num >= 3:
-                print(
-                    f"[field_mapper] WARNING: [{ticker}] {standardised_name} resolved via "
-                    f"fallback tag (priority {priority_num}): {tag} — verify data quality",
-                    file=sys.stderr,
-                )
-            for d in result:
-                v = d["value"]
-                fmt = f"{v/1e6:.0f}M" if abs(v) >= 1e6 else f"{v:.4f}"
-                print(
-                    f"[field_mapper] {ticker} {standardised_name} {d['year']}: "
-                    f"tag={tag} value={fmt}",
-                    file=sys.stderr,
-                )
-            return result
+            primary_result = sorted(series, key=lambda d: d["year"])[-years:]
+            primary_idx    = idx
+            primary_tag    = tag
+            break
 
-        print(
-            f"[field_mapper] WARNING: {ticker} {standardised_name} — all tags stale",
-            file=sys.stderr,
-        )
-        _append_missing(ticker, standardised_name, notes="all tags stale")
-        return []
+        if primary_result is None:
+            print(
+                f"[field_mapper] WARNING: {ticker} {standardised_name} — all tags stale",
+                file=sys.stderr,
+            )
+            _append_missing(ticker, standardised_name, notes="all tags stale")
+            return []
+
+        priority_num = primary_idx + 1
+        if priority_num >= 3:
+            print(
+                f"[field_mapper] WARNING: [{ticker}] {standardised_name} resolved via "
+                f"fallback tag (priority {priority_num}): {primary_tag} — verify data quality",
+                file=sys.stderr,
+            )
+        for d in primary_result:
+            v = d["value"]
+            fmt = f"{v/1e6:.0f}M" if abs(v) >= 1e6 else f"{v:.4f}"
+            print(
+                f"[field_mapper] {ticker} {standardised_name} {d['year']}: "
+                f"tag={primary_tag} value={fmt}",
+                file=sys.stderr,
+            )
+
+        # Phase B: backfill missing years from lower-priority tags when primary
+        # has fewer than `years` entries (e.g. a tag switch mid-history).
+        # Only applies to fields with multiple priority tags.
+        if len(tags) > 1 and len(primary_result) < years:
+            covered = {d["year"] for d in primary_result}
+            merged  = list(primary_result)
+            for idx2, tag2 in enumerate(tags):
+                if idx2 <= primary_idx:
+                    continue
+                if len(merged) >= years:
+                    break
+                if tag2 not in tag_data:
+                    continue
+                series2, _ = tag_data[tag2]
+                for d2 in sorted(series2, key=lambda x: x["year"]):
+                    if len(merged) >= years:
+                        break
+                    if d2["year"] in covered:
+                        continue
+                    covered.add(d2["year"])
+                    merged.append(d2)
+                    print(
+                        f"[field_mapper] WARNING: [{ticker}] {standardised_name} year {d2['year']} "
+                        f"backfilled from fallback tag (priority {idx2 + 1}): {tag2}",
+                        file=sys.stderr,
+                    )
+            return sorted(merged, key=lambda d: d["year"])[-years:]
+
+        return primary_result
 
     except Exception as exc:
         print(f"[field_mapper] {standardised_name}: error — {exc}", file=sys.stderr)

@@ -71,7 +71,6 @@ def run_checks(row: dict) -> list[tuple[str, str, str]]:
     #   current_price        → from stock_prices table (merged into row)
     missing_fields = [
         "final_score",
-        "ppm_score",
         "growth_score",
         "health_score",
         "m1_ebitda_current",
@@ -81,6 +80,19 @@ def run_checks(row: dict) -> list[tuple[str, str, str]]:
     for field in missing_fields:
         v = _val(row, field)
         add(f"missing:{field}", v, "FAIL" if _is_null_or_zero(v) else "PASS")
+
+    # ppm_score: NULL is always a bug; 0 depends on whether a blended price exists
+    ppm_v = _val(row, "ppm_score")
+    if ppm_v is None:
+        add("missing:ppm_score", ppm_v, "FAIL")
+    elif ppm_v == 0:
+        blended = _val(row, "ppm_blended_price")
+        if blended is not None:
+            add("ppm_score_zero", "score is 0 but blended price exists — scoring bug", "FAIL")
+        else:
+            add("ppm_score_zero", "all PPM methods failed — check EBITDA/FCF signs", "WARN")
+    else:
+        add("missing:ppm_score", ppm_v, "PASS")
 
     # ── RANGE ─────────────────────────────────────────────────────────────────
     score_fields = ["final_score", "ppm_score", "growth_score", "health_score"]

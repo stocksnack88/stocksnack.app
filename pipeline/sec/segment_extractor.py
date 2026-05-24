@@ -58,6 +58,10 @@ _BIZ_SEGMENT_AXES = {
 
 _NULL_RESULT = {"product_segments": None, "geo_segments": None}
 
+# Segment names that are roll-up rows, not real segments.
+# Lowercased exact matches — anything starting with "total" is also excluded.
+_NAME_ROLLUPS = {"worldwide", "consolidated"}
+
 
 # ── HTTP helper ───────────────────────────────────────────────────────────────
 
@@ -539,6 +543,14 @@ def _build_segments(
     # Sort by value descending
     segments.sort(key=lambda s: s["value"], reverse=True)
     segments = _drop_rollups(segments)
+
+    # Drop name-based rollup markers: anything starting with "total",
+    # or exact matches for "worldwide" / "consolidated".
+    segments = [
+        s for s in segments
+        if not s["name"].lower().startswith("total")
+        and s["name"].lower() not in _NAME_ROLLUPS
+    ]
 
     # Recalculate pct against the post-rollup total and strip internal key
     real_total = sum(s["value"] for s in segments)

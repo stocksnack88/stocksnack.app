@@ -81,14 +81,19 @@ def run_checks(row: dict) -> list[tuple[str, str, str]]:
         v = _val(row, field)
         add(f"missing:{field}", v, "FAIL" if _is_null_or_zero(v) else "PASS")
 
-    # ppm_score: NULL is always a bug; 0 depends on whether a blended price exists
-    ppm_v = _val(row, "ppm_score")
+    # ppm_score: NULL is always a bug; 0 is expected for SELL signals (floored), bug otherwise
+    ppm_v   = _val(row, "ppm_score")
+    sig_v   = _val(row, "signal")
+    blended = _val(row, "ppm_blended_price")
+    cagr_v  = _val(row, "ppm_cagr")
     if ppm_v is None:
         add("missing:ppm_score", ppm_v, "FAIL")
     elif ppm_v == 0:
-        blended = _val(row, "ppm_blended_price")
-        if blended is not None:
-            add("ppm_score_zero", "score is 0 but blended price exists — scoring bug", "FAIL")
+        if sig_v != "SELL":
+            add("ppm_score_zero", f"score is 0 but signal is {sig_v} — scoring bug", "FAIL")
+        elif blended is not None:
+            cagr_pct = f"{cagr_v * 100:.1f}" if cagr_v is not None else "N/A"
+            add("ppm_score_zero", f"severely overvalued, CAGR {cagr_pct}% — score correctly 0", "WARN")
         else:
             add("ppm_score_zero", "all PPM methods failed — check EBITDA/FCF signs", "WARN")
     else:

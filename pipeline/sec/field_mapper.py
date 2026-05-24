@@ -180,6 +180,19 @@ def _extract_tag(usgaap: dict, tag: str, years: int) -> tuple[list[dict], str]:
     # We use year(end) — not the fy field — because SEC EDGAR tags ALL data points
     # in a 10-K (including prior-year comparisons) with the filing year's fy, making
     # the fy field unreliable for identifying which period a data point belongs to.
+    #
+    # Tie-break by duration: some companies (e.g. REITs) include quarterly sub-period
+    # facts inside the 10-K with fp="FY" and the same filed date as the annual fact.
+    # When filed dates are equal, prefer the longest-duration fact (full year > quarter).
+    def _duration_days(entry: dict) -> int:
+        from datetime import date as _date
+        try:
+            s  = _date.fromisoformat(entry.get("start", ""))
+            en = _date.fromisoformat(entry.get("end",   ""))
+            return (en - s).days
+        except (ValueError, TypeError):
+            return 0
+
     by_year: dict[int, dict] = {}
     for e in annual:
         end = e.get("end", "")
@@ -189,8 +202,17 @@ def _extract_tag(usgaap: dict, tag: str, years: int) -> tuple[list[dict], str]:
             end_year = int(end[:4])
         except ValueError:
             continue
-        if end_year not in by_year or e.get("filed", "") > by_year[end_year].get("filed", ""):
+        if end_year not in by_year:
             by_year[end_year] = e
+        else:
+            cur = by_year[end_year]
+            new_filed = e.get("filed", "")
+            cur_filed = cur.get("filed", "")
+            if new_filed > cur_filed:
+                by_year[end_year] = e
+            elif new_filed == cur_filed and _duration_days(e) > _duration_days(cur):
+                # Same filing — prefer longer period (annual > quarterly sub-period)
+                by_year[end_year] = e
 
     sorted_years = sorted(by_year.keys())[-years:]
     return [
@@ -269,7 +291,7 @@ def extract_annual_series(
             if p1 in tag_data:
                 series, _ = tag_data[p1]
                 most_recent = max(d["year"] for d in series)
-                if cur_year - most_recent <= 2:
+                if cur_year - most_recent <= 1:
                     result = sorted(series, key=lambda d: d["year"])[-years:]
                     for d in result:
                         print(
@@ -383,7 +405,7 @@ def extract_annual_series(
             return []
 
         # ── Step 3: priority-first selection for all other fields ─────────────
-        for tag in tags:
+        for idx, tag in enumerate(tags):
             if tag not in tag_data:
                 continue
             series, _ = tag_data[tag]
@@ -396,6 +418,13 @@ def extract_annual_series(
                 )
                 continue
             result = sorted(series, key=lambda d: d["year"])[-years:]
+            priority_num = idx + 1
+            if priority_num >= 3:
+                print(
+                    f"[field_mapper] WARNING: [{ticker}] {standardised_name} resolved via "
+                    f"fallback tag (priority {priority_num}): {tag} — verify data quality",
+                    file=sys.stderr,
+                )
             for d in result:
                 v = d["value"]
                 fmt = f"{v/1e6:.0f}M" if abs(v) >= 1e6 else f"{v:.4f}"

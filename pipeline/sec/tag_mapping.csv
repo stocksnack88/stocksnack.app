@@ -46,6 +46,7 @@ Depreciation,depreciation_amortization,3,2026-05-17,partial (PP&E only; componen
 AmortizationOfIntangibleAssets,depreciation_amortization,4,2026-05-17,partial (intangibles only; component for sum)
 DepreciationAmortizationAndAccretionNet,depreciation_amortization,5,2026-05-17,alternative complete — last resort
 DepreciationDepletionAndAmortization,depreciation_amortization,4,2026-05-22,PCG — duplicate entry at lower priority to handle staleness fallback
+DepreciationAndAmortization,depreciation_amortization,5,2026-05-24,fallback complete D&A for tickers that switched to DepreciationDepletionAndAmortization in recent years (e.g. UPS pre-2023)
 CashAndCashEquivalentsAtCarryingValue,cash_and_equivalents,1,2026-05-16,confirmed AAPL
 CashAndCashEquivalents,cash_and_equivalents,2,2026-05-16,
 CashCashEquivalentsAndShortTermInvestments,cash_and_equivalents,3,2026-05-16,

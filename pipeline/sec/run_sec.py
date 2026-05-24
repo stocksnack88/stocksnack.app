@@ -40,10 +40,6 @@ from scoring.spy_benchmark import compute_spy_benchmark
 from supabase_writer import SupabaseWriter
 from config import SUPABASE_URL, SUPABASE_KEY
 
-BANK_TICKERS       = ["JPM", "BAC", "BK", "RF"]
-FINANCIAL_TICKERS  = ["EG", "IVZ", "PFG", "PRU", "RJF", "TROW"]
-REIT_TICKERS       = ["ARE", "BXP", "CPT", "DOC", "EQR", "INVH", "MAA", "SBAC", "SPG", "WELL"]
-
 _SP500_CACHE     = _SEC_DIR / "sp500_tickers.csv"
 _CACHE_TTL_DAYS  = 7
 
@@ -225,6 +221,57 @@ def _load_period_of_report(ticker: str) -> dict[int, str]:
     return result
 
 
+def _resolve_sector_mode(ticker: str, client=None) -> dict:
+    """Query Supabase stocks table for sector/industry and return override mode flags."""
+    _default = {
+        "bank_mode":       False,
+        "reit_mode":       False,
+        "financial_mode":  False,
+        "sector_override": None,
+    }
+    try:
+        if client is None:
+            from supabase import create_client
+            client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        resp = (
+            client.table("stocks")
+            .select("sector, industry")
+            .eq("ticker", ticker)
+            .maybe_single()
+            .execute()
+        )
+        row      = (resp.data or {})
+        industry = (row.get("industry") or "").strip()
+        sector   = (row.get("sector")   or "").strip()
+    except Exception as exc:
+        log.warning("[%s] Sector lookup failed (%s) — using standard mode", ticker, exc)
+        return _default
+
+    bank_mode      = "Banks" in industry or "Credit Services" in industry
+    reit_mode      = "REIT" in industry
+    financial_mode = sector == "Financial Services" and not bank_mode
+
+    if bank_mode:
+        sector_override = "Bank"
+    elif reit_mode:
+        sector_override = "REIT"
+    elif financial_mode:
+        sector_override = "Financial"
+    else:
+        sector_override = None
+
+    log.info(
+        "[%s] Sector: %r / Industry: %r → override=%r",
+        ticker, sector, industry, sector_override,
+    )
+    return {
+        "bank_mode":       bank_mode,
+        "reit_mode":       reit_mode,
+        "financial_mode":  financial_mode,
+        "sector_override": sector_override,
+    }
+
+
 # ── Data dict builder ─────────────────────────────────────────────────────────
 
 _INCOME_FIELDS = {
@@ -256,11 +303,12 @@ def _safe(v, default=0.0) -> float:
         return default
 
 
-def build_data_dict(ticker: str, years: int = 5) -> dict:
+def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None) -> dict:
     """
     Fetch SEC + yfinance data and assemble the exact data dict the scoring
     layers expect, mirroring the structure that fmp.fetch_all() produces.
     """
+    _sm = sector_mode or {}
     log.info("[%s] Fetching SEC data…", ticker)
     flat_years = normalise(ticker, years=years)  # newest first
 
@@ -339,7 +387,7 @@ def build_data_dict(ticker: str, years: int = 5) -> dict:
         div_yield = (net_div_ / mktcap) if mktcap and mktcap > 0 and net_div_ > 0 else None
 
         # Banks: EV/EBITDA is meaningless; use P/E (market_cap / net_income) instead
-        if ticker.upper() in BANK_TICKERS:
+        if _sm.get("bank_mode"):
             net_inc_  = _safe(yr.get("netIncome"))
             ev_ebitda = (mktcap / net_inc_) if mktcap and mktcap > 0 and net_inc_ > 0 else None
 
@@ -355,21 +403,21 @@ def build_data_dict(ticker: str, years: int = 5) -> dict:
     # projected equity destroys the calculation — bank "debt" is deposits/funding,
     # not corporate financing. P/E valuation never subtracts debt; zero it out.
     # Override in-memory only — does NOT write back to extracted_data.csv.
-    if ticker.upper() in BANK_TICKERS:
+    if _sm.get("bank_mode"):
         for inc in income_list:
             inc["ebitda"] = inc.get("netIncome", 0)
         for bal in balance_list:
             bal["netDebt"] = 0.0
 
-    if ticker.upper() in FINANCIAL_TICKERS:
+    if _sm.get("financial_mode"):
         for inc in income_list:
             inc["ebitda"] = inc.get("pretax_income") or inc.get("netIncome", 0)
         for bal in balance_list:
             bal["netDebt"] = 0.0
 
-    if ticker.upper() in REIT_TICKERS:
+    if _sm.get("reit_mode"):
         for inc in income_list:
-            da = inc.get("depreciation_amortization") or 0
+            da = inc.get("depreciationAndAmortization") or 0
             ni = inc.get("netIncome") or 0
             inc["ebitda"] = ni + da  # FFO proxy
         for bal in balance_list:
@@ -392,7 +440,10 @@ def build_data_dict(ticker: str, years: int = 5) -> dict:
 
 def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool) -> bool:
     try:
-        data = build_data_dict(ticker)
+        sector_mode = _resolve_sector_mode(
+            ticker, client=writer.client if writer is not None else None
+        )
+        data = build_data_dict(ticker, sector_mode=sector_mode)
 
         if not data["profile"].get("price"):
             log.warning("[%s] No price from yfinance — skipped", ticker)
@@ -432,15 +483,7 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
         else:
             log.info("[%s] Segments: not available", ticker)
 
-        t_upper = ticker.upper()
-        if t_upper in BANK_TICKERS:
-            sector_override = "Bank"
-        elif t_upper in FINANCIAL_TICKERS:
-            sector_override = "Financial"
-        elif t_upper in REIT_TICKERS:
-            sector_override = "REIT"
-        else:
-            sector_override = None
+        sector_override = sector_mode["sector_override"]
 
         if dry_run:
             log.info("[%s] --dry-run: skipping Supabase write", ticker)

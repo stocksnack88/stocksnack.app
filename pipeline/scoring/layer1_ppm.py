@@ -55,7 +55,11 @@ def _m1_ebitda(data: dict, shares: float, fx_rate: float = 1.0, sp500_cagr: floa
     metrics = data.get("metrics", [])
 
     ebitda_vals = [safe_float(r.get("ebitda")) * fx_rate for r in income]
-    if not ebitda_vals or ebitda_vals[0] <= 0:
+    # Strip leading zeros: D&A may be unavailable for the most recent year, leaving
+    # ebitda=0 for that row. Use the most recent year with a positive EBITDA as base.
+    while ebitda_vals and ebitda_vals[0] <= 0:
+        ebitda_vals = ebitda_vals[1:]
+    if not ebitda_vals:
         return None
 
     gq         = compute_gq(list(reversed(ebitda_vals[:5])), sp500_cagr)

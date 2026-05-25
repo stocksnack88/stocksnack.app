@@ -234,6 +234,7 @@ No preamble. No summary. Just the prompt.
 - Never give more than one question per response
 - Never write a Claude Code prompt longer than 200 words — split into two if needed
 - Never say "that's a great idea" — just respond to the idea directly
+- Never assume a sector override is working correctly based on hardcoded lists — always verify via `_resolve_sector_mode()` dry-run for any ticker flagged as wrong sector in the UI
 
 ---
 

@@ -37,6 +37,7 @@ PaymentsToAcquireOilAndGasPropertyAndEquipment,capital_expenditure,4,2026-05-22,
 PaymentsToAcquireProductiveAssets,capital_expenditure,5,2026-05-25,general fallback — fixes ANET/DAL and others where PaymentsToAcquirePropertyPlantAndEquipment is stale
 PaymentsForFlightEquipment,capital_expenditure,6,2026-05-25,airline-specific — DAL primary capex tag
 PaymentsToExploreAndDevelopOilAndGasProperties,capital_expenditure,7,2026-05-25,E&P-specific — APA primary capex tag
+PaymentsToAcquireOtherPropertyPlantAndEquipment,capital_expenditure,8,2026-05-25,pharma/industrials fallback — fixes LLY/IP/EA/ADP
 AllocatedShareBasedCompensationExpense,stock_based_compensation,1,2026-05-16,confirmed AAPL
 ShareBasedCompensation,stock_based_compensation,2,2026-05-16,
 PaymentsOfDividends,dividends_paid,1,2026-05-16,confirmed AAPL

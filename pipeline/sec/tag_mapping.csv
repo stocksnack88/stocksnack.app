@@ -12,6 +12,7 @@ OperatingIncomeLoss,operating_income,1,2026-05-16,confirmed AAPL
 IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest,operating_income,2,2026-05-17,JNJ substitute — pre-tax income from continuing ops. OperatingIncomeLoss stopped being filed by JNJ after FY2012.
 IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments,operating_income,3,2026-05-19,CVX substitute — pre-tax income including equity method investments. CVX does not file OperatingIncomeLoss.
 IncomeLossFromContinuingOperationsBeforeIncomeTaxesDomestic,operating_income,4,2026-05-22,PSX substitute — domestic pre-tax income used when OperatingIncomeLoss is absent
+IncomeLossAttributableToParent,operating_income,5,2026-05-25,CASY substitute — pre-tax income from parent; OperatingIncomeLoss not filed. Non-operating items negligible (<$1M interest).
 NetIncomeLoss,net_income,1,2026-05-16,confirmed AAPL
 NetIncome,net_income,2,2026-05-16,
 ProfitLoss,net_income,3,2026-05-16,

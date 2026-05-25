@@ -403,26 +403,27 @@ def extract_annual_series(
                         for yr in all_years
                     ]
 
-            # Last resort: priority-5 (DepreciationAmortizationAndAccretionNet).
-            if len(tags) > 4:
-                p5 = tags[4]
-                if p5 in tag_data:
-                    series, _ = tag_data[p5]
-                    most_recent = max(d["year"] for d in series)
-                    if cur_year - most_recent <= 2:
-                        result = sorted(series, key=lambda d: d["year"])[-years:]
-                        for d in result:
-                            print(
-                                f"[field_mapper] {ticker} depreciation_amortization {d['year']}: "
-                                f"tag={p5} value={d['value']/1e6:.0f}M",
-                                file=sys.stderr,
-                            )
-                        return result
-                    print(
-                        f"[field_mapper] WARNING: {ticker} depreciation_amortization tag '{p5}' "
-                        f"most recent year {most_recent} — stale, skipping",
-                        file=sys.stderr,
-                    )
+            # Last resort: any remaining tag beyond the component range (index 4+).
+            # Iterate rather than hardcode index so duplicate priority entries don't shift the target.
+            for p5 in tags[4:]:
+                if p5 not in tag_data:
+                    continue
+                series, _ = tag_data[p5]
+                most_recent = max(d["year"] for d in series)
+                if cur_year - most_recent <= 2:
+                    result = sorted(series, key=lambda d: d["year"])[-years:]
+                    for d in result:
+                        print(
+                            f"[field_mapper] {ticker} depreciation_amortization {d['year']}: "
+                            f"tag={p5} value={d['value']/1e6:.0f}M",
+                            file=sys.stderr,
+                        )
+                    return result
+                print(
+                    f"[field_mapper] WARNING: {ticker} depreciation_amortization tag '{p5}' "
+                    f"most recent year {most_recent} — stale, skipping",
+                    file=sys.stderr,
+                )
 
             print(
                 f"[field_mapper] depreciation_amortization: all tags stale or missing for {ticker}",

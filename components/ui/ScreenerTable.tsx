@@ -352,13 +352,24 @@ export default function ScreenerTable({
 
           <button
             onClick={() => setShowFilters(v => !v)}
-            className={`text-xs font-mono tracking-widest border rounded px-2.5 py-1 transition-colors ${
+            className={`relative p-2 border rounded transition-colors ${
               activeCount > 0
-                ? "border-[#00ff41]/60 text-[#00ff41] bg-[#00ff41]/10"
-                : "border-[#00ff41]/25 text-[#00ff41]/40 hover:text-[#00ff41] hover:border-[#00ff41]/50"
+                ? "border-[#00ff41] text-[#00ff41]"
+                : "border-[#00ff41]/30 text-[#00ff41]/50 hover:border-[#00ff41] hover:text-[#00ff41]"
             }`}
+            title="Filter & Sort"
           >
-            FILTER{activeCount > 0 ? ` (${activeCount})` : ""}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+              <line x1="18" y1="9" x2="24" y2="9"/>
+              <line x1="17" y1="13" x2="23" y2="13"/>
+              <line x1="16" y1="17" x2="22" y2="17"/>
+            </svg>
+            {activeCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-[#00ff41] text-black text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {activeCount}
+              </span>
+            )}
           </button>
         </div>
       </div>

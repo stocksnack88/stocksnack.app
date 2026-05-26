@@ -440,6 +440,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           {(() => {
             const m3na = scoreEx?.m3_applicable === false || !score?.ppm_m3_price || Number(score.ppm_m3_price) === 0 || (scoreEx?.m3_div_yield != null && Number(scoreEx.m3_div_yield) < 0.04);
             const m2na = !score?.ppm_m2_price || Number(score.ppm_m2_price) === 0;
+            const m2NotApplicableReason = (() => {
+              const override = score?.sector_override;
+              if (override === 'Bank' || override === 'Financial') return 'FCF excluded for financial sector';
+              if (override === 'REIT') return 'FCF not meaningful for REITs';
+              if (score?.m2_fcf_current !== null && score?.m2_fcf_current !== undefined && Number(score.m2_fcf_current) < 0)
+                return 'Negative FCF — capex exceeds operating cash';
+              return 'Insufficient FCF data';
+            })();
             const stepBox = "border border-[rgba(0,255,65,0.1)] rounded p-1 text-center";
             const cb  = "border-r border-[rgba(0,255,65,0.1)]"; // column divider for M1 and M2 cells
             const cumDivPs = scoreEx?.m_cumulative_div_ps != null ? Number(scoreEx.m_cumulative_div_ps) : 0;
@@ -481,7 +489,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 {m2na ? (
                   <div className={`px-3 py-1 ${cb} opacity-40 text-center`}>
                     <p className="text-[9px] font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.7)" }}>NOT APPLICABLE</p>
-                    <p className="text-[8px] mt-0.5 leading-tight" style={{ color: "rgba(0,255,65,0.5)" }}>FCF excluded for financial sector</p>
+                    <p className="text-[8px] mt-0.5 leading-tight" style={{ color: "rgba(0,255,65,0.5)" }}>{m2NotApplicableReason}</p>
                   </div>
                 ) : (
                   <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>

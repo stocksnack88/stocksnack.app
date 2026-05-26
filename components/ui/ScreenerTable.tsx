@@ -236,8 +236,8 @@ export default function ScreenerTable({
   const btnLabel      = detailLevel === 0 ? "+" : detailLevel === 1 ? "++" : "−";
   const btnAriaLabel  = detailLevel === 0 ? "Show summaries" : detailLevel === 1 ? "Show quality columns" : "Reset view";
 
-  const stickyThTint = headerFrozen ? "sticky top-0 z-10 bg-[#001a00]/40" : "bg-[#001a00]/40";
-  const stickyThBase = headerFrozen ? "sticky top-0 z-10 bg-[#001200]"    : "bg-[#001200]";
+  const stickyThTint = headerFrozen ? "sticky top-[53px] z-10 bg-[#001a00]/40" : "bg-[#001a00]/40";
+  const stickyThBase = headerFrozen ? "sticky top-[53px] z-10 bg-[#001200]"    : "bg-[#001200]";
   const stickyTd     = "sticky left-0 z-[5] bg-[#000]";
 
   const processedStocks = useMemo(() => {

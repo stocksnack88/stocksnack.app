@@ -45,19 +45,19 @@ const COLUMNS: { key: ColumnKey; label: string; conditions: ConditionKey[] }[] =
 ];
 
 const SORT_CONDITIONS = new Set<ConditionKey>(["asc", "desc"]);
-const TEXT_SORT_COLS  = new Set<ColumnKey>(["ticker", "company"]);
 const SIGNAL_OPTS     = ["BUY+", "BUY", "HOLD", "SELL"] as const;
 
-function condLabel(col: ColumnKey, cond: ConditionKey): string {
-  if (cond === "asc")       return TEXT_SORT_COLS.has(col) ? "A → Z"       : "small → large";
-  if (cond === "desc")      return TEXT_SORT_COLS.has(col) ? "Z → A"       : "large → small";
-  if (cond === "gte")       return "≥";
-  if (cond === "lte")       return "≤";
-  if (cond === "is")        return "is";
-  if (cond === "show_only") return "show only";
-  if (cond === "exclude")   return "exclude";
-  return cond;
-}
+const CONDITION_PILLS: Record<ColumnKey, { cond: ConditionKey; label: string }[]> = {
+  signal:  [],
+  cagr:    [{ cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }, { cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }],
+  return:  [{ cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }, { cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }],
+  growth:  [{ cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }, { cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }],
+  health:  [{ cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }, { cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }],
+  ticker:  [{ cond: "asc", label: "A→Z" }, { cond: "desc", label: "Z→A" }],
+  company: [{ cond: "asc", label: "A→Z" }, { cond: "desc", label: "Z→A" }],
+  hazard:  [{ cond: "show_only", label: "SHOW ONLY" }, { cond: "exclude", label: "EXCLUDE" }],
+};
+
 
 function needsValue(f: FilterRow): boolean {
   return (
@@ -383,71 +383,72 @@ export default function ScreenerTable({
             </p>
           )}
 
-          {filters.map(filter => {
-            const colConfig = COLUMNS.find(c => c.key === filter.column)!;
-            return (
-              <div key={filter.id} className="flex flex-wrap items-center gap-2">
-                {/* Column */}
-                <select
-                  value={filter.column}
-                  onChange={e => handleColumnChange(filter.id, e.target.value as ColumnKey)}
-                  className={selectCls}
-                >
-                  {COLUMNS.map(c => (
-                    <option key={c.key} value={c.key}>{c.label}</option>
-                  ))}
-                </select>
+          {filters.map(filter => (
+            <div key={filter.id} className="flex flex-wrap items-center gap-1.5">
+              {/* Column dropdown */}
+              <select
+                value={filter.column}
+                onChange={e => handleColumnChange(filter.id, e.target.value as ColumnKey)}
+                className={selectCls}
+              >
+                {COLUMNS.map(c => (
+                  <option key={c.key} value={c.key}>{c.label}</option>
+                ))}
+              </select>
 
-                {/* Condition */}
-                <select
-                  value={filter.condition}
-                  onChange={e => handleConditionChange(filter.id, e.target.value as ConditionKey)}
-                  className={selectCls}
-                >
-                  {colConfig.conditions.map(cond => (
-                    <option key={cond} value={cond}>{condLabel(filter.column, cond)}</option>
-                  ))}
-                </select>
-
-                {/* SIGNAL checkboxes */}
-                {filter.column === "signal" && (
-                  <div className="flex items-center gap-2.5">
-                    {SIGNAL_OPTS.map(sig => (
-                      <label key={sig} className="flex items-center gap-1 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={filter.signals.includes(sig)}
-                          onChange={() => handleSignalToggle(filter.id, sig)}
-                          className="accent-[#00ff41] w-3 h-3"
-                        />
-                        <span className="text-[10px] font-mono text-[#00ff41]/60">{sig}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-
-                {/* Numeric value */}
-                {needsValue(filter) && (
-                  <input
-                    type="number"
-                    value={filter.value}
-                    onChange={e => handleValueChange(filter.id, e.target.value)}
-                    placeholder={valuePlaceholder(filter.column)}
-                    className={inputCls}
-                  />
-                )}
-
-                {/* Delete row */}
+              {/* Condition pills — for all columns except SIGNAL */}
+              {filter.column !== "signal" && CONDITION_PILLS[filter.column].map(({ cond, label }) => (
                 <button
-                  onClick={() => removeFilter(filter.id)}
-                  aria-label="Remove filter"
-                  className="text-[#00ff41]/25 hover:text-red-400 text-xs font-mono transition-colors ml-1"
+                  key={cond}
+                  type="button"
+                  onClick={() => handleConditionChange(filter.id, cond)}
+                  className={`px-2 py-1 text-xs font-mono rounded transition-colors leading-none ${
+                    filter.condition === cond
+                      ? "bg-[#00ff41] text-black font-bold"
+                      : "text-[#00ff41]/40 border border-[#00ff41]/20 hover:text-[#00ff41]/70 hover:border-[#00ff41]/40"
+                  }`}
                 >
-                  ✕
+                  {label}
                 </button>
-              </div>
-            );
-          })}
+              ))}
+
+              {/* SIGNAL pills — multi-select */}
+              {filter.column === "signal" && SIGNAL_OPTS.map(sig => (
+                <button
+                  key={sig}
+                  type="button"
+                  onClick={() => handleSignalToggle(filter.id, sig)}
+                  className={`px-2 py-1 text-xs font-mono rounded transition-colors leading-none ${
+                    filter.signals.includes(sig)
+                      ? "bg-[#00ff41] text-black font-bold"
+                      : "text-[#00ff41]/40 border border-[#00ff41]/20 hover:text-[#00ff41]/70 hover:border-[#00ff41]/40"
+                  }`}
+                >
+                  {sig}
+                </button>
+              ))}
+
+              {/* Numeric value input */}
+              {needsValue(filter) && (
+                <input
+                  type="number"
+                  value={filter.value}
+                  onChange={e => handleValueChange(filter.id, e.target.value)}
+                  placeholder={valuePlaceholder(filter.column)}
+                  className={inputCls}
+                />
+              )}
+
+              {/* Delete row */}
+              <button
+                onClick={() => removeFilter(filter.id)}
+                aria-label="Remove filter"
+                className="text-[#00ff41]/25 hover:text-red-400 text-xs font-mono transition-colors ml-1"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
 
           {/* Panel footer */}
           <div className="flex items-center gap-4 pt-1.5 border-t border-[#00ff41]/10">

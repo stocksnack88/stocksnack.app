@@ -142,9 +142,8 @@ def _m3_shareholder_return(
     _div   = safe_float(profile.get("lastDividend"))
     div_yield = clamp(_div / _price if _price > 0 else 0.0, 0.0, 0.15)
 
-    # FIX 1: gate — only apply M3 for genuine high-yield dividend payers
-    # Requires yield >= 4.0% AND dividends paid every year for last 5 years
-    if div_yield < 0.04:
+    # Gate: spot yield >= 4.5% AND dividends paid every year for last 5 years
+    if div_yield < 0.045:
         return None
     div_paid_5y = [safe_float(r.get("dividendsPaid")) for r in cashflow[:5]]
     if len(div_paid_5y) < 5 or not all(v < 0 for v in div_paid_5y):
@@ -169,6 +168,11 @@ def _m3_shareholder_return(
         if p_giveback_vals
         else _P_GIVEBACK_FALLBACK
     )
+
+    # Gate: historical average yield >= 4.0% — blocks special-dividend contamination
+    p_giveback_yield = (1.0 / p_giveback) if p_giveback > 0 else None
+    if p_giveback_yield is None or p_giveback_yield < 0.04:
+        return None
 
     # FIX 2: project total dividends forward; FCF ceiling stays in total dollars
     cur_total_div = total_div_vals[0]   # most recent year total paid
@@ -196,7 +200,7 @@ def _m3_shareholder_return(
         "shareholder_yield": div_yield + buyback_yield,
         "growth_rate":       adj_div_growth,   # from compute_gq on total dividends
         "annual_div_ps":     _div,
-        "p_giveback_yield":  (1.0 / p_giveback) if p_giveback > 0 else None,
+        "p_giveback_yield":  p_giveback_yield,
     }
 
 

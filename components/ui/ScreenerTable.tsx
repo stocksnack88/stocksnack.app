@@ -224,6 +224,7 @@ export default function ScreenerTable({
   const [showFilters,  setShowFilters]  = useState(false);
   const [filters,      setFilters]      = useState<FilterRow[]>([]);
   const [nextId,       setNextId]       = useState(0);
+  const [searchQuery,  setSearchQuery]  = useState("");
   const router = useRouter();
 
   const showSummaries = detailLevel >= 1;
@@ -236,7 +237,16 @@ export default function ScreenerTable({
   const stickyThBase = "sticky top-0 z-10 bg-[#001200]";
   const stickyTd     = "sticky left-0 z-[5] bg-[#000]";
 
-  const processedStocks = useMemo(() => applyFilters(visibleStocks, filters), [visibleStocks, filters]);
+  const processedStocks = useMemo(() => {
+    const q = searchQuery.trim().toUpperCase();
+    const searched = q
+      ? visibleStocks.filter(s =>
+          s.ticker.toUpperCase().startsWith(q) ||
+          (s.name ?? "").toUpperCase().includes(q)
+        )
+      : visibleStocks;
+    return applyFilters(searched, filters);
+  }, [visibleStocks, filters, searchQuery]);
   const activeCount     = filters.length;
 
   // ── Filter handlers ────────────────────────────────────────────────────────
@@ -303,31 +313,54 @@ export default function ScreenerTable({
     <div>
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-3">
-        <button
-          onClick={() => setShowFilters(v => !v)}
-          className={`text-xs font-mono tracking-widest border rounded px-2.5 py-1 transition-colors ${
-            activeCount > 0
-              ? "border-[#00ff41]/60 text-[#00ff41] bg-[#00ff41]/10"
-              : "border-[#00ff41]/25 text-[#00ff41]/40 hover:text-[#00ff41] hover:border-[#00ff41]/50"
-          }`}
-        >
-          FILTER{activeCount > 0 ? ` (${activeCount})` : ""}
-        </button>
+        {/* Search — left */}
+        <div className="relative flex-1 max-w-xs">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="SEARCH TICKER OR COMPANY..."
+            className="w-full bg-black border border-[#00ff41]/20 text-[#00ff41] text-xs rounded px-2.5 py-1 font-mono placeholder-[#00ff41]/20 focus:outline-none focus:border-[#00ff41]/50 pr-6"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[#00ff41]/30 hover:text-[#00ff41] text-xs font-mono leading-none"
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          )}
+        </div>
 
-        {activeCount > 0 && (
+        {/* Filter controls — right */}
+        <div className="flex items-center gap-3 ml-auto">
+          {(activeCount > 0 || searchQuery) && (
+            <span className="text-[10px] font-mono text-[#00ff41]/25 tracking-wider">
+              {processedStocks.length} / {visibleStocks.length} shown
+            </span>
+          )}
+
+          {activeCount > 0 && (
+            <button
+              onClick={() => setFilters([])}
+              className="text-xs font-mono text-[#00ff41]/30 hover:text-red-400 transition-colors tracking-wider"
+            >
+              CLEAR ALL
+            </button>
+          )}
+
           <button
-            onClick={() => setFilters([])}
-            className="text-xs font-mono text-[#00ff41]/30 hover:text-red-400 transition-colors tracking-wider"
+            onClick={() => setShowFilters(v => !v)}
+            className={`text-xs font-mono tracking-widest border rounded px-2.5 py-1 transition-colors ${
+              activeCount > 0
+                ? "border-[#00ff41]/60 text-[#00ff41] bg-[#00ff41]/10"
+                : "border-[#00ff41]/25 text-[#00ff41]/40 hover:text-[#00ff41] hover:border-[#00ff41]/50"
+            }`}
           >
-            CLEAR ALL
+            FILTER{activeCount > 0 ? ` (${activeCount})` : ""}
           </button>
-        )}
-
-        {activeCount > 0 && (
-          <span className="text-[10px] font-mono text-[#00ff41]/25 ml-auto tracking-wider">
-            {processedStocks.length} / {visibleStocks.length} shown
-          </span>
-        )}
+        </div>
       </div>
 
       {/* Filter panel */}

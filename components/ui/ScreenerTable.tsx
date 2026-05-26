@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import HazardTooltip from "@/components/ui/HazardTooltip";
 
@@ -46,6 +46,8 @@ const COLUMNS: { key: ColumnKey; label: string; conditions: ConditionKey[] }[] =
 
 const SORT_CONDITIONS = new Set<ConditionKey>(["asc", "desc"]);
 const SIGNAL_OPTS     = ["BUY+", "BUY", "HOLD", "SELL"] as const;
+
+const STORAGE_KEY = "stocksnack_screener_filters";
 
 const CONDITION_PILLS: Record<ColumnKey, { cond: ConditionKey; label: string }[]> = {
   signal:  [],
@@ -248,7 +250,42 @@ export default function ScreenerTable({
       : visibleStocks;
     return applyFilters(searched, filters);
   }, [visibleStocks, filters, searchQuery]);
-  const activeCount     = filters.length;
+  const activeCount = filters.length;
+
+  // ── localStorage persistence ───────────────────────────────────────────────
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (typeof saved.searchText === "string")    setSearchQuery(saved.searchText);
+      if (typeof saved.isHeaderFrozen === "boolean") setHeaderFrozen(saved.isHeaderFrozen);
+      if (Array.isArray(saved.filterRows) && saved.filterRows.length > 0) {
+        setFilters(saved.filterRows);
+        setNextId(Math.max(...saved.filterRows.map((f: FilterRow) => f.id)) + 1);
+      }
+    } catch {
+      // corrupted storage — start fresh
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        searchText:     searchQuery,
+        filterRows:     filters,
+        isHeaderFrozen: headerFrozen,
+      }));
+    } catch {
+      // storage unavailable — ignore
+    }
+  }, [searchQuery, filters, headerFrozen]);
+
+  function clearAllFilters() {
+    setFilters([]);
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  }
 
   // ── Filter handlers ────────────────────────────────────────────────────────
 
@@ -344,7 +381,7 @@ export default function ScreenerTable({
 
           {activeCount > 0 && (
             <button
-              onClick={() => setFilters([])}
+              onClick={clearAllFilters}
               className="text-xs font-mono text-[#00ff41]/30 hover:text-red-400 transition-colors tracking-wider"
             >
               CLEAR ALL
@@ -479,7 +516,7 @@ export default function ScreenerTable({
             </button>
             {filters.length > 0 && (
               <button
-                onClick={() => setFilters([])}
+                onClick={clearAllFilters}
                 className="text-xs font-mono text-[#00ff41]/25 hover:text-red-400 transition-colors tracking-wider"
               >
                 CLEAR ALL

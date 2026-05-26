@@ -225,6 +225,7 @@ export default function ScreenerTable({
   const [filters,      setFilters]      = useState<FilterRow[]>([]);
   const [nextId,       setNextId]       = useState(0);
   const [searchQuery,  setSearchQuery]  = useState("");
+  const [headerFrozen, setHeaderFrozen] = useState(true);
   const router = useRouter();
 
   const showSummaries = detailLevel >= 1;
@@ -233,8 +234,8 @@ export default function ScreenerTable({
   const btnLabel      = detailLevel === 0 ? "+" : detailLevel === 1 ? "++" : "−";
   const btnAriaLabel  = detailLevel === 0 ? "Show summaries" : detailLevel === 1 ? "Show quality columns" : "Reset view";
 
-  const stickyThTint = "sticky top-0 z-10 bg-[#001a00]/40";
-  const stickyThBase = "sticky top-0 z-10 bg-[#001200]";
+  const stickyThTint = headerFrozen ? "sticky top-0 z-10 bg-[#001a00]/40" : "bg-[#001a00]/40";
+  const stickyThBase = headerFrozen ? "sticky top-0 z-10 bg-[#001200]"    : "bg-[#001200]";
   const stickyTd     = "sticky left-0 z-[5] bg-[#000]";
 
   const processedStocks = useMemo(() => {
@@ -371,6 +372,24 @@ export default function ScreenerTable({
               </span>
             )}
           </button>
+
+          <button
+            onClick={() => setHeaderFrozen(v => !v)}
+            className="p-2 border border-[#00ff41]/30 text-[#00ff41]/50 hover:border-[#00ff41] hover:text-[#00ff41] rounded transition-colors"
+            title={headerFrozen ? "Unfreeze header" : "Freeze header"}
+          >
+            {headerFrozen ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 
@@ -483,7 +502,7 @@ export default function ScreenerTable({
                 <th colSpan={2} className="border-0 bg-[#001200] px-2 py-0.5 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">QUALITY</th>
               )}
               <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-0.5 text-center text-xs font-bold tracking-widest text-[#00ff41]/60">VERDICT</th>
-              <th rowSpan={2} className="border-0 sticky top-0 right-0 z-30 bg-[#001200] px-2 py-3 text-center align-middle">
+              <th rowSpan={2} className={`border-0 ${headerFrozen ? "sticky top-0 right-0 z-30" : ""} bg-[#001200] px-2 py-3 text-center align-middle`}>
                 <button
                   onClick={() => setDetailLevel(l => (l + 1) % 3)}
                   className="text-[#00ff41]/40 hover:text-[#00ff41] border border-[#00ff41]/25 rounded px-1.5 py-0.5 font-mono text-xs transition-colors leading-none"

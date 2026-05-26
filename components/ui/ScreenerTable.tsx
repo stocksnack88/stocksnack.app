@@ -236,8 +236,8 @@ export default function ScreenerTable({
   const btnLabel      = detailLevel === 0 ? "+" : detailLevel === 1 ? "++" : "−";
   const btnAriaLabel  = detailLevel === 0 ? "Show summaries" : detailLevel === 1 ? "Show quality columns" : "Reset view";
 
-  const stickyThTint = headerFrozen ? "bg-[#001a00]/40" : "bg-[#001a00]/40";
-  const stickyThBase = "bg-[#001200]";
+  const stickyThTint = headerFrozen ? "sticky top-0 z-10 bg-[#001a00]/40" : "bg-[#001a00]/40";
+  const stickyThBase = headerFrozen ? "sticky top-0 z-10 bg-[#001200]"    : "bg-[#001200]";
   const stickyTd     = "sticky left-0 z-[5] bg-[#000]";
 
   const processedStocks = useMemo(() => {
@@ -528,8 +528,8 @@ export default function ScreenerTable({
 
       {/* Table — overflow-y:clip keeps sticky th working against viewport */}
       <div className="overflow-x-auto [overflow-y:clip]">
-        <table className="w-full text-sm border-collapse border-separate border-spacing-0">
-          <thead className={headerFrozen ? "sticky top-[53px] z-40 bg-[#001200]" : ""}>
+        <table className="w-full text-sm border-collapse">
+          <thead>
             {/* Group label row — [+] spans both header rows via rowSpan */}
             <tr className="bg-[#001200]">
               <th rowSpan={2} className="border-0 sticky left-0 z-20 bg-[#001200] w-14 px-2 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">TICKER</th>

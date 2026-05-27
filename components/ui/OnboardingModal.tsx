@@ -13,6 +13,7 @@ export default function OnboardingModal() {
   }, []);
 
   function close() {
+    playBonus();
     localStorage.setItem("ss_onboarding_seen", "1");
     setVisible(false);
   }
@@ -58,8 +59,29 @@ export default function OnboardingModal() {
     } catch {}
   }
 
+  function playBonus() {
+    try {
+      const AudioCtx = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!;
+      const ctx = new AudioCtx();
+      const notes = [880, 1100, 1320, 1760];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = "sine";
+        const start = ctx.currentTime + i * 0.08;
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(0.15, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.15);
+        osc.start(start);
+        osc.stop(start + 0.15);
+      });
+    } catch {}
+  }
+
   function go(dir: number) {
-    if (cur === total - 1 && dir === 1) { close(); return; }
+    if (cur === total - 1 && dir === 1) { playBonus(); close(); return; }
     playClick();
     setCur(c => Math.max(0, Math.min(total - 1, c + dir)));
   }

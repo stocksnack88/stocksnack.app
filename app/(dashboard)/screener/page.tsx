@@ -82,16 +82,36 @@ export default async function ScreenerPage({
     const today = new Date();
     const seed = today.getUTCFullYear() * 10000 + (today.getUTCMonth() + 1) * 100 + today.getUTCDate();
 
-    // Simple seeded shuffle using seed
-    const shuffled = [...allStocks];
+    // Seeded random number generator
     let s = seed;
-    for (let i = shuffled.length - 1; i > 0; i--) {
+    function seededRandom() {
       s = (s * 1664525 + 1013904223) & 0xffffffff;
-      const j = Math.abs(s) % (i + 1);
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      return Math.abs(s) / 0xffffffff;
     }
 
-    const freeSet = new Set(shuffled.slice(0, limit).map(s => s.ticker));
+    function seededShuffle<T>(arr: T[]): T[] {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(seededRandom() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    // Bucket by signal
+    const goodStocks = allStocks.filter(s => s.signal === 'BUY+' || s.signal === 'BUY');
+    const restStocks = allStocks.filter(s => s.signal !== 'BUY+' && s.signal !== 'BUY');
+
+    // Pick 2 guaranteed from good, 3 random from rest
+    const shuffledGood = seededShuffle(goodStocks);
+    const shuffledRest = seededShuffle(restStocks);
+
+    const selected = [
+      ...shuffledGood.slice(0, 2),
+      ...shuffledRest.slice(0, limit - 2)
+    ];
+
+    const freeSet = new Set(selected.map(s => s.ticker));
     const visible = allStocks.filter(s => freeSet.has(s.ticker));
     const locked = allStocks.filter(s => !freeSet.has(s.ticker));
     return { visible, locked };

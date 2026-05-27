@@ -227,7 +227,10 @@ export default function ScreenerTable({
   const [filters,      setFilters]      = useState<FilterRow[]>([]);
   const [nextId,       setNextId]       = useState(0);
   const [searchQuery,  setSearchQuery]  = useState("");
-  const [headerFrozen, setHeaderFrozen] = useState(true);
+  const [soundOn, setSoundOn] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('ss_sound') === '1';
+  });
   const router = useRouter();
 
   const showSummaries = detailLevel >= 1;
@@ -236,9 +239,7 @@ export default function ScreenerTable({
   const btnLabel      = detailLevel === 0 ? "+" : detailLevel === 1 ? "++" : "−";
   const btnAriaLabel  = detailLevel === 0 ? "Show summaries" : detailLevel === 1 ? "Show quality columns" : "Reset view";
 
-  const stickyThTint = headerFrozen ? "sticky top-0 z-10 bg-[#001a00]/40" : "bg-[#001a00]/40";
-  const stickyThBase = headerFrozen ? "sticky top-0 z-10 bg-[#001200]"    : "bg-[#001200]";
-  const stickyTd     = "sticky left-0 z-[5] bg-[#000]";
+  const stickyTd = "sticky left-0 z-[5] bg-[#000]";
 
   const processedStocks = useMemo(() => {
     const q = searchQuery.trim().toUpperCase();
@@ -259,8 +260,7 @@ export default function ScreenerTable({
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const saved = JSON.parse(raw);
-      if (typeof saved.searchText === "string")    setSearchQuery(saved.searchText);
-      if (typeof saved.isHeaderFrozen === "boolean") setHeaderFrozen(saved.isHeaderFrozen);
+      if (typeof saved.searchText === "string") setSearchQuery(saved.searchText);
       if (Array.isArray(saved.filterRows) && saved.filterRows.length > 0) {
         setFilters(saved.filterRows);
         setNextId(Math.max(...saved.filterRows.map((f: FilterRow) => f.id)) + 1);
@@ -273,14 +273,17 @@ export default function ScreenerTable({
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        searchText:     searchQuery,
-        filterRows:     filters,
-        isHeaderFrozen: headerFrozen,
+        searchText: searchQuery,
+        filterRows: filters,
       }));
     } catch {
       // storage unavailable — ignore
     }
-  }, [searchQuery, filters, headerFrozen]);
+  }, [searchQuery, filters]);
+
+  useEffect(() => {
+    localStorage.setItem('ss_sound', soundOn ? '1' : '0');
+  }, [soundOn]);
 
   function clearAllFilters() {
     setFilters([]);
@@ -411,19 +414,21 @@ export default function ScreenerTable({
           </button>
 
           <button
-            onClick={() => setHeaderFrozen(v => !v)}
+            onClick={() => setSoundOn(v => !v)}
             className="p-2 border border-[#00ff41]/30 text-[#00ff41]/50 hover:border-[#00ff41] hover:text-[#00ff41] rounded transition-colors"
-            title={headerFrozen ? "Unfreeze header" : "Freeze header"}
+            title={soundOn ? "Mute sounds" : "Enable sounds"}
           >
-            {headerFrozen ? (
+            {soundOn ? (
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
               </svg>
             ) : (
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <line x1="23" y1="9" x2="17" y2="15"/>
+                <line x1="17" y1="9" x2="23" y2="15"/>
               </svg>
             )}
           </button>
@@ -539,7 +544,7 @@ export default function ScreenerTable({
                 <th colSpan={2} className="border-0 bg-[#001200] px-2 py-0.5 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">QUALITY</th>
               )}
               <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-0.5 text-center text-xs font-bold tracking-widest text-[#00ff41]/60">VERDICT</th>
-              <th rowSpan={2} className={`border-0 ${headerFrozen ? "sticky top-0 right-0 z-30" : ""} bg-[#001200] px-2 py-3 text-center align-middle`}>
+              <th rowSpan={2} className="border-0 bg-[#001200] px-2 py-3 text-center align-middle">
                 <button
                   onClick={() => setDetailLevel(l => (l + 1) % 3)}
                   className="text-[#00ff41]/40 hover:text-[#00ff41] border border-[#00ff41]/25 rounded px-1.5 py-0.5 font-mono text-xs transition-colors leading-none"
@@ -552,12 +557,12 @@ export default function ScreenerTable({
 
             {/* Main column header row — sticky */}
             <tr className="border-b border-[#00ff41]/60 bg-[#001200]">
-              <th className={`px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>CAGR</th>
-              <th className={`px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>RETURN</th>
-              {showQuality && <th className={`px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBase}`}>GROWTH</th>}
-              {showQuality && <th className={`px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThBase}`}>HEALTH</th>}
-              <th className={`px-1 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>SIGNAL</th>
-              <th className={`px-1 py-3 text-center text-[10px] font-bold tracking-widest text-[#00ff41]/70 ${stickyThTint}`}>RANK</th>
+              <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">CAGR</th>
+              <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">RETURN</th>
+              {showQuality && <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001200]">GROWTH</th>}
+              {showQuality && <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001200]">HEALTH</th>}
+              <th className="px-1 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">SIGNAL</th>
+              <th className="px-1 py-3 text-center text-[10px] font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">RANK</th>
             </tr>
           </thead>
 

@@ -23,33 +23,37 @@ export default function OnboardingModal() {
       const AudioCtx = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!;
       const ctx = new AudioCtx();
 
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const oscillator2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
+      const bufferSize = ctx.sampleRate * 0.04;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 8);
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const noiseGain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 1800;
+      filter.Q.value = 0.8;
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noiseGain.gain.setValueAtTime(0.4, ctx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+      noise.start(ctx.currentTime);
 
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator2.connect(gain2);
-      gain2.connect(ctx.destination);
-
-      // Primary punch
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(900, ctx.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.05);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-      oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + 0.08);
-
-      // Secondary high tick layer
-      oscillator2.type = "triangle";
-      oscillator2.frequency.setValueAtTime(1800, ctx.currentTime);
-      oscillator2.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.03);
-      gain2.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-      oscillator2.start(ctx.currentTime);
-      oscillator2.stop(ctx.currentTime + 0.05);
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(1000, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.03);
+      oscGain.gain.setValueAtTime(0.2, ctx.currentTime);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.03);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.03);
 
     } catch {}
   }
@@ -144,39 +148,39 @@ export default function OnboardingModal() {
 
         {/* Nav */}
         <div className="flex items-center justify-between mt-6 pt-5 border-t border-white/[0.07]">
-          <button onClick={() => go(-1)} className={`text-[13px] px-4 py-1.5 rounded border border-white/[0.18] text-white/50 hover:border-[#00ff41]/40 hover:text-[#00ff41] transition-all ${cur === 0 ? "invisible" : ""}`}>← Back</button>
-          <div className="flex gap-1.5 items-center">
+          <button
+            onClick={() => go(-1)}
+            className={`text-[13px] px-4 py-1.5 rounded border border-white/[0.18] text-white/50 hover:border-[#00ff41]/40 hover:text-[#00ff41] transition-all ${cur === 0 ? "invisible" : ""}`}
+          >← Back</button>
+          <div className="flex items-center gap-2">
             {Array.from({length: total}).map((_, i) => (
               <button key={i} onClick={() => setCur(i)} className={`w-1.5 h-1.5 rounded-full transition-all ${i === cur ? "bg-[#00ff41] scale-125" : "bg-white/15"}`} />
             ))}
-          </div>
-          <div className="flex items-center gap-2">
             <button
               onClick={() => setSoundOn(v => !v)}
-              className="text-white/25 hover:text-white/50 transition-all flex items-center justify-center w-6 h-6"
-              title={soundOn ? "Mute" : "Enable sound"}
+              className="text-white/25 hover:text-white/50 transition-all flex items-center justify-center w-6 h-6 ml-1"
             >
               {soundOn ? (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <polygon points="1,5 5,5 9,1 9,15 5,11 1,11" />
                   <path d="M11.5 5.5 Q13.5 8 11.5 10.5" />
                   <path d="M13 3.5 Q16 8 13 12.5" />
                 </svg>
               ) : (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <polygon points="1,5 5,5 9,1 9,15 5,11 1,11" />
                   <line x1="12" y1="5" x2="16" y2="11" />
                   <line x1="16" y1="5" x2="12" y2="11" />
                 </svg>
               )}
             </button>
-            <button
-              onClick={() => go(1)}
-              className={`text-[13px] px-4 py-1.5 rounded border transition-all whitespace-nowrap ${cur === total-1 ? "bg-[#00ff41] border-[#00ff41] text-black font-medium hover:bg-[#00dd38]" : "border-white/[0.18] text-white/50 hover:border-[#00ff41]/40 hover:text-[#00ff41]"}`}
-            >
-              {cur === total - 1 ? "Open Screener →" : "Next →"}
-            </button>
           </div>
+          <button
+            onClick={() => go(1)}
+            className={`text-[13px] px-4 py-1.5 rounded border transition-all whitespace-nowrap ${cur === total-1 ? "bg-[#00ff41] border-[#00ff41] text-black font-medium hover:bg-[#00dd38]" : "border-white/[0.18] text-white/50 hover:border-[#00ff41]/40 hover:text-[#00ff41]"}`}
+          >
+            {cur === total - 1 ? "Screener →" : "Next →"}
+          </button>
         </div>
       </div>
     </div>

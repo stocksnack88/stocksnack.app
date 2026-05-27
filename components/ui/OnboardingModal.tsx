@@ -81,7 +81,7 @@ export default function OnboardingModal() {
   }
 
   function go(dir: number) {
-    if (cur === total - 1 && dir === 1) { playBonus(); close(); return; }
+    if (cur === total - 1 && dir === 1) { close(); return; }
     playClick();
     setCur(c => Math.max(0, Math.min(total - 1, c + dir)));
   }

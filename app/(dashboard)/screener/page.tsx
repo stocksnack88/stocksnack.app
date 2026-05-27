@@ -77,8 +77,29 @@ export default async function ScreenerPage({
     anomaly_reasons: r.anomaly_reasons ?? null,
   }));
 
-  const visibleStocks = isPro ? stocks : stocks.slice(0, FREE_LIMIT);
-  const lockedStocks  = isPro ? [] : stocks.slice(FREE_LIMIT);
+  // Daily random 5 for free users — seed based on UTC date so it rotates at midnight
+  function getDailyFreeStocks(allStocks: ScreenerRow[], limit: number): { visible: ScreenerRow[], locked: ScreenerRow[] } {
+    const today = new Date();
+    const seed = today.getUTCFullYear() * 10000 + (today.getUTCMonth() + 1) * 100 + today.getUTCDate();
+
+    // Simple seeded shuffle using seed
+    const shuffled = [...allStocks];
+    let s = seed;
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      s = (s * 1664525 + 1013904223) & 0xffffffff;
+      const j = Math.abs(s) % (i + 1);
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const freeSet = new Set(shuffled.slice(0, limit).map(s => s.ticker));
+    const visible = allStocks.filter(s => freeSet.has(s.ticker));
+    const locked = allStocks.filter(s => !freeSet.has(s.ticker));
+    return { visible, locked };
+  }
+
+  const { visible: visibleStocks, locked: lockedStocks } = isPro
+    ? { visible: stocks, locked: [] as ScreenerRow[] }
+    : getDailyFreeStocks(stocks, FREE_LIMIT);
 
   const updatedAt = stocks[0]?.updated_at
     ? new Date(stocks[0].updated_at).toLocaleString("en-US", {

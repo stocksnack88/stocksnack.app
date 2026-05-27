@@ -135,10 +135,22 @@ export default function OnboardingModal() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSoundOn(v => !v)}
-              className="text-[16px] text-white/25 hover:text-white/50 transition-all"
+              className="text-white/25 hover:text-white/50 transition-all flex items-center justify-center w-6 h-6"
               title={soundOn ? "Mute" : "Enable sound"}
             >
-              {soundOn ? "🔊" : "🔇"}
+              {soundOn ? (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="1,5 5,5 9,1 9,15 5,11 1,11" />
+                  <path d="M11.5 5.5 Q13.5 8 11.5 10.5" />
+                  <path d="M13 3.5 Q16 8 13 12.5" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="1,5 5,5 9,1 9,15 5,11 1,11" />
+                  <line x1="12" y1="5" x2="16" y2="11" />
+                  <line x1="16" y1="5" x2="12" y2="11" />
+                </svg>
+              )}
             </button>
             <button
               onClick={() => go(1)}

@@ -69,7 +69,7 @@ export default function OnboardingModal() {
   const slides = [
     <div key={0} className="flex flex-col flex-1 justify-center gap-0">
       <p className="text-[15px] text-white/35 leading-snug">You are here to <span className="text-[#00ff41]">find</span> the</p>
-      <p className="text-[40px] sm:text-[48px] font-medium text-[#00ff41] leading-[1.05] tracking-tight whitespace-nowrap">BEST STOCKS.</p>
+      <p className="text-[40px] sm:text-[48px] font-medium text-[#00ff41] leading-[1.05] tracking-[-0.03em] whitespace-nowrap">BEST STOCKS.</p>
     </div>,
 
     <div key={1} className="flex flex-col flex-1 justify-center gap-0">
@@ -80,10 +80,10 @@ export default function OnboardingModal() {
 
     <div key={2} className="flex flex-col flex-1 justify-center gap-0">
       <p className="text-[15px] text-white/35 leading-snug">We estimate your</p>
-      <p className="text-[28px] sm:text-[38px] font-medium text-[#00ff41] leading-[1.0] tracking-tight">POTENTIAL RETURN</p>
+      <p className="text-[28px] sm:text-[38px] font-medium text-[#00ff41] leading-[1.0] tracking-[-0.02em]">POTENTIAL RETURN</p>
       <div className="flex items-baseline gap-1.5">
         <span className="text-[13px] text-white/50 pb-0.5">using</span>
-        <span className="text-[28px] sm:text-[38px] font-medium text-[#00ff41] leading-[1.0] tracking-tight">3 METHODS.</span>
+        <span className="text-[28px] sm:text-[38px] font-medium text-[#00ff41] leading-[1.0] tracking-[-0.02em]">3 METHODS.</span>
       </div>
     </div>,
 

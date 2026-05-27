@@ -231,6 +231,35 @@ export default function ScreenerTable({
     if (typeof window === 'undefined') return false;
     return localStorage.getItem('ss_sound') === '1';
   });
+
+  function playChime() {
+    if (!soundOn) return;
+    try {
+      const AudioCtx = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!;
+      const ctx = new AudioCtx();
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      const gain2 = ctx.createGain();
+      osc1.connect(gain1); gain1.connect(ctx.destination);
+      osc2.connect(gain2); gain2.connect(ctx.destination);
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(1400, ctx.currentTime);
+      osc1.frequency.exponentialRampToValueAtTime(1100, ctx.currentTime + 0.12);
+      gain1.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.15);
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(2100, ctx.currentTime);
+      osc2.frequency.exponentialRampToValueAtTime(1800, ctx.currentTime + 0.08);
+      gain2.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc2.start(ctx.currentTime);
+      osc2.stop(ctx.currentTime + 0.1);
+    } catch {}
+  }
+
   const router = useRouter();
 
   const showSummaries = detailLevel >= 1;
@@ -392,7 +421,7 @@ export default function ScreenerTable({
           )}
 
           <button
-            onClick={() => setShowFilters(v => !v)}
+            onClick={() => { setShowFilters(v => !v); playChime(); }}
             className={`relative p-2 border rounded transition-colors ${
               activeCount > 0
                 ? "border-[#00ff41] text-[#00ff41]"
@@ -546,7 +575,7 @@ export default function ScreenerTable({
               <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-0.5 text-center text-xs font-bold tracking-widest text-[#00ff41]/60">VERDICT</th>
               <th rowSpan={2} className="border-0 bg-[#001200] px-2 py-3 text-center align-middle">
                 <button
-                  onClick={() => setDetailLevel(l => (l + 1) % 3)}
+                  onClick={() => { setDetailLevel(l => (l + 1) % 3); playChime(); }}
                   className="text-[#00ff41]/40 hover:text-[#00ff41] border border-[#00ff41]/25 rounded px-1.5 py-0.5 font-mono text-xs transition-colors leading-none"
                   aria-label={btnAriaLabel}
                 >
@@ -570,7 +599,7 @@ export default function ScreenerTable({
             {processedStocks.map((stock, i) => (
               <React.Fragment key={stock.ticker}>
                 <tr
-                  onClick={() => router.push(`/screener/${stock.ticker}`)}
+                  onClick={() => { playChime(); router.push(`/screener/${stock.ticker}`); }}
                   className={`cursor-pointer border-t border-[#00ff41]/10 transition-colors hover:bg-[#00ff41]/5 ${
                     i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""
                   }`}

@@ -228,8 +228,9 @@ export default function ScreenerTable({
   const [nextId,       setNextId]       = useState(0);
   const [searchQuery,  setSearchQuery]  = useState("");
   const [soundOn, setSoundOn] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('ss_sound') === '1';
+    if (typeof window === 'undefined') return true;
+    const stored = localStorage.getItem('ss_sound');
+    return stored === null ? true : stored === '1';
   });
 
   function playChime() {
@@ -237,26 +238,20 @@ export default function ScreenerTable({
     try {
       const AudioCtx = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!;
       const ctx = new AudioCtx();
-      const osc1 = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      const gain2 = ctx.createGain();
-      osc1.connect(gain1); gain1.connect(ctx.destination);
-      osc2.connect(gain2); gain2.connect(ctx.destination);
-      osc1.type = "sine";
-      osc1.frequency.setValueAtTime(1400, ctx.currentTime);
-      osc1.frequency.exponentialRampToValueAtTime(1100, ctx.currentTime + 0.12);
-      gain1.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-      osc1.start(ctx.currentTime);
-      osc1.stop(ctx.currentTime + 0.15);
-      osc2.type = "sine";
-      osc2.frequency.setValueAtTime(2100, ctx.currentTime);
-      osc2.frequency.exponentialRampToValueAtTime(1800, ctx.currentTime + 0.08);
-      gain2.gain.setValueAtTime(0.06, ctx.currentTime);
-      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-      osc2.start(ctx.currentTime);
-      osc2.stop(ctx.currentTime + 0.1);
+      const notes = [1046, 1568];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = "sine";
+        const start = ctx.currentTime + i * 0.07;
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(0.1, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.12);
+        osc.start(start);
+        osc.stop(start + 0.12);
+      });
     } catch {}
   }
 

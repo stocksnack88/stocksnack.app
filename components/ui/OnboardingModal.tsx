@@ -4,7 +4,11 @@ import { useState, useEffect } from "react";
 export default function OnboardingModal() {
   const [visible, setVisible] = useState(false);
   const [cur, setCur] = useState(0);
-  const [soundOn, setSoundOn] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const stored = localStorage.getItem('ss_sound');
+    return stored === null ? true : stored === '1';
+  });
   const total = 7;
 
   useEffect(() => {

@@ -20,7 +20,8 @@ export default function OnboardingModal() {
   function playClick() {
     if (!soundOn) return;
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!;
+      const ctx = new AudioCtx();
       const oscillator = ctx.createOscillator();
       const gain = ctx.createGain();
       oscillator.connect(gain);
@@ -32,7 +33,7 @@ export default function OnboardingModal() {
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
       oscillator.start(ctx.currentTime);
       oscillator.stop(ctx.currentTime + 0.06);
-    } catch (e) {}
+    } catch {}
   }
 
   function go(dir: number) {

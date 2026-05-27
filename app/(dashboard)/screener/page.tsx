@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase";
 import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
 import NavHeightLogger from "@/components/ui/NavHeightLogger";
+import OnboardingModal from "@/components/ui/OnboardingModal";
 
 const FREE_LIMIT = 5;
 
@@ -97,6 +98,7 @@ export default async function ScreenerPage({
 
   return (
     <div className="bg-black text-[#00ff41]" style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}>
+      <OnboardingModal />
       <NavHeightLogger />
       {justUpgraded && (
         <div className="bg-[#00ff41]/10 border-b border-[#00ff41]/30 px-6 py-3 text-center">

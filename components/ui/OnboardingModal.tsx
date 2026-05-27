@@ -22,17 +22,35 @@ export default function OnboardingModal() {
     try {
       const AudioCtx = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!;
       const ctx = new AudioCtx();
+
       const oscillator = ctx.createOscillator();
       const gain = ctx.createGain();
+      const oscillator2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+
       oscillator.connect(gain);
       gain.connect(ctx.destination);
-      oscillator.type = "square";
-      oscillator.frequency.setValueAtTime(480, ctx.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.04);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+      oscillator2.connect(gain2);
+      gain2.connect(ctx.destination);
+
+      // Primary punch
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(900, ctx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.05);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
       oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + 0.06);
+      oscillator.stop(ctx.currentTime + 0.08);
+
+      // Secondary high tick layer
+      oscillator2.type = "triangle";
+      oscillator2.frequency.setValueAtTime(1800, ctx.currentTime);
+      oscillator2.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.03);
+      gain2.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+      oscillator2.start(ctx.currentTime);
+      oscillator2.stop(ctx.currentTime + 0.05);
+
     } catch {}
   }
 

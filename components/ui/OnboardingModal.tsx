@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 export default function OnboardingModal() {
   const [visible, setVisible] = useState(false);
   const [cur, setCur] = useState(0);
+  const [soundOn, setSoundOn] = useState(false);
   const total = 7;
 
   useEffect(() => {
@@ -16,8 +17,27 @@ export default function OnboardingModal() {
     setVisible(false);
   }
 
+  function playClick() {
+    if (!soundOn) return;
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.type = "square";
+      oscillator.frequency.setValueAtTime(480, ctx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.04);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.06);
+    } catch (e) {}
+  }
+
   function go(dir: number) {
     if (cur === total - 1 && dir === 1) { close(); return; }
+    playClick();
     setCur(c => Math.max(0, Math.min(total - 1, c + dir)));
   }
 
@@ -111,9 +131,21 @@ export default function OnboardingModal() {
               <button key={i} onClick={() => setCur(i)} className={`w-1.5 h-1.5 rounded-full transition-all ${i === cur ? "bg-[#00ff41] scale-125" : "bg-white/15"}`} />
             ))}
           </div>
-          <button onClick={() => go(1)} className={`text-[13px] px-4 py-1.5 rounded border transition-all whitespace-nowrap ${cur === total-1 ? "bg-[#00ff41] border-[#00ff41] text-black font-medium hover:bg-[#00dd38]" : "border-white/[0.18] text-white/50 hover:border-[#00ff41]/40 hover:text-[#00ff41]"}`}>
-            {cur === total - 1 ? "Open Screener →" : "Next →"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSoundOn(v => !v)}
+              className="text-[16px] text-white/25 hover:text-white/50 transition-all"
+              title={soundOn ? "Mute" : "Enable sound"}
+            >
+              {soundOn ? "🔊" : "🔇"}
+            </button>
+            <button
+              onClick={() => go(1)}
+              className={`text-[13px] px-4 py-1.5 rounded border transition-all whitespace-nowrap ${cur === total-1 ? "bg-[#00ff41] border-[#00ff41] text-black font-medium hover:bg-[#00dd38]" : "border-white/[0.18] text-white/50 hover:border-[#00ff41]/40 hover:text-[#00ff41]"}`}
+            >
+              {cur === total - 1 ? "Open Screener →" : "Next →"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

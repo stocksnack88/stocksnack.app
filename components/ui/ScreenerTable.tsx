@@ -217,13 +217,16 @@ export default function ScreenerTable({
   visibleStocks,
   lockedStocks,
   hasSession,
+  isPro,
 }: {
   visibleStocks: ScreenerRow[];
   lockedStocks: ScreenerRow[];
   hasSession: boolean;
+  isPro: boolean;
 }) {
   const [detailLevel,  setDetailLevel]  = useState(0);
   const [showFilters,  setShowFilters]  = useState(false);
+  const [showProGate,  setShowProGate]  = useState(false);
   const [filters,      setFilters]      = useState<FilterRow[]>([]);
   const [nextId,       setNextId]       = useState(0);
   const [searchQuery,  setSearchQuery]  = useState("");
@@ -454,7 +457,11 @@ export default function ScreenerTable({
           )}
 
           <button
-            onClick={() => { setShowFilters(v => !v); playChime(); }}
+            onClick={() => {
+              if (!isPro) { setShowProGate(true); return; }
+              setShowFilters(v => !v);
+              playChime();
+            }}
             className={`relative p-2 border rounded transition-colors ${
               activeCount > 0
                 ? "border-[#00ff41] text-[#00ff41]"
@@ -589,6 +596,34 @@ export default function ScreenerTable({
                 CLEAR ALL
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Pro gate modal — shown when a free/logged-out user clicks the filter button */}
+      {showProGate && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-4">
+          <div className="bg-[#050505] border border-[#00ff41]/20 rounded-xl w-full max-w-sm px-8 py-8 flex flex-col gap-6">
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[11px] font-mono text-[#00ff41]/40 tracking-[0.15em]">STOCKSNACK PRO</p>
+              <p className="text-base font-mono text-[#00ff41] leading-snug">
+                Filters are a Pro feature.<br />Upgrade to unlock.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <a
+                href="/pricing"
+                className="w-full text-center bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest py-2.5 rounded hover:bg-[#00dd38] transition-colors"
+              >
+                UPGRADE →
+              </a>
+              <button
+                onClick={() => setShowProGate(false)}
+                className="w-full text-center text-[#00ff41]/30 hover:text-[#00ff41]/60 font-mono text-xs tracking-widest py-2 transition-colors"
+              >
+                MAYBE LATER
+              </button>
+            </div>
           </div>
         </div>
       )}

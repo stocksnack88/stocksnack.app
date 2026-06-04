@@ -179,6 +179,7 @@ export default async function ScreenerPage({
             visibleStocks={visibleStocks}
             lockedStocks={lockedStocks}
             hasSession={!!session}
+            isPro={isPro}
           />
           <p className="mt-4 text-xs text-[#00ff41]/20 text-center tracking-wide">
             DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY

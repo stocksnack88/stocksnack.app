@@ -155,14 +155,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
           <p className="text-5xl mb-6" style={{ color: "rgba(0,255,65,0.15)" }}>⊘</p>
           <h2 className="text-sm font-bold tracking-widest mb-2" style={{ color: "#00ff41" }}>
-            PRO STOCK
+            PRO FEATURE
           </h2>
           <p className="text-xs mb-1" style={{ color: "rgba(0,255,65,0.5)" }}>
             {ticker}{stock?.name ? ` · ${stock.name}` : ""}
           </p>
           <p className="text-xs max-w-xs leading-relaxed mb-8" style={{ color: "rgba(0,255,65,0.35)" }}>
-            Full scoring detail for this stock is available to Pro subscribers.
-            Upgrade to unlock all 20 stocks with complete breakdowns.
+            Full scoring detail is available to Pro subscribers. Upgrade to unlock all 500 S&amp;P 500 stocks with complete breakdowns.
           </p>
           <UpgradeButton />
           {!session && (

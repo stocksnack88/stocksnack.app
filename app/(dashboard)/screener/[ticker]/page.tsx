@@ -161,7 +161,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             {ticker}{stock?.name ? ` · ${stock.name}` : ""}
           </p>
           <p className="text-xs max-w-xs leading-relaxed mb-8" style={{ color: "rgba(0,255,65,0.35)" }}>
-            Full scoring detail is available to Pro subscribers. Upgrade to unlock all 500 S&amp;P 500 stocks with complete breakdowns.
+            Upgrade to Pro to unlock all 500 stocks with full breakdowns.
           </p>
           <UpgradeButton />
           {!session && (

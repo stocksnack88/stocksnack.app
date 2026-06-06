@@ -739,12 +739,12 @@ export default function ScreenerTable({
               </tr>
             )}
 
-            {/* Locked rows: blurred content + CTA overlay */}
+            {/* Locked rows: blurred content only — upsell wall rendered outside scroll container below */}
             {lockedStocks.length > 0 && (
               <tr className="border-t border-[#00ff41]/10">
                 {/* colSpan=9 covers max columns: TICKER, COMPANY, CAGR, RETURN, GROWTH, HEALTH, SIGNAL, RANK, spacer */}
                 <td colSpan={9} className="p-0">
-                  <div className="relative min-h-[280px]">
+                  <div className="min-h-[280px]">
                     <table className="w-full text-sm border-collapse blur-sm select-none pointer-events-none opacity-60">
                       <tbody>
                         {lockedStocks.map((stock, i) => (
@@ -790,28 +790,6 @@ export default function ScreenerTable({
                         ))}
                       </tbody>
                     </table>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-black/20 via-black/75 to-black/95">
-                      <div className="flex flex-col items-center gap-3 px-6 py-8 text-center">
-                        <p className="text-[10px] font-mono font-bold text-[#00ff41] tracking-[0.2em]">
-                          YOU&apos;VE SEEN TODAY&apos;S FREE PICKS
-                        </p>
-                        <p className="text-xs font-mono text-[#00ff41]/50 max-w-xs leading-relaxed">
-                          Upgrade to Pro to unlock all 500 S&amp;P 500 stocks.
-                        </p>
-                        <a
-                          href="/pricing"
-                          className="mt-1 bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest px-6 py-2.5 rounded hover:bg-[#00dd38] transition-colors"
-                        >
-                          UPGRADE TO PRO →
-                        </a>
-                        {!hasSession && (
-                          <p className="text-[10px] font-mono text-[#00ff41]/25">
-                            Already have an account?{" "}
-                            <a href="/login" className="text-[#00ff41]/50 hover:text-[#00ff41] underline">Sign in</a>
-                          </p>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 </td>
               </tr>
@@ -819,6 +797,33 @@ export default function ScreenerTable({
           </tbody>
         </table>
       </div>
+
+      {/* Upsell wall — outside overflow-x-auto to avoid clipping on mobile.
+          Negative margin pulls it up to visually sit over the blurred rows. */}
+      {lockedStocks.length > 0 && (
+        <div className="-mt-[280px] relative z-10 flex flex-col items-center justify-center min-h-[280px] bg-gradient-to-b from-black/20 via-black/75 to-black/95">
+          <div className="flex flex-col items-center gap-3 px-6 py-8 text-center">
+            <p className="text-[10px] font-mono font-bold text-[#00ff41] tracking-[0.2em]">
+              YOU&apos;VE SEEN TODAY&apos;S FREE PICKS
+            </p>
+            <p className="text-xs font-mono text-[#00ff41]/50 max-w-xs leading-relaxed">
+              Upgrade to Pro to unlock all 500 S&amp;P 500 stocks.
+            </p>
+            <a
+              href="/pricing"
+              className="mt-1 bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest px-6 py-2.5 rounded hover:bg-[#00dd38] transition-colors"
+            >
+              UPGRADE TO PRO →
+            </a>
+            {!hasSession && (
+              <p className="text-[10px] font-mono text-[#00ff41]/25">
+                Already have an account?{" "}
+                <a href="/login" className="text-[#00ff41]/50 hover:text-[#00ff41] underline">Sign in</a>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

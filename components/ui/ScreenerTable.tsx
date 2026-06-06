@@ -226,7 +226,8 @@ export default function ScreenerTable({
 }) {
   const [detailLevel,  setDetailLevel]  = useState(0);
   const [showFilters,  setShowFilters]  = useState(false);
-  const [showProGate,  setShowProGate]  = useState(false);
+  const [showProGate,    setShowProGate]    = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(!isPro);
   const [filters,      setFilters]      = useState<FilterRow[]>([]);
   const [nextId,       setNextId]       = useState(0);
   const [searchQuery,  setSearchQuery]  = useState("");
@@ -600,6 +601,43 @@ export default function ScreenerTable({
         </div>
       )}
 
+      {/* Upsell modal — auto-opens on load for free/logged-out users */}
+      {showUpsellModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-4">
+          <div className="relative bg-[#050505] border border-[#00ff41]/20 rounded-xl w-full max-w-sm px-8 py-8 flex flex-col gap-6">
+            <button
+              onClick={() => setShowUpsellModal(false)}
+              className="absolute top-4 right-4 text-[#00ff41]/30 hover:text-[#00ff41] font-mono text-sm leading-none transition-colors"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[11px] font-mono font-bold text-[#00ff41] tracking-[0.2em]">
+                YOU&apos;VE SEEN TODAY&apos;S FREE PICKS
+              </p>
+              <p className="text-sm font-mono text-[#00ff41]/60 leading-relaxed">
+                Upgrade to Pro to unlock all 500 S&amp;P 500 stocks.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <a
+                href="/pricing"
+                className="w-full text-center bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest py-2.5 rounded hover:bg-[#00dd38] transition-colors"
+              >
+                UPGRADE TO PRO →
+              </a>
+              {!hasSession && (
+                <p className="text-center text-[10px] font-mono text-[#00ff41]/25">
+                  Already have an account?{" "}
+                  <a href="/login" className="text-[#00ff41]/50 hover:text-[#00ff41] underline">Sign in</a>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pro gate modal — shown when a free/logged-out user clicks the filter button */}
       {showProGate && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-4">
@@ -798,32 +836,6 @@ export default function ScreenerTable({
         </table>
       </div>
 
-      {/* Upsell wall — outside overflow-x-auto to avoid clipping on mobile.
-          Negative margin pulls it up to visually sit over the blurred rows. */}
-      {lockedStocks.length > 0 && (
-        <div className="-mt-[280px] relative z-10 flex flex-col items-center justify-center min-h-[280px] bg-gradient-to-b from-black/20 via-black/75 to-black/95">
-          <div className="flex flex-col items-center gap-3 px-6 py-8 text-center">
-            <p className="text-[10px] font-mono font-bold text-[#00ff41] tracking-[0.2em]">
-              YOU&apos;VE SEEN TODAY&apos;S FREE PICKS
-            </p>
-            <p className="text-xs font-mono text-[#00ff41]/50 max-w-xs leading-relaxed">
-              Upgrade to Pro to unlock all 500 S&amp;P 500 stocks.
-            </p>
-            <a
-              href="/pricing"
-              className="mt-1 bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest px-6 py-2.5 rounded hover:bg-[#00dd38] transition-colors"
-            >
-              UPGRADE TO PRO →
-            </a>
-            {!hasSession && (
-              <p className="text-[10px] font-mono text-[#00ff41]/25">
-                Already have an account?{" "}
-                <a href="/login" className="text-[#00ff41]/50 hover:text-[#00ff41] underline">Sign in</a>
-              </p>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

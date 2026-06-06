@@ -744,7 +744,7 @@ export default function ScreenerTable({
               <tr className="border-t border-[#00ff41]/10">
                 {/* colSpan=9 covers max columns: TICKER, COMPANY, CAGR, RETURN, GROWTH, HEALTH, SIGNAL, RANK, spacer */}
                 <td colSpan={9} className="p-0">
-                  <div className="relative">
+                  <div className="relative min-h-[280px]">
                     <table className="w-full text-sm border-collapse blur-sm select-none pointer-events-none opacity-60">
                       <tbody>
                         {lockedStocks.map((stock, i) => (

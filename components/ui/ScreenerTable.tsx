@@ -227,7 +227,11 @@ export default function ScreenerTable({
   const [detailLevel,  setDetailLevel]  = useState(0);
   const [showFilters,  setShowFilters]  = useState(false);
   const [showProGate,    setShowProGate]    = useState(false);
-  const [showUpsellModal, setShowUpsellModal] = useState(!isPro);
+  const [showUpsellModal, setShowUpsellModal] = useState(() => {
+    if (isPro) return false;
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('ss_onboarding_seen') === '1';
+  });
   const [filters,      setFilters]      = useState<FilterRow[]>([]);
   const [nextId,       setNextId]       = useState(0);
   const [searchQuery,  setSearchQuery]  = useState("");
@@ -350,6 +354,13 @@ export default function ScreenerTable({
   useEffect(() => {
     localStorage.setItem('ss_sound', soundOn ? '1' : '0');
   }, [soundOn]);
+
+  useEffect(() => {
+    if (isPro) return;
+    function onOnboardingDismissed() { setShowUpsellModal(true); }
+    window.addEventListener('onboarding-dismissed', onOnboardingDismissed);
+    return () => window.removeEventListener('onboarding-dismissed', onOnboardingDismissed);
+  }, [isPro]);
 
   function clearAllFilters() {
     setFilters([]);

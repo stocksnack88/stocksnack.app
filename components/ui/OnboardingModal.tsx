@@ -20,6 +20,7 @@ export default function OnboardingModal() {
     playBonus();
     localStorage.setItem("ss_onboarding_seen", "1");
     setVisible(false);
+    window.dispatchEvent(new Event("onboarding-dismissed"));
   }
 
   function playClick() {

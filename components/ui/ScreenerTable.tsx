@@ -790,18 +790,25 @@ export default function ScreenerTable({
                         ))}
                       </tbody>
                     </table>
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                      <a
-                        href="/pricing"
-                        className="text-[#00ff41] font-bold tracking-widest text-sm hover:text-[#00ff41]/70 transition-colors"
-                      >
-                        Unlock all stocks — Upgrade to Pro →
-                      </a>
-                      {!hasSession && (
-                        <span className="ml-4 text-xs text-[#00ff41]/30">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-black/20 via-black/75 to-black/95">
+                      <div className="flex flex-col items-center gap-3 px-6 py-8 text-center">
+                        <p className="text-[10px] font-mono font-bold text-[#00ff41] tracking-[0.2em]">
+                          YOU&apos;VE SEEN TODAY&apos;S FREE PICKS
+                        </p>
+                        <p className="text-xs font-mono text-[#00ff41]/50 max-w-xs leading-relaxed">
+                          Upgrade to Pro to unlock all 500 S&amp;P 500 stocks.
+                        </p>
+                        <a
+                          href="/pricing"
+                          className="mt-1 bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest px-6 py-2.5 rounded hover:bg-[#00dd38] transition-colors"
+                        >
+                          UPGRADE TO PRO →
+                        </a>
+                        <p className="text-[10px] font-mono text-[#00ff41]/25">
+                          Already have an account?{" "}
                           <a href="/login" className="text-[#00ff41]/50 hover:text-[#00ff41] underline">Sign in</a>
-                        </span>
-                      )}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </td>

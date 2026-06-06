@@ -121,6 +121,16 @@ export default function PrivacyPage() {
             url: "vercel.com",
             desc: "Hosting and infrastructure. Vercel may log request metadata (IP, timestamps) as part of their standard platform operation.",
           },
+          {
+            name: "POSTHOG",
+            url: "posthog.com",
+            desc: "Product analytics. PostHog collects page views, feature usage, and interaction patterns to help us understand and improve the Service. PostHog is only activated if you accept cookies. If you decline, PostHog does not initialise and no analytics data is sent.",
+          },
+          {
+            name: "SENTRY",
+            url: "sentry.io",
+            desc: "Error monitoring and site reliability. Sentry captures application errors and performance traces to help us identify and fix bugs. Error tracking is always active to maintain a reliable service. Session recordings (which capture anonymised screen activity) are only enabled if you accept cookies — declining disables them entirely.",
+          },
         ].map(({ name, desc }) => (
           <div
             key={name}
@@ -136,11 +146,31 @@ export default function PrivacyPage() {
       </div>
 
       {/* 4 */}
-      <p className={h} style={{ color: accent }}>4. COOKIES</p>
+      <p className={h} style={{ color: accent }}>4. COOKIES AND ANALYTICS</p>
       <p className={body} style={{ color: dim }}>
-        We use only strictly necessary cookies required for authentication (session tokens). We
-        do not use advertising cookies or third-party tracking cookies. You may disable cookies
-        in your browser settings, but doing so will prevent you from staying signed in.
+        We use the following categories of cookies and local storage:
+      </p>
+      <ul className={`${body} mt-3 space-y-3 pl-4`} style={{ color: dim }}>
+        <li style={{ listStyleType: "disc" }}>
+          <strong style={{ color: "rgba(0,255,65,0.6)" }}>Strictly necessary</strong> — session
+          tokens managed by Supabase to keep you signed in. These are always active and cannot
+          be declined without breaking authentication.
+        </li>
+        <li style={{ listStyleType: "disc" }}>
+          <strong style={{ color: "rgba(0,255,65,0.6)" }}>Analytics (PostHog)</strong> — page
+          views and feature usage to help us improve the Service. Only activated if you click
+          Accept on the cookie banner. If you decline, PostHog is never initialised.
+        </li>
+        <li style={{ listStyleType: "disc" }}>
+          <strong style={{ color: "rgba(0,255,65,0.6)" }}>Error monitoring (Sentry)</strong> —
+          application errors and performance traces are always collected to maintain a reliable
+          service. Session recordings are an optional part of Sentry and are disabled if you
+          decline cookies.
+        </li>
+      </ul>
+      <p className={`${body} mt-3`} style={{ color: dim }}>
+        We do not use advertising cookies or sell data to third parties. You may also disable
+        cookies in your browser settings, though this will prevent you from staying signed in.
       </p>
 
       {/* 5 */}
@@ -225,7 +255,7 @@ export default function PrivacyPage() {
 
       <div className="mt-16 pt-8 border-t" style={{ borderColor: "rgba(0,255,65,0.1)" }}>
         <p className="text-xs" style={{ color: "rgba(0,255,65,0.2)" }}>
-          STOCKSNACK · LAST UPDATED MAY 9, 2026
+          STOCKSNACK · LAST UPDATED JUNE 6, 2026
         </p>
       </div>
     </div>

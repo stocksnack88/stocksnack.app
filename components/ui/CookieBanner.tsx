@@ -22,6 +22,7 @@ export default function CookieBanner() {
   function decline() {
     localStorage.setItem(STORAGE_KEY, "declined");
     setVisible(false);
+    window.dispatchEvent(new Event("cookie-consent-declined"));
   }
 
   if (!visible) return null;

@@ -601,39 +601,42 @@ export default function ScreenerTable({
         </div>
       )}
 
-      {/* Upsell modal — auto-opens on load for free/logged-out users */}
+      {/* Upsell bar — fixed bottom panel, auto-shows for free/logged-out users */}
       {showUpsellModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-4">
-          <div className="relative bg-[#050505] border border-[#00ff41]/20 rounded-xl w-full max-w-sm px-8 py-8 flex flex-col gap-6">
-            <button
-              onClick={() => setShowUpsellModal(false)}
-              className="absolute top-4 right-4 text-[#00ff41]/30 hover:text-[#00ff41] font-mono text-sm leading-none transition-colors"
-              aria-label="Dismiss"
-            >
-              ✕
-            </button>
-            <div className="flex flex-col gap-1.5">
+        <div className="fixed bottom-0 left-0 right-0 z-[100] border-t border-[#00ff41]/20 bg-[#050505] px-6 py-4">
+          <div className="relative max-w-7xl mx-auto flex flex-col md:flex-row md:items-center gap-3 md:gap-8 pr-8">
+            {/* Left: heading + subtext */}
+            <div className="flex flex-col gap-0.5">
               <p className="text-[11px] font-mono font-bold text-[#00ff41] tracking-[0.2em]">
                 YOU&apos;VE SEEN TODAY&apos;S FREE PICKS
               </p>
-              <p className="text-sm font-mono text-[#00ff41]/60 leading-relaxed">
+              <p className="text-xs font-mono text-[#00ff41]/50">
                 Upgrade to Pro to unlock all 500 S&amp;P 500 stocks.
               </p>
             </div>
-            <div className="flex flex-col gap-2.5">
+            {/* Right: button + sign-in */}
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:ml-auto shrink-0">
               <a
                 href="/pricing"
-                className="w-full text-center bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest py-2.5 rounded hover:bg-[#00dd38] transition-colors"
+                className="bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest px-6 py-2.5 rounded hover:bg-[#00dd38] transition-colors text-center"
               >
                 UPGRADE TO PRO →
               </a>
               {!hasSession && (
-                <p className="text-center text-[10px] font-mono text-[#00ff41]/25">
+                <p className="text-[10px] font-mono text-[#00ff41]/25 text-center md:text-left whitespace-nowrap">
                   Already have an account?{" "}
                   <a href="/login" className="text-[#00ff41]/50 hover:text-[#00ff41] underline">Sign in</a>
                 </p>
               )}
             </div>
+            {/* Dismiss */}
+            <button
+              onClick={() => setShowUpsellModal(false)}
+              className="absolute top-0 right-0 text-[#00ff41]/30 hover:text-[#00ff41] font-mono text-sm leading-none transition-colors"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}

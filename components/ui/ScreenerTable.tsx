@@ -227,11 +227,7 @@ export default function ScreenerTable({
   const [detailLevel,  setDetailLevel]  = useState(0);
   const [showFilters,  setShowFilters]  = useState(false);
   const [showProGate,    setShowProGate]    = useState(false);
-  const [showUpsellModal, setShowUpsellModal] = useState(() => {
-    if (isPro) return false;
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('ss_onboarding_seen') === '1';
-  });
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [filters,      setFilters]      = useState<FilterRow[]>([]);
   const [nextId,       setNextId]       = useState(0);
   const [searchQuery,  setSearchQuery]  = useState("");
@@ -357,9 +353,23 @@ export default function ScreenerTable({
 
   useEffect(() => {
     if (isPro) return;
-    function onOnboardingDismissed() { setShowUpsellModal(true); }
-    window.addEventListener('onboarding-dismissed', onOnboardingDismissed);
-    return () => window.removeEventListener('onboarding-dismissed', onOnboardingDismissed);
+    let timer: ReturnType<typeof setTimeout>;
+    function startTimer() {
+      timer = setTimeout(() => setShowUpsellModal(true), 60000);
+    }
+    function onOnboardingDismissed() {
+      window.removeEventListener('onboarding-dismissed', onOnboardingDismissed);
+      startTimer();
+    }
+    if (localStorage.getItem('ss_onboarding_seen') === '1') {
+      startTimer();
+    } else {
+      window.addEventListener('onboarding-dismissed', onOnboardingDismissed);
+    }
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('onboarding-dismissed', onOnboardingDismissed);
+    };
   }, [isPro]);
 
   function clearAllFilters() {

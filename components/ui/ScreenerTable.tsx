@@ -647,6 +647,12 @@ export default function ScreenerTable({
             >
               UPGRADE TO PRO →
             </a>
+            {!hasSession && (
+              <p className="text-[10px] font-mono text-[#00ff41]/25 text-center">
+                Already have an account?{" "}
+                <a href="/login" className="text-[#00ff41]/50 hover:text-[#00ff41] underline">Sign in</a>
+              </p>
+            )}
           </div>
         </div>
       )}

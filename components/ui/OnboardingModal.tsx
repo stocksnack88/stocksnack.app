@@ -96,11 +96,11 @@ export default function OnboardingModal() {
   const slides = [
     <div key={0} className="flex flex-col flex-1 justify-center gap-0">
       <p className="text-[15px] text-white/35 leading-snug">You are here to <span className="text-[#00ff41]">find</span> the</p>
-      <p className="text-[40px] sm:text-[48px] font-medium text-[#00ff41] leading-[1.05] tracking-[-0.03em] whitespace-nowrap">BEST STOCKS.</p>
+      <p className="text-[32px] sm:text-[48px] font-medium text-[#00ff41] leading-[1.05] tracking-[-0.03em] whitespace-nowrap">BEST STOCKS.</p>
     </div>,
 
     <div key={1} className="flex flex-col flex-1 justify-center gap-0">
-      <p className="text-[36px] sm:text-[44px] font-medium text-[#00ff41] leading-[1.0] tracking-tight">STOCKSNACK</p>
+      <p className="text-[30px] sm:text-[44px] font-medium text-[#00ff41] leading-[1.0] tracking-tight">STOCKSNACK</p>
       <p className="text-[16px] sm:text-[20px] text-white/60 leading-snug mt-0.5">does all the work for you.</p>
       <p className="text-[11px] text-white/20 tracking-[0.1em] font-mono mt-3">NO SPREADSHEETS. NO GUESSING.</p>
     </div>,
@@ -142,17 +142,17 @@ export default function OnboardingModal() {
         <span className="text-[16px] font-medium text-[#00ff41]">RANK</span>
         <span className="text-[16px] text-white/45">all stocks, and put in a</span>
       </div>
-      <p className="text-[44px] sm:text-[52px] font-medium text-[#00ff41] leading-[1.0] tracking-tight mt-0.5">SCREENER.</p>
+      <p className="text-[36px] sm:text-[52px] font-medium text-[#00ff41] leading-[1.0] tracking-tight mt-0.5">SCREENER.</p>
     </div>,
 
     <div key={6} className="flex flex-col flex-1 justify-center gap-0">
       <p className="text-[15px] text-white/35 leading-snug mb-0.5">Identify the</p>
       <div className="flex items-baseline gap-2">
-        <span className="text-[38px] sm:text-[42px] font-medium text-[#00ff41] leading-[1.0] tracking-tight">POTENTIAL</span>
+        <span className="text-[32px] sm:text-[42px] font-medium text-[#00ff41] leading-[1.0] tracking-tight">POTENTIAL</span>
         <span className="text-[13px] text-white/35 pb-0.5">and</span>
       </div>
       <div className="flex items-baseline gap-2.5">
-        <span className="text-[38px] sm:text-[42px] font-medium text-[#ff4444] leading-[1.0] tracking-tight">RISK</span>
+        <span className="text-[32px] sm:text-[42px] font-medium text-[#ff4444] leading-[1.0] tracking-tight">RISK</span>
         <span className="text-[13px] text-white/35 pb-1">with StockSnack.</span>
       </div>
     </div>,
@@ -160,7 +160,7 @@ export default function OnboardingModal() {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-4">
-      <div className="relative bg-[#050505] border border-[#00ff41]/20 rounded-xl w-full max-w-[520px] min-h-[400px] flex flex-col px-6 sm:px-10 pt-6 pb-6">
+      <div className="relative bg-[#050505] border border-[#00ff41]/20 rounded-xl w-full max-w-[520px] min-h-[400px] flex flex-col px-6 sm:px-10 pt-8 sm:pt-6 pb-8 sm:pb-6">
 
         {/* Top bar — STOCKSNACK wordmark left, SKIP right */}
         <div className="flex items-center justify-between mb-6">
@@ -169,7 +169,7 @@ export default function OnboardingModal() {
         </div>
 
         {/* Slide content */}
-        <div className="flex flex-col flex-1">
+        <div className="flex flex-col flex-1 py-2 sm:py-0">
           {slides[cur]}
         </div>
 

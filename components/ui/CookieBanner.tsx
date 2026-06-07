@@ -29,7 +29,7 @@ export default function CookieBanner() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 border-t px-5 py-4"
+      className="fixed bottom-0 left-0 right-0 z-[200] border-t px-5 py-4"
       style={{
         background: "#000",
         borderColor: "rgba(0,255,65,0.18)",

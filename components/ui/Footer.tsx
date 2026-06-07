@@ -13,7 +13,7 @@ export default function Footer() {
         </p>
         <div className="flex gap-5">
           <Link
-            href="/terms"
+            href="/tos"
             className="transition-opacity hover:opacity-70"
             style={{ color: "rgba(0,255,65,0.25)" }}
           >

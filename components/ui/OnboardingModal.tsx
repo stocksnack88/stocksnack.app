@@ -160,10 +160,10 @@ export default function OnboardingModal() {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-4">
-      <div className="relative bg-[#050505] border border-[#00ff41]/20 rounded-xl w-full max-w-[520px] min-h-[400px] flex flex-col px-6 sm:px-10 pt-8 sm:pt-6 pb-8 sm:pb-6">
+      <div className="relative bg-[#050505] border border-[#00ff41]/20 rounded-xl w-full max-w-[520px] min-h-[400px] flex flex-col px-6 sm:px-10 pt-3 sm:pt-6 pb-3 sm:pb-6">
 
         {/* Top bar — STOCKSNACK wordmark left, SKIP right */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-3 sm:mb-6">
           <span className="text-[11px] font-medium text-[#00ff41]/40 tracking-[0.15em] font-mono">STOCKSNACK</span>
           <button onClick={close} className="text-[11px] text-white/20 hover:text-white/40 font-mono tracking-[0.08em]">SKIP</button>
         </div>

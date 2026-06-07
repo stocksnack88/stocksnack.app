@@ -174,10 +174,10 @@ export default function OnboardingModal() {
         </div>
 
         {/* Nav */}
-        <div className="flex items-center justify-between mt-6 pt-5 border-t border-white/[0.07]">
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.07]">
           <button
             onClick={() => go(-1)}
-            className={`text-[13px] px-4 py-1.5 rounded border border-white/[0.18] text-white/50 hover:border-[#00ff41]/40 hover:text-[#00ff41] transition-all ${cur === 0 ? "invisible" : ""}`}
+            className={`text-[13px] px-4 py-1 rounded border border-white/[0.18] text-white/50 hover:border-[#00ff41]/40 hover:text-[#00ff41] transition-all ${cur === 0 ? "invisible" : ""}`}
           >← Back</button>
           <div className="flex items-center gap-2">
             {Array.from({length: total}).map((_, i) => (
@@ -204,7 +204,7 @@ export default function OnboardingModal() {
           </div>
           <button
             onClick={() => go(1)}
-            className={`text-[13px] px-4 py-1.5 rounded border transition-all whitespace-nowrap ${cur === total-1 ? "bg-[#00ff41] border-[#00ff41] text-black font-medium hover:bg-[#00dd38]" : "border-white/[0.18] text-white/50 hover:border-[#00ff41]/40 hover:text-[#00ff41]"}`}
+            className={`text-[13px] px-4 py-1 rounded border transition-all whitespace-nowrap ${cur === total-1 ? "bg-[#00ff41] border-[#00ff41] text-black font-medium hover:bg-[#00dd38]" : "border-white/[0.18] text-white/50 hover:border-[#00ff41]/40 hover:text-[#00ff41]"}`}
           >
             {cur === total - 1 ? "Screener →" : "Next →"}
           </button>

@@ -60,15 +60,12 @@ export default async function PricingPage() {
   return (
     <div style={{ background: "#000", fontFamily: font, minHeight: "100vh" }}>
 
-      {/* Compact header */}
-      <div style={{ textAlign: "center", padding: "2rem 1rem 1.5rem" }}>
-        <p style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(0,255,65,0.3)", marginBottom: "8px" }}>
-          STOCKSNACK
-        </p>
-        <h1 style={{ fontSize: "24px", fontWeight: 300, color: "#fff", margin: "0 0 6px", fontFamily: font }}>
+      {/* Header */}
+      <div style={{ textAlign: "center", padding: "1.5rem 1rem", marginBottom: "1.5rem" }}>
+        <h1 style={{ fontSize: "20px", fontWeight: 400, color: "#fff", margin: "0 0 6px", fontFamily: font }}>
           Simple pricing.
         </h1>
-        <p style={{ fontSize: "12px", color: "rgba(0,255,65,0.4)", margin: 0 }}>
+        <p style={{ fontSize: "11px", color: "rgba(0,255,65,0.4)", margin: 0 }}>
           Start free. Upgrade when you&apos;re ready.
         </p>
       </div>
@@ -87,7 +84,7 @@ export default async function PricingPage() {
             {/* Header row */}
             <thead>
               <tr style={{ background: "#0a0a0a", borderBottom: "0.5px solid rgba(0,255,65,0.15)" }}>
-                <th style={{ padding: "12px 8px" }} />
+                <th style={{ padding: "8px" }} />
 
                 {/* FREE */}
                 <th style={{ padding: "12px 8px", borderLeft: bV, textAlign: "center", verticalAlign: "top" }}>
@@ -126,7 +123,7 @@ export default async function PricingPage() {
             <tbody>
               {rows.map((row, i) => (
                 <tr key={row.label} style={{ background: i % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH }}>
-                  <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>
                     {row.label}
                   </td>
                   <td style={{ padding: "10px 4px", fontSize: "10px", textAlign: "center", borderLeft: bV, color: row.freeColor, fontWeight: row.freeBold ? 700 : 400 }}>

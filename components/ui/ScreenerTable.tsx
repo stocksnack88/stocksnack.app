@@ -213,16 +213,24 @@ function stockSummary(stock: ScreenerRow, rank: number): string {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+function formatCountdown(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
 export default function ScreenerTable({
   visibleStocks,
   lockedStocks,
   hasSession,
   isPro,
+  trialStartedAt = null,
 }: {
   visibleStocks: ScreenerRow[];
   lockedStocks: ScreenerRow[];
   hasSession: boolean;
   isPro: boolean;
+  trialStartedAt?: string | null;
 }) {
   const [detailLevel,  setDetailLevel]  = useState(0);
   const [showFilters,  setShowFilters]  = useState(false);
@@ -236,6 +244,8 @@ export default function ScreenerTable({
     const stored = localStorage.getItem('ss_sound');
     return stored === null ? true : stored === '1';
   });
+  const [trialSecondsLeft, setTrialSecondsLeft] = useState<number | null>(null);
+  const [trialExpired, setTrialExpired] = useState(false);
 
   function playChime() {
     if (!soundOn) return;
@@ -351,8 +361,32 @@ export default function ScreenerTable({
     localStorage.setItem('ss_sound', soundOn ? '1' : '0');
   }, [soundOn]);
 
+  // Trial countdown
+  useEffect(() => {
+    if (!trialStartedAt) return;
+    const TRIAL_MS = 7 * 60 * 1000;
+    const DISPLAY_CAP_S = 300; // show at most 5:00
+
+    function calc(): boolean {
+      const elapsed = Date.now() - new Date(trialStartedAt!).getTime();
+      const remaining = TRIAL_MS - elapsed;
+      if (remaining <= 0) {
+        setTrialSecondsLeft(0);
+        setTrialExpired(true);
+        return false;
+      }
+      setTrialSecondsLeft(Math.min(DISPLAY_CAP_S, Math.ceil(remaining / 1000)));
+      return true;
+    }
+
+    if (!calc()) return;
+    const interval = setInterval(() => { if (!calc()) clearInterval(interval); }, 1000);
+    return () => clearInterval(interval);
+  }, [trialStartedAt]);
+
   useEffect(() => {
     if (isPro) return;
+    if (trialStartedAt) return; // suppress upsell during trial
     let timer: ReturnType<typeof setTimeout>;
     function startTimer() {
       timer = setTimeout(() => setShowUpsellModal(true), 60000);
@@ -370,7 +404,7 @@ export default function ScreenerTable({
       clearTimeout(timer);
       window.removeEventListener('onboarding-dismissed', onOnboardingDismissed);
     };
-  }, [isPro]);
+  }, [isPro, trialStartedAt]);
 
   function clearAllFilters() {
     setFilters([]);
@@ -679,6 +713,59 @@ export default function ScreenerTable({
                 className="w-full text-center text-[#00ff41]/30 hover:text-[#00ff41]/60 font-mono text-xs tracking-widest py-2 transition-colors"
               >
                 MAYBE LATER
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Trial countdown banner — fixed full-width bottom bar, no dismiss */}
+      {trialSecondsLeft !== null && !trialExpired && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-[150] border-t flex items-center justify-center gap-4 px-5 py-3"
+          style={{ background: "#000", borderColor: "rgba(0,255,65,0.35)", fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}
+        >
+          <span className="text-xs font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
+            PRO PREVIEW
+          </span>
+          <span className="text-xs font-bold tracking-[0.15em]" style={{ color: "#00ff41" }}>
+            {formatCountdown(trialSecondsLeft)} REMAINING
+          </span>
+        </div>
+      )}
+
+      {/* Trial expiry modal — full-screen blocking, no dismiss except explicit buttons */}
+      {trialExpired && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 px-4">
+          <div
+            className="w-full max-w-sm px-8 py-8 rounded-xl flex flex-col gap-6"
+            style={{ background: "#050505", border: "1px solid rgba(0,255,65,0.2)", fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}
+          >
+            <div className="flex flex-col gap-2">
+              <p className="text-[10px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.35)" }}>
+                STOCKSNACK
+              </p>
+              <p className="text-base font-bold leading-snug tracking-widest" style={{ color: "#00ff41" }}>
+                YOUR FREE PREVIEW<br />HAS ENDED
+              </p>
+              <p className="text-xs leading-relaxed mt-1" style={{ color: "rgba(0,255,65,0.5)" }}>
+                Upgrade to Pro to keep access to all 500 stocks.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <a
+                href="/pricing"
+                className="w-full text-center font-bold text-xs tracking-widest py-2.5 rounded transition-colors"
+                style={{ background: "#00ff41", color: "#000" }}
+              >
+                UPGRADE TO PRO →
+              </a>
+              <button
+                onClick={() => { setTrialExpired(false); router.refresh(); }}
+                className="w-full text-center text-xs tracking-widest py-2 transition-colors"
+                style={{ color: "rgba(0,255,65,0.3)" }}
+              >
+                BACK TO SCREENER
               </button>
             </div>
           </div>

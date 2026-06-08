@@ -6,6 +6,7 @@ import NavHeightLogger from "@/components/ui/NavHeightLogger";
 import OnboardingModal from "@/components/ui/OnboardingModal";
 
 const FREE_LIMIT = 5;
+const TRIAL_DURATION_MS = 7 * 60 * 1000;
 
 export default async function ScreenerPage({
   searchParams,
@@ -28,16 +29,25 @@ export default async function ScreenerPage({
   const { data: { session } } = await supabase.auth.getSession();
 
   let isPro = false;
+  let isTrialActive = false;
+  let trialStartedAt: string | null = null;
   if (session?.user?.id) {
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
-      .select("subscription_status")
+      .select("subscription_status, trial_used, trial_started_at")
       .eq("id", session.user.id)
       .single();
     isPro =
       profile?.subscription_status === "active" ||
       profile?.subscription_status === "trialing";
+    trialStartedAt = profile?.trial_started_at ?? null;
+    isTrialActive =
+      !isPro &&
+      profile?.trial_used === true &&
+      trialStartedAt !== null &&
+      Date.now() - new Date(trialStartedAt).getTime() < TRIAL_DURATION_MS;
   }
+  const effectivelyPro = isPro || isTrialActive;
 
   const [{ data: rows, error }, { data: priceRows }] = await Promise.all([
     supabaseAdmin
@@ -117,7 +127,7 @@ export default async function ScreenerPage({
     return { visible, locked };
   }
 
-  const { visible: visibleStocks, locked: lockedStocks } = isPro
+  const { visible: visibleStocks, locked: lockedStocks } = effectivelyPro
     ? { visible: stocks, locked: [] as ScreenerRow[] }
     : getDailyFreeStocks(stocks, FREE_LIMIT);
 
@@ -162,9 +172,9 @@ export default async function ScreenerPage({
               {updatedAt && (
                 <p className="text-[10px] md:text-xs text-[#00ff41]/40">UPDATED {updatedAt.toUpperCase()}</p>
               )}
-              {isPro && (
+              {(isPro || isTrialActive) && (
                 <p className="text-[10px] md:text-xs md:mt-0.5">
-                  <span className="text-[#00ff41]">● PRO · ALL {stocks.length} STOCKS</span>
+                  <span className="text-[#00ff41]">● {isTrialActive ? "PRO PREVIEW" : "PRO"} · ALL {stocks.length} STOCKS</span>
                 </p>
               )}
             </div>
@@ -180,6 +190,7 @@ export default async function ScreenerPage({
             lockedStocks={lockedStocks}
             hasSession={!!session}
             isPro={isPro}
+            trialStartedAt={isTrialActive ? trialStartedAt : null}
           />
           <p className="mt-4 text-xs text-[#00ff41]/20 text-center tracking-wide">
             DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY

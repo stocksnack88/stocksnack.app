@@ -1,0 +1,2 @@
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS trial_used BOOLEAN DEFAULT false;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMPTZ DEFAULT null;

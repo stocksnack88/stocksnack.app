@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -39,6 +40,16 @@ export async function GET(request: NextRequest) {
   if (error) {
     console.error("Auth callback error:", error.message);
     return redirectFailure;
+  }
+
+  // Start 5-min Pro preview on first email confirmation (idempotent — skips if trial_used is already true)
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await supabaseAdmin
+      .from("user_profiles")
+      .update({ trial_used: true, trial_started_at: new Date().toISOString() })
+      .eq("id", user.id)
+      .eq("trial_used", false);
   }
 
   return redirectSuccess;

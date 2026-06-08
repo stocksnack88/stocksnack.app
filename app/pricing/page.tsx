@@ -230,16 +230,25 @@ export default async function PricingPage() {
                 CURRENT PLAN
               </div>
             ) : (
-              <Link
-                href="/api/subscribe"
-                className="w-full text-center block py-2.5 rounded text-xs font-bold tracking-widest transition-colors"
-                style={{
-                  background: "#00ff41",
-                  color: "#000",
-                }}
-              >
-                UPGRADE TO PRO →
-              </Link>
+              <>
+                <Link
+                  href="/api/subscribe"
+                  className="w-full text-center block py-2.5 rounded text-xs font-bold tracking-widest transition-colors"
+                  style={{
+                    background: "#00ff41",
+                    color: "#000",
+                  }}
+                >
+                  UPGRADE TO PRO →
+                </Link>
+                <p className="mt-2 text-center text-xs font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>
+                  By upgrading you agree to our{" "}
+                  <a href="/tos" className="underline hover:opacity-70 transition-opacity" style={{ color: "rgba(0,255,65,0.5)" }}>
+                    Terms of Service
+                  </a>
+                  .
+                </p>
+              </>
             )}
           </div>
 

@@ -242,6 +242,13 @@ export default function SignupPage() {
           >
             {loading ? "CREATING ACCOUNT..." : "CREATE ACCOUNT →"}
           </button>
+          <p className="mt-3 text-center text-xs font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>
+            By signing up you agree to our{" "}
+            <a href="/tos" className="underline hover:opacity-70 transition-opacity" style={{ color: "rgba(0,255,65,0.5)" }}>
+              Terms of Service
+            </a>
+            .
+          </p>
         </form>
 
         <p

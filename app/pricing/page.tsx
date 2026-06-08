@@ -58,9 +58,9 @@ export default async function PricingPage() {
   };
 
   const annualCell: React.CSSProperties = {
-    borderLeft: bV,
     background: "rgba(0,255,65,0.06)",
   };
+  const annualGlow = "0 0 0 1px rgba(0,255,65,0.3), 0 0 20px rgba(0,255,65,0.08)";
 
   return (
     <div style={{ background: "#000", fontFamily: font, minHeight: "100vh" }}>
@@ -83,11 +83,11 @@ export default async function PricingPage() {
                 <th style={{ padding: "8px 6px", borderLeft: bV, textAlign: "center" }}>
                   <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.35)" }}>FREE</span>
                 </th>
-                <th style={{ padding: "8px 6px", borderLeft: bV, textAlign: "center" }}>
-                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.7)" }}>PRO MONTHLY</span>
+                <th style={{ padding: "8px 6px", borderLeft: bV, textAlign: "center", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(0,255,65,0.7)" }}>PRO MONTHLY</span>
                 </th>
-                <th style={{ padding: "8px 6px", textAlign: "center", ...annualCell }}>
-                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "#00ff41" }}>PRO ANNUAL</span>
+                <th style={{ padding: "8px 6px", textAlign: "center", whiteSpace: "nowrap", ...annualCell, borderRadius: "8px 8px 0 0", boxShadow: annualGlow }}>
+                  <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "#00ff41" }}>PRO ANNUAL</span>
                 </th>
               </tr>
             </thead>
@@ -147,7 +147,7 @@ export default async function PricingPage() {
                 </td>
 
                 {/* PRO ANNUAL */}
-                <td style={{ padding: "12px 8px", textAlign: "center", ...annualCell }}>
+                <td style={{ padding: "12px 8px", textAlign: "center", ...annualCell, borderRadius: "0 0 8px 8px", boxShadow: annualGlow }}>
                   {isPro ? (
                     <span style={ctaCurrent}>CURRENT PLAN</span>
                   ) : (

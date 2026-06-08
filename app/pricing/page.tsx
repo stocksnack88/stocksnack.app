@@ -58,7 +58,7 @@ export default async function PricingPage() {
   };
 
   const annualCell: React.CSSProperties = {
-    borderLeft: "1px solid rgba(0,255,65,0.5)",
+    borderLeft: bV,
     background: "rgba(0,255,65,0.06)",
   };
 
@@ -79,14 +79,14 @@ export default async function PricingPage() {
             {/* Header row — plan names, single line each */}
             <thead>
               <tr style={{ background: "#0a0a0a", borderBottom: "0.5px solid rgba(0,255,65,0.15)" }}>
-                <th style={{ padding: "10px 8px" }} />
-                <th style={{ padding: "10px 8px", borderLeft: bV, textAlign: "center" }}>
+                <th style={{ padding: "8px 6px" }} />
+                <th style={{ padding: "8px 6px", borderLeft: bV, textAlign: "center" }}>
                   <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.35)" }}>FREE</span>
                 </th>
-                <th style={{ padding: "10px 8px", borderLeft: bV, textAlign: "center" }}>
-                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(0,255,65,0.7)" }}>PRO MONTHLY</span>
+                <th style={{ padding: "8px 6px", borderLeft: bV, textAlign: "center" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.7)" }}>PRO MONTHLY</span>
                 </th>
-                <th style={{ padding: "10px 8px", textAlign: "center", transform: "scale(1.04)", transformOrigin: "top center", ...annualCell }}>
+                <th style={{ padding: "8px 6px", textAlign: "center", ...annualCell }}>
                   <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "#00ff41" }}>PRO ANNUAL</span>
                 </th>
               </tr>
@@ -129,7 +129,7 @@ export default async function PricingPage() {
                   {isLoggedIn ? (
                     <span style={ctaCurrentFree}>CURRENT PLAN</span>
                   ) : (
-                    <a href="/signup" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none" }}>
+                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", whiteSpace: "nowrap" }}>
                       5-min free trial →
                     </a>
                   )}

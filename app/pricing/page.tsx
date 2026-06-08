@@ -57,21 +57,16 @@ export default async function PricingPage() {
     ...ctaBase, border: "0.5px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.3)",
   };
 
+  const annualCell: React.CSSProperties = {
+    borderLeft: "1px solid rgba(0,255,65,0.5)",
+    background: "rgba(0,255,65,0.06)",
+  };
+
   return (
     <div style={{ background: "#000", fontFamily: font, minHeight: "100vh" }}>
 
-      {/* Header */}
-      <div style={{ textAlign: "center", padding: "1.5rem 1rem", marginBottom: "1.5rem" }}>
-        <h1 style={{ fontSize: "20px", fontWeight: 400, color: "#fff", margin: "0 0 6px", fontFamily: font }}>
-          Simple pricing.
-        </h1>
-        <p style={{ fontSize: "11px", color: "rgba(0,255,65,0.4)", margin: 0 }}>
-          Start free. Upgrade when you&apos;re ready.
-        </p>
-      </div>
-
-      {/* Table */}
-      <div style={{ maxWidth: "480px", margin: "0 auto", padding: "0 1rem 2rem" }}>
+      {/* Table — no header, starts immediately */}
+      <div style={{ maxWidth: "480px", margin: "0 auto", padding: "2rem 1rem 2rem" }}>
         <div style={{ border: "0.5px solid rgba(0,255,65,0.25)", borderRadius: "12px", overflow: "hidden" }}>
           <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontFamily: font }}>
             <colgroup>
@@ -81,21 +76,18 @@ export default async function PricingPage() {
               <col style={{ width: "22%" }} />
             </colgroup>
 
-            {/* Header row — plan names + BEST VALUE pill */}
+            {/* Header row — plan names, single line each */}
             <thead>
               <tr style={{ background: "#0a0a0a", borderBottom: "0.5px solid rgba(0,255,65,0.15)" }}>
                 <th style={{ padding: "10px 8px" }} />
                 <th style={{ padding: "10px 8px", borderLeft: bV, textAlign: "center" }}>
-                  <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.35)" }}>FREE</span>
+                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.35)" }}>FREE</span>
                 </th>
                 <th style={{ padding: "10px 8px", borderLeft: bV, textAlign: "center" }}>
-                  <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(0,255,65,0.7)" }}>PRO MONTHLY</span>
+                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(0,255,65,0.7)" }}>PRO MONTHLY</span>
                 </th>
-                <th style={{ padding: "10px 8px", borderLeft: bV, textAlign: "center" }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-                    <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "#00ff41" }}>PRO ANNUAL</span>
-                    <span style={{ fontSize: "8px", fontWeight: 700, letterSpacing: "0.05em", background: "#00ff41", color: "#000", padding: "1px 5px", borderRadius: "3px" }}>BEST VALUE</span>
-                  </div>
+                <th style={{ padding: "10px 8px", textAlign: "center", transform: "scale(1.04)", transformOrigin: "top center", ...annualCell }}>
+                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "#00ff41" }}>PRO ANNUAL</span>
                 </th>
               </tr>
             </thead>
@@ -104,23 +96,23 @@ export default async function PricingPage() {
             <tbody>
               {/* Price row (index 0 — transparent) */}
               <tr style={{ background: "transparent", borderBottom: bH }}>
-                <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Price</td>
-                <td style={{ padding: "10px 4px", fontSize: "10px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.4)" }}>$0 / free</td>
-                <td style={{ padding: "10px 4px", fontSize: "10px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.7)" }}>$40 / mo</td>
-                <td style={{ padding: "10px 4px", fontSize: "10px", textAlign: "center", borderLeft: bV, color: "#00ff41" }}>$20 / mo · $240/yr</td>
+                <td style={{ padding: "10px 8px", fontSize: "12px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Price</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.4)" }}>$0 / free</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.7)" }}>$40 / mo</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell }}>$20 / mo · $240/yr</td>
               </tr>
               {rows.map((row, i) => (
                 <tr key={row.label} style={{ background: (i + 1) % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH }}>
-                  <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>
+                  <td style={{ padding: "10px 8px", fontSize: "12px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>
                     {row.label}
                   </td>
-                  <td style={{ padding: "10px 4px", fontSize: "10px", textAlign: "center", borderLeft: bV, color: row.freeColor, fontWeight: row.freeBold ? 700 : 400 }}>
+                  <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: row.freeColor, fontWeight: row.freeBold ? 700 : 400 }}>
                     {row.free}
                   </td>
-                  <td style={{ padding: "10px 4px", fontSize: "10px", textAlign: "center", borderLeft: bV, color: row.proColor, fontWeight: 700 }}>
+                  <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: row.proColor, fontWeight: 700 }}>
                     {row.pro}
                   </td>
-                  <td style={{ padding: "10px 4px", fontSize: "10px", textAlign: "center", borderLeft: bV, color: row.proColor, fontWeight: 700 }}>
+                  <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: row.proColor, fontWeight: 700, ...annualCell }}>
                     {row.pro}
                   </td>
                 </tr>
@@ -132,10 +124,14 @@ export default async function PricingPage() {
               <tr style={{ background: "#080808", borderTop: "0.5px solid rgba(0,255,65,0.12)" }}>
                 <td style={{ padding: "12px 8px" }} />
 
-                {/* FREE */}
+                {/* FREE — CURRENT PLAN if logged in, trial link if not */}
                 <td style={{ padding: "12px 8px", textAlign: "center", borderLeft: bV }}>
-                  {isLoggedIn && (
+                  {isLoggedIn ? (
                     <span style={ctaCurrentFree}>CURRENT PLAN</span>
+                  ) : (
+                    <a href="/signup" style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none" }}>
+                      5-min free trial →
+                    </a>
                   )}
                 </td>
 
@@ -151,7 +147,7 @@ export default async function PricingPage() {
                 </td>
 
                 {/* PRO ANNUAL */}
-                <td style={{ padding: "12px 8px", textAlign: "center", borderLeft: bV }}>
+                <td style={{ padding: "12px 8px", textAlign: "center", ...annualCell }}>
                   {isPro ? (
                     <span style={ctaCurrent}>CURRENT PLAN</span>
                   ) : (

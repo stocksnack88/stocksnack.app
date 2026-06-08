@@ -81,10 +81,9 @@ export default async function PricingPage() {
               <col style={{ width: "22%" }} />
             </colgroup>
 
-            {/* Header rows */}
+            {/* Header row — plan names + BEST VALUE pill */}
             <thead>
-              {/* Row 1 — Plan names */}
-              <tr style={{ background: "#0a0a0a", borderBottom: "0.5px solid rgba(0,255,65,0.08)" }}>
+              <tr style={{ background: "#0a0a0a", borderBottom: "0.5px solid rgba(0,255,65,0.15)" }}>
                 <th style={{ padding: "10px 8px" }} />
                 <th style={{ padding: "10px 8px", borderLeft: bV, textAlign: "center" }}>
                   <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.35)" }}>FREE</span>
@@ -93,42 +92,9 @@ export default async function PricingPage() {
                   <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(0,255,65,0.7)" }}>PRO MONTHLY</span>
                 </th>
                 <th style={{ padding: "10px 8px", borderLeft: bV, textAlign: "center" }}>
-                  <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "#00ff41" }}>PRO ANNUAL</span>
-                </th>
-              </tr>
-
-              {/* Row 2 — Badge */}
-              <tr style={{ background: "#0a0a0a", borderBottom: "0.5px solid rgba(0,255,65,0.08)" }}>
-                <th style={{ padding: "4px 8px" }} />
-                <th style={{ padding: "4px 8px", borderLeft: bV }} />
-                <th style={{ padding: "4px 8px", borderLeft: bV }} />
-                <th style={{ padding: "4px 8px", borderLeft: bV, textAlign: "center" }}>
-                  <span style={{ fontSize: "8px", fontWeight: 700, letterSpacing: "0.05em", background: "#00ff41", color: "#000", padding: "1px 5px", borderRadius: "3px" }}>
-                    BEST VALUE
-                  </span>
-                </th>
-              </tr>
-
-              {/* Row 3 — Prices */}
-              <tr style={{ background: "#0a0a0a", borderBottom: "0.5px solid rgba(0,255,65,0.15)" }}>
-                <th style={{ padding: "8px" }} />
-                <th style={{ padding: "8px 8px 12px", borderLeft: bV, textAlign: "center" }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-                    <span style={{ fontSize: "22px", fontWeight: 700, color: "rgba(255,255,255,0.5)", lineHeight: 1.1 }}>$0</span>
-                    <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.2)" }}>forever free</span>
-                  </div>
-                </th>
-                <th style={{ padding: "8px 8px 12px", borderLeft: bV, textAlign: "center" }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-                    <span style={{ fontSize: "22px", fontWeight: 700, color: "rgba(0,255,65,0.7)", lineHeight: 1.1 }}>$40</span>
-                    <span style={{ fontSize: "9px", color: "rgba(0,255,65,0.35)" }}>per month</span>
-                  </div>
-                </th>
-                <th style={{ padding: "8px 8px 12px", borderLeft: bV, textAlign: "center" }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-                    <span style={{ fontSize: "22px", fontWeight: 700, color: "#00ff41", lineHeight: 1.1 }}>$20</span>
-                    <span style={{ fontSize: "9px", color: "rgba(0,255,65,0.5)" }}>per month</span>
-                    <span style={{ fontSize: "9px", color: "rgba(0,255,65,0.3)" }}>billed $240/yr</span>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+                    <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "#00ff41" }}>PRO ANNUAL</span>
+                    <span style={{ fontSize: "8px", fontWeight: 700, letterSpacing: "0.05em", background: "#00ff41", color: "#000", padding: "1px 5px", borderRadius: "3px" }}>BEST VALUE</span>
                   </div>
                 </th>
               </tr>
@@ -136,8 +102,15 @@ export default async function PricingPage() {
 
             {/* Feature rows */}
             <tbody>
+              {/* Price row (index 0 — transparent) */}
+              <tr style={{ background: "transparent", borderBottom: bH }}>
+                <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Price</td>
+                <td style={{ padding: "10px 4px", fontSize: "10px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.4)" }}>$0 / free</td>
+                <td style={{ padding: "10px 4px", fontSize: "10px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.7)" }}>$40 / mo</td>
+                <td style={{ padding: "10px 4px", fontSize: "10px", textAlign: "center", borderLeft: bV, color: "#00ff41" }}>$20 / mo · $240/yr</td>
+              </tr>
               {rows.map((row, i) => (
-                <tr key={row.label} style={{ background: i % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH }}>
+                <tr key={row.label} style={{ background: (i + 1) % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH }}>
                   <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>
                     {row.label}
                   </td>

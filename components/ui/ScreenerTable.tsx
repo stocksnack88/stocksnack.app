@@ -693,7 +693,7 @@ export default function ScreenerTable({
             <tr className="bg-[#001200]">
               <th rowSpan={2} className="border-0 sticky left-0 z-20 bg-[#001200] w-14 px-2 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">TICKER</th>
               <th rowSpan={2} className="border-0 hidden md:table-cell bg-[#001200] px-2 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">COMPANY</th>
-              <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-0.5 text-center text-xs font-bold tracking-widest text-[#00ff41]/60">5Y PROJECTED RETURN</th>
+              <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-0.5 text-center text-xs font-bold tracking-widest text-[#00ff41]/60">5Y PROJECTED</th>
               {showQuality && (
                 <th colSpan={2} className="border-0 bg-[#001200] px-2 py-0.5 text-center text-[9px] font-bold tracking-[0.3em] text-[#00ff41]/30">QUALITY</th>
               )}
@@ -712,7 +712,7 @@ export default function ScreenerTable({
             {/* Main column header row — sticky */}
             <tr className="border-b border-[#00ff41]/60 bg-[#001200]">
               <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">CAGR</th>
-              <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">POTENTIAL RETURN</th>
+              <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">PRJT RETURN</th>
               {showQuality && <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001200]">GROWTH</th>}
               {showQuality && <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001200]">HEALTH</th>}
               <th className="px-1 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">SIGNAL</th>

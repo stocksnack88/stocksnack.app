@@ -125,11 +125,11 @@ export default async function PricingPage() {
                 <td style={{ padding: "12px 8px" }} />
 
                 {/* FREE — CURRENT PLAN if logged in, trial link if not */}
-                <td style={{ padding: "12px 8px", textAlign: "center", borderLeft: bV }}>
+                <td style={{ padding: "12px 8px", textAlign: "center", borderLeft: bV, lineHeight: 1.1 }}>
                   {isLoggedIn ? (
                     <span style={ctaCurrentFree}>CURRENT PLAN</span>
                   ) : (
-                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", whiteSpace: "nowrap" }}>
+                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", display: "block", margin: 0, lineHeight: 1.1 }}>
                       5-min free trial →
                     </a>
                   )}

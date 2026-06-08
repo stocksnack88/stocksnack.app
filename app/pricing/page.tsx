@@ -67,7 +67,7 @@ export default async function PricingPage() {
 
       {/* Table — no header, starts immediately */}
       <div style={{ maxWidth: "480px", margin: "0 auto", padding: "2rem 1rem 2rem" }}>
-        <div style={{ border: "0.5px solid rgba(0,255,65,0.25)", borderRadius: "12px", overflow: "hidden" }}>
+        <div style={{ border: "0.5px solid rgba(0,255,65,0.25)", borderRadius: "12px", overflow: "visible", padding: "4px" }}>
           <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontFamily: font }}>
             <colgroup>
               <col style={{ width: "36%" }} />
@@ -83,11 +83,11 @@ export default async function PricingPage() {
                 <th style={{ padding: "8px 6px", borderLeft: bV, textAlign: "center" }}>
                   <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.35)" }}>FREE</span>
                 </th>
-                <th style={{ padding: "8px 6px", borderLeft: bV, textAlign: "center", whiteSpace: "nowrap" }}>
-                  <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(0,255,65,0.7)" }}>PRO MONTHLY</span>
+                <th style={{ padding: "8px 6px", borderLeft: bV, textAlign: "center", lineHeight: 1.1 }}>
+                  <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(0,255,65,0.7)", display: "block", margin: 0 }}>PRO MONTHLY</span>
                 </th>
-                <th style={{ padding: "8px 6px", textAlign: "center", whiteSpace: "nowrap", ...annualCell, borderRadius: "8px 8px 0 0", boxShadow: annualGlow }}>
-                  <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "#00ff41" }}>PRO ANNUAL</span>
+                <th style={{ padding: "8px 6px", textAlign: "center", lineHeight: 1.1, ...annualCell, borderRadius: "8px 8px 0 0", boxShadow: annualGlow }}>
+                  <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "#00ff41", display: "block", margin: 0 }}>PRO ANNUAL</span>
                 </th>
               </tr>
             </thead>

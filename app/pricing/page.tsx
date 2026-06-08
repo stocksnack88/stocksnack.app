@@ -35,20 +35,18 @@ export default async function PricingPage() {
   const borderRow = "1px solid rgba(0,255,65,0.08)";
   const annualBg  = { background: "rgba(0,255,65,0.03)" };
 
-  // freeOk drives the binary ✓/✕ on mobile cards
   const rows: {
     label: string;
-    freeOk: boolean;
     free: string;
     freeType: "dim" | "green" | "check" | "x";
     pro: string;
     proType: "dim" | "green" | "check" | "x";
   }[] = [
-    { label: "Stocks access",           freeOk: true,  free: "5 random daily", freeType: "dim",   pro: "Full S&P 500", proType: "green" },
-    { label: "Filter function",         freeOk: false, free: "✕",              freeType: "x",     pro: "✓",            proType: "check" },
-    { label: "All 4 scoring layers",    freeOk: false, free: "5 stocks only",  freeType: "dim",   pro: "All stocks",   proType: "green" },
-    { label: "Signal (BUY+/HOLD/SELL)", freeOk: true,  free: "5 stocks only",  freeType: "dim",   pro: "All stocks",   proType: "green" },
-    { label: "Score detail",            freeOk: false, free: "5 stocks only",  freeType: "dim",   pro: "All stocks",   proType: "green" },
+    { label: "Stocks access",           free: "5 random daily", freeType: "dim",   pro: "Full S&P 500", proType: "green" },
+    { label: "Filter function",         free: "✕",              freeType: "x",     pro: "✓",            proType: "check" },
+    { label: "All 4 scoring layers",    free: "5 stocks only",  freeType: "dim",   pro: "All stocks",   proType: "green" },
+    { label: "Signal (BUY+/HOLD/SELL)", free: "5 stocks only",  freeType: "dim",   pro: "All stocks",   proType: "green" },
+    { label: "Score detail",            free: "5 stocks only",  freeType: "dim",   pro: "All stocks",   proType: "green" },
   ];
 
   function FeatureCell({ value, type }: { value: string; type: "dim" | "green" | "check" | "x" }) {
@@ -57,11 +55,13 @@ export default async function PricingPage() {
       type === "x"     ? { color: "rgba(255,80,80,0.6)" } :
       type === "green" ? { color: "rgba(0,255,65,0.8)" } :
                          { color: "rgba(0,255,65,0.3)" };
-    return (
-      <span className={`text-[11px]${type === "check" || type === "x" ? " font-bold text-sm" : type === "green" ? " font-bold" : ""}`} style={style}>
-        {value}
-      </span>
-    );
+    const cls =
+      type === "check" || type === "x"
+        ? "text-xs md:text-sm font-bold"
+        : type === "green"
+        ? "text-[10px] md:text-[11px] font-bold"
+        : "text-[10px] md:text-[11px]";
+    return <span className={cls} style={style}>{value}</span>;
   }
 
   return (
@@ -81,208 +81,134 @@ export default async function PricingPage() {
         </p>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 pb-20">
+      {/* Comparison table — responsive at all breakpoints */}
+      <div className="max-w-5xl mx-auto px-4 md:px-6 pb-20">
+        <div className="rounded-lg" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
+          <table className="w-full border-collapse table-fixed">
+            <colgroup>
+              <col style={{ width: "35%" }} />
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "22%" }} />
+              <col style={{ width: "23%" }} />
+            </colgroup>
 
-        {/* ── Mobile: stacked cards (hidden on md+) ─────────────────────────── */}
-        <div className="block md:hidden space-y-5 mb-8">
+            {/* Column headers */}
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(0,255,65,0.15)" }}>
+                <th className="px-2 py-3 md:px-5 md:py-6" />
 
-          {/* FREE */}
-          <div className="rounded-lg p-6" style={{ border: "1px solid rgba(0,255,65,0.15)", background: "rgba(0,255,65,0.01)" }}>
-            <p className="text-[11px] font-bold tracking-[0.2em] mb-3" style={{ color: "rgba(0,255,65,0.45)" }}>FREE</p>
-            <div className="flex items-baseline gap-1 mb-1">
-              <span className="text-3xl font-bold" style={{ color: "#00ff41" }}>$0</span>
-              <span className="text-xs" style={{ color: "rgba(0,255,65,0.35)" }}>/mo</span>
-            </div>
-            <p className="text-xs mb-6" style={{ color: "rgba(0,255,65,0.3)" }}>Forever free</p>
-            <ul className="space-y-3 mb-6">
-              {rows.map(row => (
-                <li key={row.label} className="flex items-center gap-2.5">
-                  <span className="text-sm font-bold shrink-0 w-4 text-center" style={{ color: row.freeOk ? "#00ff41" : "rgba(255,80,80,0.55)" }}>
-                    {row.freeOk ? "✓" : "✕"}
-                  </span>
-                  <span className="text-xs" style={{ color: row.freeOk ? "rgba(0,255,65,0.6)" : "rgba(0,255,65,0.3)" }}>
+                {/* FREE */}
+                <th className="px-2 py-3 md:px-5 md:py-6 text-center align-top" style={{ borderLeft: borderCol }}>
+                  <div className="flex flex-col items-center gap-0.5 md:gap-1">
+                    <span className="text-[11px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.45)" }}>FREE</span>
+                    <span className="text-xl md:text-2xl font-bold" style={{ color: "#00ff41" }}>$0</span>
+                    <span className="text-[9px] md:text-[11px]" style={{ color: "rgba(0,255,65,0.3)" }}>forever free</span>
+                  </div>
+                </th>
+
+                {/* PRO MONTHLY */}
+                <th className="px-2 py-3 md:px-5 md:py-6 text-center align-top" style={{ borderLeft: borderCol }}>
+                  <div className="flex flex-col items-center gap-0.5 md:gap-1">
+                    <span className="text-[11px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.7)" }}>PRO<br className="md:hidden" /> MONTHLY</span>
+                    <span className="text-xl md:text-2xl font-bold" style={{ color: "#00ff41" }}>$40</span>
+                    <span className="text-[9px] md:text-[11px]" style={{ color: "rgba(0,255,65,0.4)" }}>per month</span>
+                  </div>
+                </th>
+
+                {/* PRO ANNUAL */}
+                <th className="px-2 py-3 md:px-5 md:py-6 text-center align-top" style={{ borderLeft: borderCol, ...annualBg }}>
+                  <div className="flex flex-col items-center gap-0.5 md:gap-1">
+                    <span className="mb-0.5 md:mb-1 px-1.5 md:px-2.5 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold tracking-widest" style={{ background: "#00ff41", color: "#000" }}>
+                      BEST VALUE
+                    </span>
+                    <span className="text-[11px] font-bold tracking-[0.2em]" style={{ color: "#00ff41" }}>PRO<br className="md:hidden" /> ANNUAL</span>
+                    <span className="text-xl md:text-2xl font-bold" style={{ color: "#00ff41" }}>$20</span>
+                    <span className="text-[9px] md:text-[11px]" style={{ color: "rgba(0,255,65,0.5)" }}>per month</span>
+                    <span className="text-[9px] md:text-[11px]" style={{ color: "rgba(0,255,65,0.35)" }}>billed $240/yr</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+
+            {/* Feature rows */}
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={row.label} style={{ borderBottom: i < rows.length - 1 ? borderRow : "1px solid rgba(0,255,65,0.15)" }}>
+                  <td className="px-2 py-2.5 md:px-5 md:py-4 text-[10px] md:text-[11px] tracking-wide" style={{ color: "rgba(0,255,65,0.5)" }}>
                     {row.label}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="w-full text-center py-2.5 rounded text-xs font-bold tracking-widest"
-              style={{ border: "1px solid rgba(0,255,65,0.18)", color: "rgba(0,255,65,0.35)" }}>
-              CURRENT PLAN
-            </div>
-          </div>
-
-          {/* PRO MONTHLY */}
-          <div className="rounded-lg p-6" style={{ border: "1px solid rgba(0,255,65,0.4)", background: "rgba(0,255,65,0.02)" }}>
-            <p className="text-[11px] font-bold tracking-[0.2em] mb-3" style={{ color: "rgba(0,255,65,0.7)" }}>PRO MONTHLY</p>
-            <div className="flex items-baseline gap-1 mb-1">
-              <span className="text-3xl font-bold" style={{ color: "#00ff41" }}>$40</span>
-              <span className="text-xs" style={{ color: "rgba(0,255,65,0.5)" }}>/mo</span>
-            </div>
-            <p className="text-xs mb-6" style={{ color: "rgba(0,255,65,0.35)" }}>per month</p>
-            <ul className="space-y-3 mb-6">
-              {rows.map(row => (
-                <li key={row.label} className="flex items-center gap-2.5">
-                  <span className="text-sm font-bold shrink-0 w-4 text-center" style={{ color: "#00ff41" }}>✓</span>
-                  <span className="text-xs" style={{ color: "rgba(0,255,65,0.6)" }}>{row.label}</span>
-                </li>
-              ))}
-            </ul>
-            {isPro ? (
-              <div className="w-full text-center py-2.5 rounded text-xs font-bold tracking-widest"
-                style={{ border: "1px solid rgba(0,255,65,0.3)", color: "rgba(0,255,65,0.5)" }}>
-                CURRENT PLAN
-              </div>
-            ) : (
-              <a href="/api/subscribe?plan=monthly"
-                className="block w-full text-center py-2.5 rounded text-xs font-bold tracking-widest transition-colors"
-                style={{ border: "1px solid rgba(0,255,65,0.5)", color: "rgba(0,255,65,0.8)" }}>
-                UPGRADE →
-              </a>
-            )}
-          </div>
-
-          {/* PRO ANNUAL */}
-          <div className="rounded-lg p-6 relative" style={{ border: "1px solid rgba(0,255,65,0.7)", background: "rgba(0,255,65,0.04)" }}>
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold tracking-widest whitespace-nowrap"
-              style={{ background: "#00ff41", color: "#000" }}>
-              BEST VALUE
-            </div>
-            <p className="text-[11px] font-bold tracking-[0.2em] mb-3 mt-1" style={{ color: "#00ff41" }}>PRO ANNUAL</p>
-            <div className="flex items-baseline gap-1 mb-1">
-              <span className="text-3xl font-bold" style={{ color: "#00ff41" }}>$20</span>
-              <span className="text-xs" style={{ color: "rgba(0,255,65,0.5)" }}>/mo</span>
-            </div>
-            <p className="text-xs mb-6" style={{ color: "rgba(0,255,65,0.4)" }}>billed $240/year</p>
-            <ul className="space-y-3 mb-6">
-              {rows.map(row => (
-                <li key={row.label} className="flex items-center gap-2.5">
-                  <span className="text-sm font-bold shrink-0 w-4 text-center" style={{ color: "#00ff41" }}>✓</span>
-                  <span className="text-xs" style={{ color: "rgba(0,255,65,0.6)" }}>{row.label}</span>
-                </li>
-              ))}
-            </ul>
-            {isPro ? (
-              <div className="w-full text-center py-2.5 rounded text-xs font-bold tracking-widest"
-                style={{ border: "1px solid rgba(0,255,65,0.3)", color: "rgba(0,255,65,0.5)" }}>
-                CURRENT PLAN
-              </div>
-            ) : (
-              <a href="/api/subscribe?plan=annual"
-                className="block w-full text-center py-2.5 rounded text-xs font-bold tracking-widest transition-colors"
-                style={{ background: "#00ff41", color: "#000" }}>
-                UPGRADE →
-              </a>
-            )}
-          </div>
-
-        </div>
-
-        {/* ── Desktop: 4-column comparison table (hidden below md) ───────────── */}
-        <div className="hidden md:block">
-          <div className="overflow-x-auto rounded-lg" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
-            <table className="w-full border-collapse min-w-[540px]">
-              <colgroup>
-                <col style={{ width: "34%" }} />
-                <col style={{ width: "22%" }} />
-                <col style={{ width: "22%" }} />
-                <col style={{ width: "22%" }} />
-              </colgroup>
-
-              <thead>
-                <tr style={{ borderBottom: "1px solid rgba(0,255,65,0.15)" }}>
-                  <th className="px-5 py-6" />
-                  <th className="px-5 py-6 text-center align-top" style={{ borderLeft: borderCol }}>
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-[11px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.45)" }}>FREE</span>
-                      <span className="text-2xl font-bold" style={{ color: "#00ff41" }}>$0</span>
-                      <span className="text-[11px]" style={{ color: "rgba(0,255,65,0.3)" }}>forever free</span>
-                    </div>
-                  </th>
-                  <th className="px-5 py-6 text-center align-top" style={{ borderLeft: borderCol }}>
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-[11px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.7)" }}>PRO MONTHLY</span>
-                      <span className="text-2xl font-bold" style={{ color: "#00ff41" }}>$40</span>
-                      <span className="text-[11px]" style={{ color: "rgba(0,255,65,0.4)" }}>per month</span>
-                    </div>
-                  </th>
-                  <th className="px-5 py-6 text-center align-top" style={{ borderLeft: borderCol, ...annualBg }}>
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="mb-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-widest" style={{ background: "#00ff41", color: "#000" }}>
-                        BEST VALUE
-                      </span>
-                      <span className="text-[11px] font-bold tracking-[0.2em]" style={{ color: "#00ff41" }}>PRO ANNUAL</span>
-                      <span className="text-2xl font-bold" style={{ color: "#00ff41" }}>$20</span>
-                      <span className="text-[11px]" style={{ color: "rgba(0,255,65,0.5)" }}>per month</span>
-                      <span className="text-[11px]" style={{ color: "rgba(0,255,65,0.35)" }}>billed $240/year</span>
-                    </div>
-                  </th>
+                  </td>
+                  <td className="px-2 py-2.5 md:px-5 md:py-4 text-center" style={{ borderLeft: borderCol }}>
+                    <FeatureCell value={row.free} type={row.freeType} />
+                  </td>
+                  <td className="px-2 py-2.5 md:px-5 md:py-4 text-center" style={{ borderLeft: borderCol }}>
+                    <FeatureCell value={row.pro} type={row.proType} />
+                  </td>
+                  <td className="px-2 py-2.5 md:px-5 md:py-4 text-center" style={{ borderLeft: borderCol, ...annualBg }}>
+                    <FeatureCell value={row.pro} type={row.proType} />
+                  </td>
                 </tr>
-              </thead>
+              ))}
+            </tbody>
 
-              <tbody>
-                {rows.map((row, i) => (
-                  <tr key={row.label} style={{ borderBottom: i < rows.length - 1 ? borderRow : "1px solid rgba(0,255,65,0.15)" }}>
-                    <td className="px-5 py-4 text-[11px] tracking-wide" style={{ color: "rgba(0,255,65,0.5)" }}>
-                      {row.label}
-                    </td>
-                    <td className="px-5 py-4 text-center" style={{ borderLeft: borderCol }}>
-                      <FeatureCell value={row.free} type={row.freeType} />
-                    </td>
-                    <td className="px-5 py-4 text-center" style={{ borderLeft: borderCol }}>
-                      <FeatureCell value={row.pro} type={row.proType} />
-                    </td>
-                    <td className="px-5 py-4 text-center" style={{ borderLeft: borderCol, ...annualBg }}>
-                      <FeatureCell value={row.pro} type={row.proType} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+            {/* CTA row */}
+            <tfoot>
+              <tr>
+                <td className="px-2 py-3 md:px-5 md:py-6" />
 
-              <tfoot>
-                <tr>
-                  <td className="px-5 py-6" />
-                  <td className="px-5 py-6 text-center" style={{ borderLeft: borderCol }}>
-                    <span className="inline-block px-4 py-2 rounded text-[11px] font-bold tracking-widest"
-                      style={{ border: "1px solid rgba(0,255,65,0.18)", color: "rgba(0,255,65,0.35)" }}>
+                {/* FREE — always static */}
+                <td className="px-2 py-3 md:px-5 md:py-6 text-center" style={{ borderLeft: borderCol }}>
+                  <span
+                    className="inline-block px-2 py-1.5 md:px-4 md:py-2 rounded text-[10px] md:text-[11px] font-bold tracking-widest"
+                    style={{ border: "1px solid rgba(0,255,65,0.18)", color: "rgba(0,255,65,0.35)" }}
+                  >
+                    CURRENT PLAN
+                  </span>
+                </td>
+
+                {/* PRO MONTHLY */}
+                <td className="px-2 py-3 md:px-5 md:py-6 text-center" style={{ borderLeft: borderCol }}>
+                  {isPro ? (
+                    <span
+                      className="inline-block px-2 py-1.5 md:px-4 md:py-2 rounded text-[10px] md:text-[11px] font-bold tracking-widest"
+                      style={{ border: "1px solid rgba(0,255,65,0.3)", color: "rgba(0,255,65,0.5)" }}
+                    >
                       CURRENT PLAN
                     </span>
-                  </td>
-                  <td className="px-5 py-6 text-center" style={{ borderLeft: borderCol }}>
-                    {isPro ? (
-                      <span className="inline-block px-4 py-2 rounded text-[11px] font-bold tracking-widest"
-                        style={{ border: "1px solid rgba(0,255,65,0.3)", color: "rgba(0,255,65,0.5)" }}>
-                        CURRENT PLAN
-                      </span>
-                    ) : (
-                      <a href="/api/subscribe?plan=monthly"
-                        className="inline-block px-4 py-2 rounded text-[11px] font-bold tracking-widest transition-colors"
-                        style={{ border: "1px solid rgba(0,255,65,0.5)", color: "rgba(0,255,65,0.8)" }}>
-                        UPGRADE →
-                      </a>
-                    )}
-                  </td>
-                  <td className="px-5 py-6 text-center" style={{ borderLeft: borderCol, ...annualBg }}>
-                    {isPro ? (
-                      <span className="inline-block px-4 py-2 rounded text-[11px] font-bold tracking-widest"
-                        style={{ border: "1px solid rgba(0,255,65,0.3)", color: "rgba(0,255,65,0.5)" }}>
-                        CURRENT PLAN
-                      </span>
-                    ) : (
-                      <a href="/api/subscribe?plan=annual"
-                        className="inline-block px-4 py-2 rounded text-[11px] font-bold tracking-widest transition-colors"
-                        style={{ background: "#00ff41", color: "#000" }}>
-                        UPGRADE →
-                      </a>
-                    )}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                  ) : (
+                    <a
+                      href="/api/subscribe?plan=monthly"
+                      className="inline-block px-2 py-1.5 md:px-4 md:py-2 rounded text-[10px] md:text-[11px] font-bold tracking-widest transition-colors"
+                      style={{ border: "1px solid rgba(0,255,65,0.5)", color: "rgba(0,255,65,0.8)" }}
+                    >
+                      UPGRADE →
+                    </a>
+                  )}
+                </td>
+
+                {/* PRO ANNUAL */}
+                <td className="px-2 py-3 md:px-5 md:py-6 text-center" style={{ borderLeft: borderCol, ...annualBg }}>
+                  {isPro ? (
+                    <span
+                      className="inline-block px-2 py-1.5 md:px-4 md:py-2 rounded text-[10px] md:text-[11px] font-bold tracking-widest"
+                      style={{ border: "1px solid rgba(0,255,65,0.3)", color: "rgba(0,255,65,0.5)" }}
+                    >
+                      CURRENT PLAN
+                    </span>
+                  ) : (
+                    <a
+                      href="/api/subscribe?plan=annual"
+                      className="inline-block px-2 py-1.5 md:px-4 md:py-2 rounded text-[10px] md:text-[11px] font-bold tracking-widest transition-colors"
+                      style={{ background: "#00ff41", color: "#000" }}
+                    >
+                      UPGRADE →
+                    </a>
+                  )}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
 
-        {/* Shared footer notes */}
         <p className="mt-6 text-center text-xs" style={{ color: "rgba(0,255,65,0.25)" }}>
           Cancel anytime. No hidden fees.
         </p>
@@ -293,7 +219,6 @@ export default async function PricingPage() {
           </Link>
           .
         </p>
-
       </div>
     </div>
   );

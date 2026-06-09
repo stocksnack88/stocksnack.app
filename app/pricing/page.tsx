@@ -43,6 +43,7 @@ export default async function PricingPage() {
     { label: "Financial Health",         free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
     { label: "Stock Ranking",            free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
     { label: "Score detail",            free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
+    { label: "P/E Ratio Analysis",      free: "✕",        freeColor: "rgba(255,80,80,0.55)",   freeBold: true, pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
   ];
 
   const ctaBase: React.CSSProperties = {

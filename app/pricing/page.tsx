@@ -60,7 +60,7 @@ export default async function PricingPage() {
   const annualCell: React.CSSProperties = {
     background: "rgba(0,255,65,0.06)",
   };
-  const annualGlow = "0 0 0 1px rgba(0,255,65,0.3), 0 0 20px rgba(0,255,65,0.08)";
+  const annualGlow = "0 0 20px rgba(0,255,65,0.12)";
   const annualSide = "-1px 0 0 rgba(0,255,65,0.3), 1px 0 0 rgba(0,255,65,0.3)";
 
   return (

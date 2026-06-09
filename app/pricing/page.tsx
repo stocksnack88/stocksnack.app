@@ -38,7 +38,7 @@ export default async function PricingPage() {
   const rows: { label: string; free: string; freeColor: string; freeBold?: boolean; pro: string; proColor: string }[] = [
     { label: "Stocks access",           free: "5 random", freeColor: "rgba(255,255,255,0.3)",  pro: "S&P 500", proColor: "rgba(0,255,65,0.8)"  },
     { label: "Filter function",         free: "✕",        freeColor: "rgba(255,80,80,0.55)",   freeBold: true, pro: "✓", proColor: "#00ff41", },
-    { label: "All 4 scoring layers",    free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
+    { label: "4 scoring layers",         free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
     { label: "Signal (BUY+/HOLD/SELL)", free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
     { label: "Score detail",            free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
   ];
@@ -61,6 +61,7 @@ export default async function PricingPage() {
     background: "rgba(0,255,65,0.06)",
   };
   const annualGlow = "0 0 0 1px rgba(0,255,65,0.3), 0 0 20px rgba(0,255,65,0.08)";
+  const annualSide = "-1px 0 0 rgba(0,255,65,0.3), 1px 0 0 rgba(0,255,65,0.3)";
 
   return (
     <div style={{ background: "#000", fontFamily: font, minHeight: "100vh" }}>
@@ -99,11 +100,11 @@ export default async function PricingPage() {
                 <td style={{ padding: "10px 8px", fontSize: "12px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Price</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.4)" }}>$0 / free</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.7)" }}>$40 / mo</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell }}>$20 / mo · $240/yr</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualSide }}>$20 / mo · $240/yr</td>
               </tr>
               {rows.map((row, i) => (
                 <tr key={row.label} style={{ background: (i + 1) % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH }}>
-                  <td style={{ padding: "10px 8px", fontSize: "12px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>
+                  <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>
                     {row.label}
                   </td>
                   <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: row.freeColor, fontWeight: row.freeBold ? 700 : 400 }}>
@@ -112,7 +113,7 @@ export default async function PricingPage() {
                   <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: row.proColor, fontWeight: 700 }}>
                     {row.pro}
                   </td>
-                  <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: row.proColor, fontWeight: 700, ...annualCell }}>
+                  <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: row.proColor, fontWeight: 700, ...annualCell, boxShadow: annualSide }}>
                     {row.pro}
                   </td>
                 </tr>
@@ -125,11 +126,11 @@ export default async function PricingPage() {
                 <td style={{ padding: "12px 8px" }} />
 
                 {/* FREE — CURRENT PLAN if logged in, trial link if not */}
-                <td style={{ padding: "12px 8px", textAlign: "center", borderLeft: bV, lineHeight: 1.1 }}>
+                <td style={{ padding: "12px 8px", textAlign: "center", borderLeft: bV }}>
                   {isLoggedIn ? (
                     <span style={ctaCurrentFree}>CURRENT PLAN</span>
                   ) : (
-                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", display: "block", margin: 0, lineHeight: 1.1 }}>
+                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", whiteSpace: "nowrap" }}>
                       5-min free trial →
                     </a>
                   )}

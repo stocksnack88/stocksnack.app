@@ -67,14 +67,14 @@ export default async function PricingPage() {
     <div style={{ background: "#000", fontFamily: font, minHeight: "100vh" }}>
 
       {/* Table — no header, starts immediately */}
-      <div style={{ maxWidth: "calc(100vw - 48px)", margin: "0 auto", padding: "2rem 0 2rem" }}>
+      <div style={{ maxWidth: "480px", margin: "0 auto", padding: "2rem 1rem 2rem" }}>
         <div style={{ border: "0.5px solid rgba(0,255,65,0.25)", borderRadius: "12px", overflow: "visible", padding: "4px" }}>
           <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontFamily: font }}>
             <colgroup>
-              <col style={{ width: "37%" }} />
+              <col style={{ width: "36%" }} />
               <col style={{ width: "20%" }} />
               <col style={{ width: "22%" }} />
-              <col style={{ width: "21%" }} />
+              <col style={{ width: "22%" }} />
             </colgroup>
 
             {/* Header row — plan names, single line each */}
@@ -100,7 +100,7 @@ export default async function PricingPage() {
                 <td style={{ padding: "10px 8px", fontSize: "12px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Price</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.4)" }}>$0 / free</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.7)" }}>$40 / mo</td>
-                <td style={{ padding: "8px 6px", fontSize: "10px", textAlign: "center", color: "#00ff41", lineHeight: 1.3, ...annualCell, boxShadow: annualSide }}>$20 / mo<br />$240/yr</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualSide }}>$20 / mo · $240/yr</td>
               </tr>
               {rows.map((row, i) => (
                 <tr key={row.label} style={{ background: (i + 1) % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH }}>
@@ -130,7 +130,7 @@ export default async function PricingPage() {
                   {isLoggedIn ? (
                     <span style={ctaCurrentFree}>CURRENT PLAN</span>
                   ) : (
-                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", lineHeight: 1.1 }}>
+                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", whiteSpace: "nowrap" }}>
                       5-min free trial →
                     </a>
                   )}

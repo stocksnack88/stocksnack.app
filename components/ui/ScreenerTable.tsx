@@ -873,7 +873,41 @@ export default function ScreenerTable({
               </React.Fragment>
             ))}
 
-            {processedStocks.length === 0 && filters.length > 0 && (
+            {processedStocks.length === 0 && !!searchQuery.trim() && !isPro && !trialStartedAt && (
+              <tr>
+                <td colSpan={totalCols} className="px-4 py-10 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <p className="text-xs font-mono tracking-widest">
+                        <span className="text-[#00ff41]">{searchQuery.trim().toUpperCase()}</span>
+                        <span className="text-[#00ff41]/50"> is not in today&apos;s free picks.</span>
+                      </p>
+                      <p className="text-xs font-mono text-[#00ff41]/35 tracking-widest">
+                        Upgrade to Pro to search all 500 stocks.
+                      </p>
+                    </div>
+                    <a
+                      href="/pricing"
+                      className="bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest px-4 py-2 rounded hover:bg-[#00dd38] transition-colors"
+                    >
+                      UPGRADE TO PRO →
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            )}
+
+            {processedStocks.length === 0 && !!searchQuery.trim() && (isPro || !!trialStartedAt) && (
+              <tr>
+                <td colSpan={totalCols} className="px-4 py-10 text-center">
+                  <span className="text-xs font-mono text-[#00ff41]/25 tracking-widest">
+                    NO RESULTS FOUND
+                  </span>
+                </td>
+              </tr>
+            )}
+
+            {processedStocks.length === 0 && !searchQuery.trim() && filters.length > 0 && (
               <tr>
                 <td colSpan={totalCols} className="px-4 py-10 text-center">
                   <span className="text-xs font-mono text-[#00ff41]/25 tracking-widest">

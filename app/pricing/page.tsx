@@ -68,7 +68,7 @@ export default async function PricingPage() {
 
       {/* Table — no header, starts immediately */}
       <div style={{ maxWidth: "480px", margin: "0 auto", padding: "2rem 1rem 2rem" }}>
-        <div style={{ border: "0.5px solid rgba(0,255,65,0.25)", borderRadius: "12px", overflow: "visible", padding: "4px" }}>
+        <div style={{ border: "0.5px solid rgba(0,255,65,0.25)", borderRadius: "12px", overflow: "visible", padding: "4px 10px 4px 4px" }}>
           <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontFamily: font }}>
             <colgroup>
               <col style={{ width: "36%" }} />

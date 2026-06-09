@@ -63,7 +63,7 @@ export default async function PricingPage() {
   const annualGlow = "0 0 20px rgba(0,255,65,0.08)";
 
   return (
-    <div style={{ background: "#000", fontFamily: font, minHeight: "100vh" }}>
+    <div style={{ background: "#000", fontFamily: font, minHeight: "100vh", paddingRight: "12px" }}>
 
       {/* Table — no header, starts immediately */}
       <div style={{ maxWidth: "480px", margin: "0 auto", padding: "2rem 1rem 2rem" }}>

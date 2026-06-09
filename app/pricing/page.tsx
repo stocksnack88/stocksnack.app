@@ -99,7 +99,10 @@ export default async function PricingPage() {
                 <td style={{ padding: "10px 8px", fontSize: "12px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Price</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.4)" }}>$0 / free</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.7)" }}>$40 / mo</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$20 / mo · $240/yr</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>
+                  $20 / mo<br />
+                  <span style={{ fontSize: "9px", fontStyle: "italic", opacity: 0.5 }}>($240/yr)</span>
+                </td>
               </tr>
               {rows.map((row, i) => (
                 <tr key={row.label} style={{ background: (i + 1) % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH }}>
@@ -129,7 +132,7 @@ export default async function PricingPage() {
                   {isLoggedIn ? (
                     <span style={ctaCurrentFree}>CURRENT PLAN</span>
                   ) : (
-                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", whiteSpace: "nowrap" }}>
+                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none" }}>
                       5-min free trial →
                     </a>
                   )}

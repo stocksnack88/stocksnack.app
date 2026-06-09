@@ -132,7 +132,7 @@ export default async function PricingPage() {
                   {isLoggedIn ? (
                     <span style={ctaCurrentFree}>CURRENT PLAN</span>
                   ) : (
-                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none" }}>
+                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", lineHeight: 1.2 }}>
                       5-min free trial →
                     </a>
                   )}

@@ -115,10 +115,7 @@ export default async function PricingPage() {
                   <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: row.freeColor, fontWeight: row.freeBold ? 700 : 400 }}>
                     {row.free}
                   </td>
-                  <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: row.proColor, fontWeight: 700 }}>
-                    {row.pro}
-                  </td>
-                  <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: row.proColor, fontWeight: 700, ...annualCell, boxShadow: annualGlow }}>
+                  <td colSpan={2} style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: row.proColor, fontWeight: 700 }}>
                     {row.pro}
                   </td>
                 </tr>
@@ -131,13 +128,15 @@ export default async function PricingPage() {
                 <td style={{ padding: "12px 8px" }} />
 
                 {/* FREE — CURRENT PLAN if logged in, trial link if not */}
-                <td style={{ padding: "12px 8px", textAlign: "center", borderLeft: bV }}>
+                <td style={{ padding: "8px 6px", textAlign: "center", borderLeft: bV }}>
                   {isLoggedIn ? (
                     <span style={ctaCurrentFree}>CURRENT PLAN</span>
                   ) : (
-                    <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", lineHeight: 1.1 }}>
-                      5-min free trial →
-                    </a>
+                    <span style={{ display: "block", lineHeight: 1.1, margin: 0 }}>
+                      <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", lineHeight: 1.1 }}>
+                        5-min free trial →
+                      </a>
+                    </span>
                   )}
                 </td>
 

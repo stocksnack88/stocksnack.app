@@ -38,11 +38,11 @@ export default async function PricingPage() {
   const rows: { label: string; free: string; freeColor: string; freeBold?: boolean; pro: string; proColor: string }[] = [
     { label: "Stocks access",           free: "5 random", freeColor: "rgba(255,255,255,0.3)",  pro: "S&P 500", proColor: "rgba(0,255,65,0.8)"  },
     { label: "Filter function",         free: "✕",        freeColor: "rgba(255,80,80,0.55)",   freeBold: true, pro: "✓", proColor: "#00ff41", },
-    { label: "Price Projection",          free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
-    { label: "Growth Quality",           free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
-    { label: "Financial Health",         free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
-    { label: "Stock Ranking",            free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
-    { label: "P/E Analysis",             free: "✕",        freeColor: "rgba(255,80,80,0.55)",   freeBold: true, pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
+    { label: "Price Projection",        free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
+    { label: "Growth Quality",          free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
+    { label: "Financial Health",        free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
+    { label: "Stock Ranking",           free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
+    { label: "P/E Analysis",            free: "✕",        freeColor: "rgba(255,80,80,0.55)",   freeBold: true, pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
   ];
 
   const ctaBase: React.CSSProperties = {
@@ -66,6 +66,29 @@ export default async function PricingPage() {
 
   return (
     <div style={{ background: "#000", fontFamily: font, minHeight: "100vh", paddingRight: "12px" }}>
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes annualPulse {
+          from { box-shadow: 0 0 24px rgba(0,255,65,0.15); }
+          to   { box-shadow: 0 0 10px rgba(0,255,65,0.04); }
+        }
+        .pricing-row {
+          transition: background 150ms ease;
+        }
+        .pricing-row:hover {
+          background: rgba(0,255,65,0.04) !important;
+        }
+        .pricing-row:hover .annual-cell {
+          background: rgba(0,255,65,0.12) !important;
+          box-shadow: 0 0 20px rgba(0,255,65,0.15) !important;
+        }
+        .annual-pulse {
+          animation: annualPulse 3s ease-in-out infinite alternate;
+        }
+      `}</style>
 
       {/* Table — no header, starts immediately */}
       <div style={{ maxWidth: "480px", margin: "0 auto", padding: "2rem 1rem 2rem" }}>
@@ -80,7 +103,7 @@ export default async function PricingPage() {
 
             {/* Header row — plan names, single line each */}
             <thead>
-              <tr style={{ background: "#0a0a0a", borderBottom: "0.5px solid rgba(0,255,65,0.15)" }}>
+              <tr style={{ background: "#0a0a0a", borderBottom: "0.5px solid rgba(0,255,65,0.15)", animation: "fadeInUp 300ms ease-out 0ms both" }}>
                 <th style={{ padding: "8px 6px" }} />
                 <th style={{ padding: "8px 6px", borderLeft: bV, textAlign: "center" }}>
                   <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.35)" }}>FREE</span>
@@ -88,7 +111,7 @@ export default async function PricingPage() {
                 <th style={{ padding: "8px 6px", borderLeft: bV, textAlign: "center", lineHeight: 1.1 }}>
                   <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(0,255,65,0.7)", display: "block", margin: 0 }}>PRO MONTHLY</span>
                 </th>
-                <th style={{ padding: "8px 6px", textAlign: "center", lineHeight: 1.1, ...annualCell, borderRadius: "8px 8px 0 0", boxShadow: annualGlow }}>
+                <th className="annual-pulse" style={{ padding: "8px 6px", textAlign: "center", lineHeight: 1.1, ...annualCell, borderRadius: "8px 8px 0 0" }}>
                   <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "#00ff41", display: "block", margin: 0 }}>PRO ANNUAL</span>
                 </th>
               </tr>
@@ -97,32 +120,32 @@ export default async function PricingPage() {
             {/* Feature rows */}
             <tbody>
               {/* Price rows */}
-              <tr style={{ background: "transparent", borderBottom: bH }}>
+              <tr className="pricing-row" style={{ background: "transparent", borderBottom: bH, animation: "fadeInUp 300ms ease-out 50ms both" }}>
                 <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Monthly</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.4)" }}>$0</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.7)" }}>$40</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$20</td>
+                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$20</td>
               </tr>
-              <tr style={{ background: "rgba(0,255,65,0.018)", borderBottom: bH }}>
+              <tr className="pricing-row" style={{ background: "rgba(0,255,65,0.018)", borderBottom: bH, animation: "fadeInUp 300ms ease-out 100ms both" }}>
                 <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Annual</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.2)" }}>—</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.35)" }}>$480/yr</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$240/yr</td>
+                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$240/yr</td>
               </tr>
-              <tr style={{ background: "transparent", borderBottom: bH }}>
+              <tr className="pricing-row" style={{ background: "transparent", borderBottom: bH, animation: "fadeInUp 300ms ease-out 150ms both" }}>
                 <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Billed</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.2)" }}>—</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.45)" }}>monthly</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "rgba(0,255,65,0.7)", ...annualCell, boxShadow: annualGlow }}>annually</td>
+                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "rgba(0,255,65,0.7)", ...annualCell, boxShadow: annualGlow }}>annually</td>
               </tr>
-              <tr style={{ background: "rgba(0,255,65,0.018)", borderBottom: bH }}>
+              <tr className="pricing-row" style={{ background: "rgba(0,255,65,0.018)", borderBottom: bH, animation: "fadeInUp 300ms ease-out 200ms both" }}>
                 <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Daily cost</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.2)" }}>$0.00/day</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.35)" }}>$1.33/day</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$0.66/day</td>
+                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$0.66/day</td>
               </tr>
               {rows.map((row, i) => (
-                <tr key={row.label} style={{ background: (i + 1) % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH }}>
+                <tr key={row.label} className="pricing-row" style={{ background: (i + 1) % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH, animation: `fadeInUp 300ms ease-out ${(5 + i) * 50}ms both` }}>
                   <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>
                     {row.label}
                   </td>
@@ -138,7 +161,7 @@ export default async function PricingPage() {
 
             {/* CTA row */}
             <tfoot>
-              <tr style={{ background: "#080808", borderTop: "0.5px solid rgba(0,255,65,0.12)" }}>
+              <tr className="pricing-row" style={{ background: "#080808", borderTop: "0.5px solid rgba(0,255,65,0.12)", animation: "fadeInUp 300ms ease-out 600ms both" }}>
                 <td style={{ padding: "12px 8px" }} />
 
                 {/* FREE — CURRENT PLAN if logged in, trial link if not */}
@@ -166,7 +189,7 @@ export default async function PricingPage() {
                 </td>
 
                 {/* PRO ANNUAL */}
-                <td style={{ padding: "12px 8px", textAlign: "center", ...annualCell, borderRadius: "0 0 8px 8px", boxShadow: annualGlow }}>
+                <td className="annual-cell" style={{ padding: "12px 8px", textAlign: "center", ...annualCell, borderRadius: "0 0 8px 8px", boxShadow: annualGlow }}>
                   {isPro ? (
                     <span style={ctaCurrent}>CURRENT PLAN</span>
                   ) : (

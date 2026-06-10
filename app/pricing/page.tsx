@@ -116,6 +116,12 @@ export default async function PricingPage() {
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.45)" }}>monthly</td>
                 <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "rgba(0,255,65,0.7)", ...annualCell, boxShadow: annualGlow }}>annually</td>
               </tr>
+              <tr style={{ background: "rgba(0,255,65,0.018)", borderBottom: bH }}>
+                <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Daily cost</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.2)" }}>$0.00/day</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.35)" }}>$1.33/day</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$0.66/day</td>
+              </tr>
               {rows.map((row, i) => (
                 <tr key={row.label} style={{ background: (i + 1) % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH }}>
                   <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>

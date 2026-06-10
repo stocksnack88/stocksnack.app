@@ -74,8 +74,8 @@ export default async function PricingPage() {
           <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontFamily: font }}>
             <colgroup>
               <col style={{ width: "36%" }} />
-              <col style={{ width: "20%" }} />
-              <col style={{ width: "22%" }} />
+              <col style={{ width: "24%" }} />
+              <col style={{ width: "18%" }} />
               <col style={{ width: "22%" }} />
             </colgroup>
 
@@ -115,7 +115,7 @@ export default async function PricingPage() {
                   <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: row.freeColor, fontWeight: row.freeBold ? 700 : 400 }}>
                     {row.free}
                   </td>
-                  <td colSpan={2} style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: row.proColor, fontWeight: 700 }}>
+                  <td colSpan={2} style={{ padding: "10px 4px 10px 16px", fontSize: "11px", textAlign: "left", borderLeft: bV, color: row.proColor, fontWeight: 700 }}>
                     {row.pro}
                   </td>
                 </tr>

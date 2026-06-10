@@ -120,6 +120,7 @@ export default async function PricingPage() {
             transparent 100%
           );
           animation: scanBeam 8s linear infinite;
+          animation-iteration-count: infinite;
         }
       `}</style>
 

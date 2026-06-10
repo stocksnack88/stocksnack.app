@@ -88,11 +88,46 @@ export default async function PricingPage() {
         .annual-pulse {
           animation: annualPulse 3s ease-in-out infinite alternate;
         }
+        @keyframes scanBeam {
+          from { transform: translateY(-100%); }
+          to   { transform: translateY(100%); }
+        }
+        .scanline-overlay {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          z-index: 10;
+          border-radius: 12px;
+          background: repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(0,0,0,0.03) 2px,
+            rgba(0,0,0,0.03) 4px
+          );
+        }
+        .scanline-beam {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: linear-gradient(
+            to bottom,
+            transparent 0%,
+            transparent 40%,
+            rgba(0,255,65,0.03) 45%,
+            rgba(0,255,65,0.03) 55%,
+            transparent 60%,
+            transparent 100%
+          );
+          animation: scanBeam 8s linear infinite;
+        }
       `}</style>
 
       {/* Table — no header, starts immediately */}
       <div style={{ maxWidth: "480px", margin: "0 auto", padding: "2rem 1rem 2rem" }}>
-        <div style={{ border: "0.5px solid rgba(0,255,65,0.25)", borderRadius: "12px", overflow: "visible", padding: "4px" }}>
+        <div style={{ border: "0.5px solid rgba(0,255,65,0.25)", borderRadius: "12px", overflow: "visible", padding: "4px", position: "relative" }}>
+            <div className="scanline-overlay" />
+            <div className="scanline-beam" />
           <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontFamily: font }}>
             <colgroup>
               <col style={{ width: "36%" }} />

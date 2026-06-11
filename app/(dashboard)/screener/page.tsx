@@ -132,10 +132,9 @@ export default async function ScreenerPage({
     : getDailyFreeStocks(stocks, FREE_LIMIT);
 
   const updatedAt = stocks[0]?.updated_at
-    ? new Date(stocks[0].updated_at).toLocaleString("en-US", {
+    ? new Date(stocks[0].updated_at).toLocaleDateString("en-US", {
         month: "short", day: "numeric", year: "numeric",
-        hour: "2-digit", minute: "2-digit",
-        timeZone: "UTC", timeZoneName: "short",
+        timeZone: "UTC",
       })
     : null;
 

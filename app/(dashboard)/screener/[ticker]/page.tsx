@@ -1544,9 +1544,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     const b = calcBadge(current, r.them, inverse);
                     const isLast = i === rows.length - 1;
                     const noBottom = isLast ? { borderBottom: "none" } : {};
-                    const cmpStr = current != null || r.them != null
-                      ? <>{fmt(current)}<span style={{ color: "rgba(0,255,65,0.25)", margin: "0 4px" }}>vs</span>{fmt(r.them)}</>
-                      : <span style={{ color: "rgba(0,255,65,0.2)" }}>—</span>;
+                    const cmpStr = (
+                      <span style={{ display: "inline-flex", alignItems: "center" }}>
+                        <span style={{ minWidth: 48, textAlign: "right",  color: current != null ? "#00ff41" : "rgba(0,255,65,0.2)" }}>{fmt(current)}</span>
+                        <span style={{ minWidth: 20, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>vs</span>
+                        <span style={{ minWidth: 52, textAlign: "left",   color: r.them  != null ? "rgba(0,255,65,0.6)" : "rgba(0,255,65,0.2)" }}>{fmt(r.them)}</span>
+                      </span>
+                    );
                     return (
                       <tr key={r.label}>
                         <td style={{ ...tdStyle, color: "rgba(0,255,65,0.45)", paddingRight: 8, whiteSpace: "nowrap", ...noBottom }}>{r.label}</td>

@@ -9,16 +9,16 @@ Columns written to stock_scores:
   pe_ratio          -- current_price / most_recent_eps  (null if EPS <= 0)
   pe_5y_avg         -- avg(market_cap_at_year / net_income) over last 5 fiscal years
                        true historical P/E; excludes years where net_income <= 0
-  industry_pe       -- sector average of pe_ratio
-  industry_pe_5y_avg -- sector average of pe_5y_avg
-  fcf_yield         -- most_recent_fcf / current_market_cap
-  fcf_5y_avg        -- avg(free_cash_flow / market_cap_at_year) over last 5 fiscal years
-  industry_fcf_yield    -- sector average of fcf_yield
-  industry_fcf_5y_avg   -- sector average of fcf_5y_avg
+  industry_pe           -- market-cap-weighted avg of pe_ratio, per sector
+  industry_pe_5y_avg    -- market-cap-weighted avg of pe_5y_avg, per sector
+  fcf_yield             -- most_recent_fcf / current_market_cap
+  fcf_5y_avg            -- avg(free_cash_flow / market_cap_at_year) over last 5 fiscal years
+  industry_fcf_yield    -- market-cap-weighted avg of fcf_yield, per sector
+  industry_fcf_5y_avg   -- market-cap-weighted avg of fcf_5y_avg, per sector
   div_yield             -- most_recent_dividends_paid / current_market_cap (null if no dividends)
   div_yield_5y_avg      -- avg(dividends_paid / market_cap_at_year) over last 5 years (null if no dividends)
-  industry_div_yield    -- sector average of div_yield, dividend payers only
-  industry_div_yield_5y_avg -- sector average of div_yield_5y_avg, dividend payers only
+  industry_div_yield    -- market-cap-weighted avg of div_yield, dividend payers only
+  industry_div_yield_5y_avg -- market-cap-weighted avg of div_yield_5y_avg, dividend payers only
 """
 from __future__ import annotations
 
@@ -155,44 +155,49 @@ def compute_pe_ratios(client) -> None:
 
         ticker_metrics[ticker] = result
 
-    # ── Sector averages ───────────────────────────────────────────────────────
-    sector_pe_vals:        dict[str, list[float]] = defaultdict(list)
-    sector_pe_5y_vals:     dict[str, list[float]] = defaultdict(list)
-    sector_fcf_vals:       dict[str, list[float]] = defaultdict(list)
-    sector_fcf_5y_vals:    dict[str, list[float]] = defaultdict(list)
-    sector_div_vals:       dict[str, list[float]] = defaultdict(list)
-    sector_div_5y_vals:    dict[str, list[float]] = defaultdict(list)
+    # ── Sector averages (market-cap weighted) ────────────────────────────────
+    # Each bucket stores (metric_value, market_cap) pairs.
+    Pair = tuple[float, float]
+    sector_pe_pairs:     dict[str, list[Pair]] = defaultdict(list)
+    sector_pe_5y_pairs:  dict[str, list[Pair]] = defaultdict(list)
+    sector_fcf_pairs:    dict[str, list[Pair]] = defaultdict(list)
+    sector_fcf_5y_pairs: dict[str, list[Pair]] = defaultdict(list)
+    sector_div_pairs:    dict[str, list[Pair]] = defaultdict(list)
+    sector_div_5y_pairs: dict[str, list[Pair]] = defaultdict(list)
 
     for ticker, m in ticker_metrics.items():
         sector = sector_map.get(ticker)
-        if not sector:
+        mktcap = mktcap_map.get(ticker)
+        if not sector or not mktcap or mktcap <= 0:
             continue
         if m["pe_ratio"] is not None and m["pe_ratio"] > 0:
-            sector_pe_vals[sector].append(m["pe_ratio"])
+            sector_pe_pairs[sector].append((m["pe_ratio"], mktcap))
         if m["pe_5y_avg"] is not None and m["pe_5y_avg"] > 0:
-            sector_pe_5y_vals[sector].append(m["pe_5y_avg"])
+            sector_pe_5y_pairs[sector].append((m["pe_5y_avg"], mktcap))
         if m["fcf_yield"] is not None and m["fcf_yield"] > 0:
-            sector_fcf_vals[sector].append(m["fcf_yield"])
+            sector_fcf_pairs[sector].append((m["fcf_yield"], mktcap))
         if m["fcf_5y_avg"] is not None and m["fcf_5y_avg"] > 0:
-            sector_fcf_5y_vals[sector].append(m["fcf_5y_avg"])
+            sector_fcf_5y_pairs[sector].append((m["fcf_5y_avg"], mktcap))
         # Only include dividend payers so non-payers don't drag down the average
         if m["div_yield"] is not None and m["div_yield"] > 0:
-            sector_div_vals[sector].append(m["div_yield"])
+            sector_div_pairs[sector].append((m["div_yield"], mktcap))
         if m["div_yield_5y_avg"] is not None and m["div_yield_5y_avg"] > 0:
-            sector_div_5y_vals[sector].append(m["div_yield_5y_avg"])
+            sector_div_5y_pairs[sector].append((m["div_yield_5y_avg"], mktcap))
 
-    def _avg(vals: list[float]) -> float | None:
-        return round(sum(vals) / len(vals), 6) if vals else None
+    def _wavg(pairs: list[Pair], decimals: int) -> float | None:
+        if not pairs:
+            return None
+        total_w = sum(w for _, w in pairs)
+        if total_w == 0:
+            return None
+        return round(sum(v * w for v, w in pairs) / total_w, decimals)
 
-    def _avg_pe(vals: list[float]) -> float | None:
-        return round(sum(vals) / len(vals), 2) if vals else None
-
-    industry_pe_map          = {s: _avg_pe(v) for s, v in sector_pe_vals.items()}
-    industry_pe_5y_map       = {s: _avg_pe(v) for s, v in sector_pe_5y_vals.items()}
-    industry_fcf_map         = {s: _avg(v)    for s, v in sector_fcf_vals.items()}
-    industry_fcf_5y_map      = {s: _avg(v)    for s, v in sector_fcf_5y_vals.items()}
-    industry_div_map         = {s: _avg(v)    for s, v in sector_div_vals.items()}
-    industry_div_5y_map      = {s: _avg(v)    for s, v in sector_div_5y_vals.items()}
+    industry_pe_map          = {s: _wavg(p, 2) for s, p in sector_pe_pairs.items()}
+    industry_pe_5y_map       = {s: _wavg(p, 2) for s, p in sector_pe_5y_pairs.items()}
+    industry_fcf_map         = {s: _wavg(p, 6) for s, p in sector_fcf_pairs.items()}
+    industry_fcf_5y_map      = {s: _wavg(p, 6) for s, p in sector_fcf_5y_pairs.items()}
+    industry_div_map         = {s: _wavg(p, 6) for s, p in sector_div_pairs.items()}
+    industry_div_5y_map      = {s: _wavg(p, 6) for s, p in sector_div_5y_pairs.items()}
 
     # ── Write back to stock_scores ────────────────────────────────────────────
     updates = []

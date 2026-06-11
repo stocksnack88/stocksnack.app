@@ -24,8 +24,13 @@ export function LayerProvider({ count, children }: { count: number; children: Re
   const stopEntering = useCallback(() => setIsEntering(false), [])
 
   useEffect(() => {
+    console.log('[LayerProvider] isEntering:', isEntering)
+  }, [isEntering])
+
+  useEffect(() => {
     // wait for all staggered fade-ins to finish: last section delay + animation duration + buffer
     const ms = (count - 1) * 200 + 700
+    console.log('[LayerProvider] mounted, count:', count, 'timer ms:', ms)
     const t = setTimeout(stopEntering, ms)
     return () => clearTimeout(t)
   }, [count, stopEntering])

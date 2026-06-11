@@ -13,8 +13,10 @@ Columns written to stock_scores:
   industry_pe_5y_avg -- sector average of pe_5y_avg
   fcf_yield         -- most_recent_fcf / current_market_cap
   fcf_5y_avg        -- avg(free_cash_flow / market_cap_at_year) over last 5 fiscal years
+  industry_fcf_yield -- sector average of fcf_yield
   div_yield         -- most_recent_dividends_paid / current_market_cap (null if no dividends)
   div_yield_5y_avg  -- avg(dividends_paid / market_cap_at_year) over last 5 years (null if no dividends)
+  industry_div_yield -- sector average of div_yield, dividend payers only
 """
 from __future__ import annotations
 
@@ -154,6 +156,8 @@ def compute_pe_ratios(client) -> None:
     # ── Sector averages ───────────────────────────────────────────────────────
     sector_pe_vals:    dict[str, list[float]] = defaultdict(list)
     sector_pe_5y_vals: dict[str, list[float]] = defaultdict(list)
+    sector_fcf_vals:   dict[str, list[float]] = defaultdict(list)
+    sector_div_vals:   dict[str, list[float]] = defaultdict(list)
 
     for ticker, m in ticker_metrics.items():
         sector = sector_map.get(ticker)
@@ -163,12 +167,22 @@ def compute_pe_ratios(client) -> None:
             sector_pe_vals[sector].append(m["pe_ratio"])
         if m["pe_5y_avg"] is not None and m["pe_5y_avg"] > 0:
             sector_pe_5y_vals[sector].append(m["pe_5y_avg"])
+        if m["fcf_yield"] is not None and m["fcf_yield"] > 0:
+            sector_fcf_vals[sector].append(m["fcf_yield"])
+        # Only include dividend payers so non-payers don't drag down the average
+        if m["div_yield"] is not None and m["div_yield"] > 0:
+            sector_div_vals[sector].append(m["div_yield"])
 
     def _avg(vals: list[float]) -> float | None:
+        return round(sum(vals) / len(vals), 6) if vals else None
+
+    def _avg_pe(vals: list[float]) -> float | None:
         return round(sum(vals) / len(vals), 2) if vals else None
 
-    industry_pe_map    = {s: _avg(v) for s, v in sector_pe_vals.items()}
-    industry_pe_5y_map = {s: _avg(v) for s, v in sector_pe_5y_vals.items()}
+    industry_pe_map    = {s: _avg_pe(v) for s, v in sector_pe_vals.items()}
+    industry_pe_5y_map = {s: _avg_pe(v) for s, v in sector_pe_5y_vals.items()}
+    industry_fcf_map   = {s: _avg(v)    for s, v in sector_fcf_vals.items()}
+    industry_div_map   = {s: _avg(v)    for s, v in sector_div_vals.items()}
 
     # ── Write back to stock_scores ────────────────────────────────────────────
     updates = []
@@ -177,15 +191,17 @@ def compute_pe_ratios(client) -> None:
         sector = sector_map.get(ticker)
         m      = ticker_metrics.get(ticker, {})
         updates.append({
-            "ticker":             ticker,
-            "pe_ratio":           m.get("pe_ratio"),
-            "pe_5y_avg":          m.get("pe_5y_avg"),
-            "industry_pe":        industry_pe_map.get(sector)    if sector else None,
-            "industry_pe_5y_avg": industry_pe_5y_map.get(sector) if sector else None,
-            "fcf_yield":          m.get("fcf_yield"),
-            "fcf_5y_avg":         m.get("fcf_5y_avg"),
-            "div_yield":          m.get("div_yield"),
-            "div_yield_5y_avg":   m.get("div_yield_5y_avg"),
+            "ticker":              ticker,
+            "pe_ratio":            m.get("pe_ratio"),
+            "pe_5y_avg":           m.get("pe_5y_avg"),
+            "industry_pe":         industry_pe_map.get(sector)    if sector else None,
+            "industry_pe_5y_avg":  industry_pe_5y_map.get(sector) if sector else None,
+            "fcf_yield":           m.get("fcf_yield"),
+            "fcf_5y_avg":          m.get("fcf_5y_avg"),
+            "industry_fcf_yield":  industry_fcf_map.get(sector)   if sector else None,
+            "div_yield":           m.get("div_yield"),
+            "div_yield_5y_avg":    m.get("div_yield_5y_avg"),
+            "industry_div_yield":  industry_div_map.get(sector)   if sector else None,
         })
 
     if updates:

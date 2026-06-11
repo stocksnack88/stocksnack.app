@@ -1545,11 +1545,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     const isLast = i === rows.length - 1;
                     const noBottom = isLast ? { borderBottom: "none" } : {};
                     const cmpStr = (
-                      <span style={{ display: "inline-flex", alignItems: "center" }}>
-                        <span style={{ minWidth: 48, textAlign: "right",  color: current != null ? "#00ff41" : "rgba(0,255,65,0.2)" }}>{fmt(current)}</span>
-                        <span style={{ minWidth: 20, textAlign: "center", color: "rgba(255,255,255,0.2)" }}>vs</span>
-                        <span style={{ minWidth: 52, textAlign: "left",   color: r.them  != null ? "rgba(0,255,65,0.6)" : "rgba(0,255,65,0.2)" }}>{fmt(r.them)}</span>
-                      </span>
+                      <div style={{ display: "grid", gridTemplateColumns: "52px 24px 52px", gap: 0 }}>
+                        <span style={{ textAlign: "right",  color: current != null ? "#00ff41" : "rgba(0,255,65,0.2)", fontWeight: 700 }}>{fmt(current)}</span>
+                        <span style={{ textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 9 }}>vs</span>
+                        <span style={{ textAlign: "left",   color: r.them  != null ? "rgba(0,255,65,0.5)" : "rgba(0,255,65,0.2)" }}>{fmt(r.them)}</span>
+                      </div>
                     );
                     return (
                       <tr key={r.label}>

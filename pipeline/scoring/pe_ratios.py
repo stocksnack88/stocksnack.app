@@ -46,7 +46,7 @@ def compute_pe_ratios(client) -> None:
     )
     sector_rows = (
         client.table("stocks")
-        .select("ticker, sector")
+        .select("ticker, sector, country")
         .execute()
         .data or []
     )
@@ -60,7 +60,13 @@ def compute_pe_ratios(client) -> None:
     # ── Lookup maps ───────────────────────────────────────────────────────────
     price_map  = {r["ticker"]: r["current_price"] for r in price_rows if r.get("current_price")}
     mktcap_map = {r["ticker"]: r["market_cap"]    for r in price_rows if r.get("market_cap")}
-    sector_map = {r["ticker"]: r["sector"]        for r in sector_rows if r.get("sector")}
+    # Exclude foreign-listed ADRs (country IS NOT NULL) from sector averages;
+    # their financials are in foreign currencies and distort weighted means.
+    sector_map = {
+        r["ticker"]: r["sector"]
+        for r in sector_rows
+        if r.get("sector") and r.get("country") is None
+    }
 
     # Group fundamentals by ticker, sorted newest fiscal year first
     fund_by_ticker: dict[str, list[dict]] = defaultdict(list)

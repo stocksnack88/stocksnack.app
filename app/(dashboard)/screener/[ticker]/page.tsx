@@ -1392,10 +1392,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           const pe5yAvg      = score?.pe_5y_avg          != null ? Number(score.pe_5y_avg)          : null;
           const industryPe   = score?.industry_pe        != null ? Number(score.industry_pe)        : null;
           const industryPe5y = score?.industry_pe_5y_avg != null ? Number(score.industry_pe_5y_avg) : null;
-          const fcfYield     = score?.fcf_yield          != null ? Number(score.fcf_yield)          : null;
-          const fcf5yAvg     = score?.fcf_5y_avg         != null ? Number(score.fcf_5y_avg)         : null;
-          const divYield     = score?.div_yield          != null ? Number(score.div_yield)          : null;
-          const div5yAvg     = score?.div_yield_5y_avg   != null ? Number(score.div_yield_5y_avg)   : null;
+          const fcfYield       = score?.fcf_yield           != null ? Number(score.fcf_yield)           : null;
+          const fcf5yAvg       = score?.fcf_5y_avg          != null ? Number(score.fcf_5y_avg)          : null;
+          const industryFcf    = score?.industry_fcf_yield  != null ? Number(score.industry_fcf_yield)  : null;
+          const divYield       = score?.div_yield           != null ? Number(score.div_yield)           : null;
+          const div5yAvg       = score?.div_yield_5y_avg    != null ? Number(score.div_yield_5y_avg)    : null;
+          const industryDiv    = score?.industry_div_yield  != null ? Number(score.industry_div_yield)  : null;
 
           // S&P 500 benchmarks (hardcoded — live data later)
           const SP500_PE_NOW = 22;    const SP500_PE_5Y  = 19;
@@ -1669,12 +1671,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 "FCF YIELD ANALYSIS", fcfYield,
                 [
                   { label: "STOCK",    cur: fcfYield,      avg: fcf5yAvg,     isStock: true },
-                  { label: "INDUSTRY", cur: null,          avg: null          },
+                  { label: "INDUSTRY", cur: industryFcf,   avg: null          },
                   { label: "S&P 500",  cur: SP500_FCF_NOW, avg: SP500_FCF_5Y  },
                 ],
                 [
                   { label: `${ticker} 5Y Avg`,   them: fcf5yAvg      },
-                  { label: "Industry Now",        them: null          },
+                  { label: "Industry Now",        them: industryFcf   },
                   { label: "Industry 5Y Avg",     them: null          },
                   { label: "S&P 500 Now",         them: SP500_FCF_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_FCF_5Y  },
@@ -1685,12 +1687,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 "DIVIDEND YIELD ANALYSIS", divYield,
                 [
                   { label: "STOCK",    cur: divYield,      avg: div5yAvg,     isStock: true },
-                  { label: "INDUSTRY", cur: null,          avg: null          },
+                  { label: "INDUSTRY", cur: industryDiv,   avg: null          },
                   { label: "S&P 500",  cur: SP500_DIV_NOW, avg: SP500_DIV_5Y  },
                 ],
                 [
                   { label: `${ticker} 5Y Avg`,   them: div5yAvg      },
-                  { label: "Industry Now",        them: null          },
+                  { label: "Industry Now",        them: industryDiv   },
                   { label: "Industry 5Y Avg",     them: null          },
                   { label: "S&P 500 Now",         them: SP500_DIV_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_DIV_5Y  },

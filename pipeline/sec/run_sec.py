@@ -36,6 +36,7 @@ from scoring.layer2_growth import score_growth
 from scoring.layer3_health import score_health
 from scoring.layer4_final  import score_final
 from scoring.spy_benchmark import compute_spy_benchmark
+from scoring.pe_ratios     import compute_pe_ratios
 
 from supabase_writer import SupabaseWriter
 from config import SUPABASE_URL, SUPABASE_KEY
@@ -430,6 +431,7 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
         "balance":           balance_list,
         "cashflow":          cashflow_list,
         "metrics":           metrics_list,
+        "hist_mktcap":       hist_mktcap,
         "product_segments":  [],
         "geo_segments":      [],
         "reported_currency": "USD",
@@ -563,6 +565,10 @@ def main() -> None:
         segment_results[ticker] = (prod_cnt, geo_cnt)
         if len(tickers) > 1:
             time.sleep(1)
+
+    if writer is not None:
+        log.info("Computing P/E ratios across all tickers…")
+        compute_pe_ratios(writer.client)
 
     log.info("Done — processed: %d  failed: %d", len(processed), len(failed))
     if failed:

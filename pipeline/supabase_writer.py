@@ -29,6 +29,7 @@ def _build_fundamentals(ticker: str, data: dict) -> list[dict]:
     balance_list  = data.get("balance",  [])
     cashflow_list = data.get("cashflow", [])
     metrics_list  = data.get("metrics",  [])
+    hist_mktcap   = data.get("hist_mktcap", {})
 
     balance_by_year  = {_fiscal_year(r): r for r in balance_list  if _fiscal_year(r)}
     cashflow_by_year = {_fiscal_year(r): r for r in cashflow_list if _fiscal_year(r)}
@@ -87,6 +88,7 @@ def _build_fundamentals(ticker: str, data: dict) -> list[dict]:
             "current_ratio":        safe_float(m.get("currentRatio"))          or None,
             "interest_coverage":    interest_coverage,
             "ev_to_ebitda":         safe_float(m.get("evToEBITDA"))            or None,
+            "market_cap_at_year":   hist_mktcap.get(year)                      or None,
             "updated_at":           _now(),
         })
     return rows

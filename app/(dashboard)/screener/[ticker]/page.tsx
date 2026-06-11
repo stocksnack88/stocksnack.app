@@ -1673,7 +1673,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 "FCF YIELD ANALYSIS", fcfYield,
                 [
                   { label: "STOCK",    cur: fcfYield,      avg: fcf5yAvg,     isStock: true },
-                  { label: "INDUSTRY", cur: industryFcf,   avg: null          },
+                  { label: "INDUSTRY", cur: industryFcf,   avg: industryFcf5y ?? 0 },
                   { label: "S&P 500",  cur: SP500_FCF_NOW, avg: SP500_FCF_5Y  },
                 ],
                 [
@@ -1689,7 +1689,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 "DIVIDEND YIELD ANALYSIS", divYield,
                 [
                   { label: "STOCK",    cur: divYield,      avg: div5yAvg,     isStock: true },
-                  { label: "INDUSTRY", cur: industryDiv,   avg: null          },
+                  { label: "INDUSTRY", cur: industryDiv,   avg: industryDiv5y ?? 0 },
                   { label: "S&P 500",  cur: SP500_DIV_NOW, avg: SP500_DIV_5Y  },
                 ],
                 [

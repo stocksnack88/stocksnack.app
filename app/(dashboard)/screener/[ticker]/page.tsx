@@ -290,8 +290,22 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </div>
         </div>
 
-        {/* ── Scorecard ───────────────────────────────────────────────────────── */}
-        <div className="rounded overflow-hidden" style={card}>
+        {/* ── Overview + Layers 1–5 ───────────────────────────────────────────── */}
+        <LayerProvider count={6}>
+          <div className="flex justify-end">
+            <ExpandCollapseButton />
+          </div>
+
+          {/* Overview */}
+          <CollapsibleLayer id={0} header={(
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
+              OVERVIEW
+            </p>
+          )}>
+          <div className="p-5 space-y-5">
+
+          {/* ── Scorecard ────────────────────────────────────────────────────── */}
+          <div className="rounded overflow-hidden" style={card}>
           <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>WHAT YOU ARE BUYING</p>
           </div>
@@ -417,14 +431,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           );
         })()}
 
-        {/* ── Layers 1–5 ───────────────────────────────────────────────────────── */}
-        <LayerProvider count={5}>
-          <div className="flex justify-end">
-            <ExpandCollapseButton />
+          <p className="text-center text-xs pb-4 tracking-wide" style={{ color: "rgba(0,255,65,0.2)" }}>
+            DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
+          </p>
           </div>
+          </CollapsibleLayer>
 
           {/* Layer 1: PPM */}
-          <CollapsibleLayer id={0} header={(
+          <CollapsibleLayer id={1} header={(
             <>
               <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
                 LAYER 1 — HOW WE PROJECT THE PRICE
@@ -862,7 +876,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </CollapsibleLayer>
 
           {/* Layer 2: Growth */}
-          <CollapsibleLayer id={1} header={(
+          <CollapsibleLayer id={2} header={(
             <>
               <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
                 LAYER 2 — GROWTH QUALITY
@@ -1288,7 +1302,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </CollapsibleLayer>
 
           {/* Layer 3: Health */}
-          <CollapsibleLayer id={2} header={(
+          <CollapsibleLayer id={3} header={(
             <>
               <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "#00ff41" }}>
                 LAYER 3 — FINANCIAL HEALTH
@@ -1321,7 +1335,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </CollapsibleLayer>
 
           {/* Layer 4: Final */}
-          <CollapsibleLayer id={3} header={(
+          <CollapsibleLayer id={4} header={(
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 4 — FINAL SCORE
             </p>
@@ -1393,7 +1407,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </CollapsibleLayer>
 
           {/* Layer 5: Valuation */}
-          <CollapsibleLayer id={4} header={(
+          <CollapsibleLayer id={5} header={(
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 5 — VALUATION ANALYSIS
             </p>
@@ -1729,10 +1743,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </div>
           </CollapsibleLayer>
         </LayerProvider>
-
-        <p className="text-center text-xs pb-4 tracking-wide" style={{ color: "rgba(0,255,65,0.2)" }}>
-          DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
-        </p>
       </div>
     </div>
   );

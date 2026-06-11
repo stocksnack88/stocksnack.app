@@ -1,5 +1,6 @@
 """
-Compute P/E and FCF yield metrics for all tickers and write to stock_scores.
+Compute P/E, FCF yield, and dividend yield metrics for all tickers and write
+to stock_scores.
 
 Called once after the main per-ticker scoring loop so that sector averages
 can be computed across the full dataset.
@@ -12,6 +13,8 @@ Columns written to stock_scores:
   industry_pe_5y_avg -- sector average of pe_5y_avg
   fcf_yield         -- most_recent_fcf / current_market_cap
   fcf_5y_avg        -- avg(free_cash_flow / market_cap_at_year) over last 5 fiscal years
+  div_yield         -- most_recent_dividends_paid / current_market_cap (null if no dividends)
+  div_yield_5y_avg  -- avg(dividends_paid / market_cap_at_year) over last 5 years (null if no dividends)
 """
 from __future__ import annotations
 
@@ -22,12 +25,12 @@ log = logging.getLogger(__name__)
 
 
 def compute_pe_ratios(client) -> None:
-    """Read prices + fundamentals from Supabase, compute P/E + FCF metrics, write back."""
+    """Read prices + fundamentals from Supabase, compute P/E + FCF + div metrics, write back."""
 
     # ── Bulk fetches ──────────────────────────────────────────────────────────
     fund_rows = (
         client.table("stock_fundamentals")
-        .select("ticker, fiscal_year, eps, net_income, free_cash_flow, market_cap_at_year")
+        .select("ticker, fiscal_year, eps, net_income, free_cash_flow, dividends_paid, market_cap_at_year")
         .execute()
         .data or []
     )
@@ -73,10 +76,12 @@ def compute_pe_ratios(client) -> None:
         rows   = fund_by_ticker.get(ticker, [])
 
         result: dict = {
-            "pe_ratio":  None,
-            "pe_5y_avg": None,
-            "fcf_yield": None,
-            "fcf_5y_avg": None,
+            "pe_ratio":        None,
+            "pe_5y_avg":       None,
+            "fcf_yield":       None,
+            "fcf_5y_avg":      None,
+            "div_yield":       None,
+            "div_yield_5y_avg": None,
         }
 
         # pe_ratio: current price / most recent positive EPS
@@ -120,6 +125,28 @@ def compute_pe_ratios(client) -> None:
         if historical_fcf_yield:
             result["fcf_5y_avg"] = round(sum(historical_fcf_yield) / len(historical_fcf_yield), 6)
 
+        # div_yield: most recent dividends_paid / current market_cap
+        # null for non-dividend payers (dividends_paid absent or zero)
+        if mktcap and mktcap > 0:
+            most_recent_div = next(
+                (r["dividends_paid"] for r in rows if r.get("dividends_paid") and float(r["dividends_paid"]) > 0),
+                None,
+            )
+            if most_recent_div is not None:
+                result["div_yield"] = round(float(most_recent_div) / float(mktcap), 6)
+
+        # div_yield_5y_avg: avg(dividends_paid / market_cap_at_year) over last 5 years
+        # only years where dividends were actually paid; null if none
+        historical_div_yield = [
+            float(r["dividends_paid"]) / float(r["market_cap_at_year"])
+            for r in rows[:5]
+            if r.get("dividends_paid") and r.get("market_cap_at_year")
+            and float(r["dividends_paid"]) > 0
+            and float(r["market_cap_at_year"]) > 0
+        ]
+        if historical_div_yield:
+            result["div_yield_5y_avg"] = round(sum(historical_div_yield) / len(historical_div_yield), 6)
+
         ticker_metrics[ticker] = result
 
     # ── Sector averages ───────────────────────────────────────────────────────
@@ -155,10 +182,12 @@ def compute_pe_ratios(client) -> None:
             "industry_pe_5y_avg": industry_pe_5y_map.get(sector) if sector else None,
             "fcf_yield":          m.get("fcf_yield"),
             "fcf_5y_avg":         m.get("fcf_5y_avg"),
+            "div_yield":          m.get("div_yield"),
+            "div_yield_5y_avg":   m.get("div_yield_5y_avg"),
         })
 
     if updates:
         client.table("stock_scores").upsert(updates).execute()
-        log.info("P/E + FCF metrics written for %d tickers", len(updates))
+        log.info("P/E + FCF + dividend metrics written for %d tickers", len(updates))
     else:
         log.warning("No tickers in stock_scores — metric computation skipped")

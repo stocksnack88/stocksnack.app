@@ -77,7 +77,7 @@ def _build_fundamentals(ticker: str, data: dict) -> list[dict]:
             "operating_cash_flow":  safe_float(cf.get("operatingCashFlow"))   or None,
             "capex":                safe_float(cf.get("capitalExpenditure"))   or None,
             "free_cash_flow":       safe_float(cf.get("freeCashFlow"))         or None,
-            "dividends_paid":       safe_float(cf.get("commonDividendsPaid")) or None,
+            "dividends_paid":       safe_float(cf.get("netDividendsPaid"))    or None,
             "buybacks":             safe_float(cf.get("commonStockRepurchased")) or None,
             "gross_margin":         pct(inc.get("grossProfit"),    revenue),
             "operating_margin":     pct(inc.get("operatingIncome"), revenue),

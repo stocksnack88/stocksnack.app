@@ -127,21 +127,23 @@ def compute_pe_ratios(client) -> None:
 
         # div_yield: most recent dividends_paid / current market_cap
         # null for non-dividend payers (dividends_paid absent or zero)
+        # dividends_paid is stored as a negative outflow — use abs()
         if mktcap and mktcap > 0:
             most_recent_div = next(
-                (r["dividends_paid"] for r in rows if r.get("dividends_paid") and float(r["dividends_paid"]) > 0),
+                (r["dividends_paid"] for r in rows if r.get("dividends_paid") and abs(float(r["dividends_paid"])) > 0),
                 None,
             )
             if most_recent_div is not None:
-                result["div_yield"] = round(float(most_recent_div) / float(mktcap), 6)
+                result["div_yield"] = round(abs(float(most_recent_div)) / float(mktcap), 6)
 
         # div_yield_5y_avg: avg(dividends_paid / market_cap_at_year) over last 5 years
         # only years where dividends were actually paid; null if none
+        # dividends_paid is stored as a negative outflow — use abs()
         historical_div_yield = [
-            float(r["dividends_paid"]) / float(r["market_cap_at_year"])
+            abs(float(r["dividends_paid"])) / float(r["market_cap_at_year"])
             for r in rows[:5]
             if r.get("dividends_paid") and r.get("market_cap_at_year")
-            and float(r["dividends_paid"]) > 0
+            and abs(float(r["dividends_paid"])) > 0
             and float(r["market_cap_at_year"]) > 0
         ]
         if historical_div_yield:

@@ -127,8 +127,8 @@ export default async function ScreenerPage({
     return { visible, locked };
   }
 
-  const { visible: visibleStocks, locked: lockedStocks } = effectivelyPro
-    ? { visible: stocks, locked: [] as ScreenerRow[] }
+  const { visible: visibleStocks } = effectivelyPro
+    ? { visible: stocks }
     : getDailyFreeStocks(stocks, FREE_LIMIT);
 
   const updatedAt = stocks[0]?.updated_at
@@ -187,7 +187,6 @@ export default async function ScreenerPage({
         <div className="max-w-7xl mx-auto">
           <ScreenerTable
             visibleStocks={visibleStocks}
-            lockedStocks={lockedStocks}
             hasSession={!!session}
             isPro={isPro}
             trialStartedAt={isTrialActive ? trialStartedAt : null}

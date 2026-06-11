@@ -221,13 +221,11 @@ function formatCountdown(s: number): string {
 
 export default function ScreenerTable({
   visibleStocks,
-  lockedStocks,
   hasSession,
   isPro,
   trialStartedAt = null,
 }: {
   visibleStocks: ScreenerRow[];
-  lockedStocks: ScreenerRow[];
   hasSession: boolean;
   isPro: boolean;
   trialStartedAt?: string | null;
@@ -917,51 +915,46 @@ export default function ScreenerTable({
               </tr>
             )}
 
-            {/* Locked rows: blurred content only — upsell wall rendered outside scroll container below */}
-            {lockedStocks.length > 0 && (
+            {/* Locked rows: fake placeholder rows — no real data sent to browser */}
+            {!isPro && !trialStartedAt && (
               <tr className="border-t border-[#00ff41]/10">
                 {/* colSpan=9 covers max columns: TICKER, COMPANY, CAGR, RETURN, GROWTH, HEALTH, SIGNAL, RANK, spacer */}
                 <td colSpan={9} className="p-0">
                   <div className="min-h-[280px]">
                     <table className="w-full text-sm border-collapse blur-sm select-none pointer-events-none opacity-60">
                       <tbody>
-                        {lockedStocks.map((stock, i) => (
+                        {Array.from({ length: 10 }, (_, i) => (
                           <tr
-                            key={stock.ticker}
+                            key={i}
                             className={`border-t border-[#00ff41]/10 ${i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""}`}
                           >
                             <td className="px-2 py-3">
-                              <span className="font-mono font-bold text-[#00ff41] tracking-wider">{stock.ticker}</span>
+                              <span className="font-mono font-bold text-[#00ff41] tracking-wider">████</span>
                             </td>
                             <td className="hidden md:table-cell px-2 py-3">
-                              <span className="block max-w-[10rem] truncate text-[#00ff41]/50 text-xs">
-                                {stock.name ?? ""}
-                              </span>
+                              <span className="block max-w-[10rem] truncate text-[#00ff41]/50 text-xs">████████████</span>
                             </td>
                             <td className="px-1 py-3 text-right bg-[#001a00]/40">
-                              <CagrCell value={stock.ppm_cagr} />
+                              <span className="font-mono font-bold text-[#00ff41]">██.█%</span>
                             </td>
                             <td className="px-1 py-3 text-right bg-[#001a00]/40">
-                              <ReturnCell blended={stock.ppm_blended_price} current={stock.current_price} />
+                              <span className="font-mono font-bold text-[#00ff41]">█.█x</span>
                             </td>
                             {showQuality && (
                               <td className="px-1 py-3 text-right">
-                                <GrowthStarsCell value={stock.growth_score} />
+                                <span className="font-mono text-[#00ff41]">█████</span>
                               </td>
                             )}
                             {showQuality && (
                               <td className="px-1 py-3 text-right">
-                                <HealthPassesCell value={stock.health_passes} />
+                                <span className="font-mono text-[#00ff41]">██/24</span>
                               </td>
                             )}
                             <td className="px-1 py-3 text-center bg-[#001a00]/40">
-                              <span className="inline-flex items-center gap-1.5">
-                                <SignalBadge signal={stock.signal} />
-                                <span className="font-mono text-[#00ff41]/40 text-xs">→</span>
-                              </span>
+                              <span className="inline-block px-2 py-0.5 rounded text-xs font-bold tracking-widest bg-gray-800 text-gray-400 border border-gray-600">████</span>
                             </td>
                             <td className="px-1 py-3 text-center bg-[#001a00]/40">
-                              <span className="text-[#00ff41]/40 font-mono text-[10px]">#{visibleStocks.length + i + 1}</span>
+                              <span className="text-[#00ff41]/40 font-mono text-[10px]">#██</span>
                             </td>
                             <td className="px-1" />
                           </tr>

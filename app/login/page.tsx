@@ -32,7 +32,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full max-w-sm" style={{ animation: "fadeInUp 400ms ease-out both" }}>
         <form
           onSubmit={handleSubmit}
           className="border border-[#00ff41]/30 rounded p-8 bg-[#00ff41]/[0.02]"

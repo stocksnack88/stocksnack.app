@@ -78,7 +78,7 @@ export default async function AccountPage() {
       </h1>
 
       {/* Profile */}
-      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}` }}>
+      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}`, animation: "fadeInUp 300ms ease-out 50ms both" }}>
         <div className="px-5 py-3" style={{ background: "rgba(0,255,65,0.04)", borderBottom: `1px solid ${border}` }}>
           <p className="text-xs font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>PROFILE</p>
         </div>
@@ -89,7 +89,7 @@ export default async function AccountPage() {
       </div>
 
       {/* Sign out */}
-      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}` }}>
+      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}`, animation: "fadeInUp 300ms ease-out 150ms both" }}>
         <div className="px-5 py-4 flex items-center justify-between" style={{ background: row }}>
           <p className="text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.45)" }}>SESSION</p>
           <SignOutButton />
@@ -97,7 +97,7 @@ export default async function AccountPage() {
       </div>
 
       {/* Plan */}
-      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}` }}>
+      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}`, animation: "fadeInUp 300ms ease-out 250ms both" }}>
         <div className="px-5 py-3" style={{ background: "rgba(0,255,65,0.04)", borderBottom: `1px solid ${border}` }}>
           <p className="text-xs font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>SUBSCRIPTION</p>
         </div>

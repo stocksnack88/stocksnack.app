@@ -1,3 +1,3 @@
 export default function ProfilePage() {
-  return <div>Profile Page</div>;
+  return <div style={{ animation: "fadeInUp 400ms ease-out both" }}>Profile Page</div>;
 }

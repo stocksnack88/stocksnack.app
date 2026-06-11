@@ -68,7 +68,7 @@ export default function ForgotPasswordPage() {
     const canResend = countdown <= 0 && !resending;
 
     return (
-      <div className="w-full max-w-sm text-center">
+      <div className="w-full max-w-sm text-center" style={{ animation: "fadeInUp 400ms ease-out both" }}>
         <div className="mb-6 text-3xl" style={{ color: "#00ff41" }}>✓</div>
         <h2
           className="text-sm font-bold tracking-widest mb-3"
@@ -122,7 +122,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full max-w-sm" style={{ animation: "fadeInUp 400ms ease-out both" }}>
       <form
         onSubmit={handleSubmit}
         className="rounded p-8"

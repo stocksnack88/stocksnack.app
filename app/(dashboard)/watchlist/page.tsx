@@ -1,3 +1,3 @@
 export default function WatchlistPage() {
-  return <div>Watchlist Page</div>;
+  return <div style={{ animation: "fadeInUp 400ms ease-out both" }}>Watchlist Page</div>;
 }

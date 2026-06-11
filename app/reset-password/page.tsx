@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
   // ── Exchanging code ────────────────────────────────────────────────────────
   if (stage === "exchanging") {
     return (
-      <div className="w-full max-w-sm text-center">
+      <div className="w-full max-w-sm text-center" style={{ animation: "fadeInUp 400ms ease-out both" }}>
         <p className="text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.4)" }}>
           VERIFYING RESET LINK...
         </p>
@@ -70,7 +70,7 @@ export default function ResetPasswordPage() {
   // ── Invalid / expired link ─────────────────────────────────────────────────
   if (stage === "invalid") {
     return (
-      <div className="w-full max-w-sm text-center">
+      <div className="w-full max-w-sm text-center" style={{ animation: "fadeInUp 400ms ease-out both" }}>
         <div className="mb-6 text-3xl" style={{ color: "#f87171" }}>✕</div>
         <h2
           className="text-sm font-bold tracking-widest mb-3"
@@ -102,7 +102,7 @@ export default function ResetPasswordPage() {
   // ── Success ────────────────────────────────────────────────────────────────
   if (stage === "success") {
     return (
-      <div className="w-full max-w-sm text-center">
+      <div className="w-full max-w-sm text-center" style={{ animation: "fadeInUp 400ms ease-out both" }}>
         <div className="mb-6 text-3xl" style={{ color: "#00ff41" }}>✓</div>
         <h2
           className="text-sm font-bold tracking-widest mb-3"
@@ -121,7 +121,7 @@ export default function ResetPasswordPage() {
 
   // ── Password form ──────────────────────────────────────────────────────────
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full max-w-sm" style={{ animation: "fadeInUp 400ms ease-out both" }}>
       <form
         onSubmit={handleSubmit}
         className="rounded p-8"

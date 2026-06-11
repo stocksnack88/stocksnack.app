@@ -771,6 +771,9 @@ export default function ScreenerTable({
       )}
 
       {/* Table — overflow-y:clip keeps sticky th working against viewport */}
+      <div className="relative">
+        <div className="scanline-overlay" />
+        <div className="scanline-beam" />
       <div className="overflow-x-auto [overflow-y:clip]">
         <table className="w-full text-sm border-collapse">
           <thead>
@@ -810,9 +813,10 @@ export default function ScreenerTable({
               <React.Fragment key={stock.ticker}>
                 <tr
                   onClick={() => { playTickerClick(); router.push(`/screener/${stock.ticker}`); }}
-                  className={`cursor-pointer border-t border-[#00ff41]/10 transition-colors hover:bg-[#00ff41]/5 ${
+                  className={`screener-row cursor-pointer border-t border-[#00ff41]/10 transition-colors hover:bg-[#00ff41]/5 ${
                     i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""
                   }`}
+                  style={{ animation: `fadeInUp 200ms ease-out ${Math.min(i, 25) * 30}ms both` }}
                 >
                   <td className={`px-2 py-3 ${stickyTd}`}>
                     <span className="inline-flex items-center gap-1">
@@ -967,6 +971,7 @@ export default function ScreenerTable({
             )}
           </tbody>
         </table>
+      </div>
       </div>
 
     </div>

@@ -10,7 +10,7 @@ const accent = "rgba(0,255,65,0.7)";
 
 export default function TosPage() {
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
+    <div className="max-w-3xl mx-auto px-6 py-12" style={{ animation: "fadeInUp 500ms ease-out both" }}>
       {/* Header */}
       <p className="text-xs tracking-[0.3em] mb-3" style={{ color: "rgba(0,255,65,0.35)" }}>
         LEGAL

@@ -25,3 +25,52 @@ body {
     text-wrap: balance;
   }
 }
+
+/* ── Shared animations ──────────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scanBeam {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(100%); }
+}
+
+.scanline-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+.scanline-beam {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 40%,
+    rgba(0, 255, 65, 0.03) 45%,
+    rgba(0, 255, 65, 0.03) 55%,
+    transparent 60%,
+    transparent 100%
+  );
+  animation: scanBeam 8s linear infinite;
+}
+
+@media (hover: hover) {
+  .screener-row:hover {
+    background: rgba(0, 255, 65, 0.06) !important;
+    transition: background 150ms ease;
+  }
+}

@@ -1385,6 +1385,78 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </div>
         </section>
 
+        {/* ── Valuation ───────────────────────────────────────────────────────── */}
+        {(() => {
+          const peRatio    = score?.pe_ratio         != null ? Number(score.pe_ratio)         : null;
+          const pe5yAvg    = score?.pe_5y_avg         != null ? Number(score.pe_5y_avg)         : null;
+          const industryPe = score?.industry_pe       != null ? Number(score.industry_pe)       : null;
+          const fcfYield   = score?.fcf_yield         != null ? Number(score.fcf_yield)         : null;
+          const fcf5yAvg   = score?.fcf_5y_avg        != null ? Number(score.fcf_5y_avg)        : null;
+          const divYield   = score?.div_yield         != null ? Number(score.div_yield)         : null;
+          const div5yAvg   = score?.div_yield_5y_avg  != null ? Number(score.div_yield_5y_avg)  : null;
+
+          const fmtPe  = (n: number | null) => n != null ? `${n.toFixed(1)}x` : "—";
+          const fmtYld = (n: number | null) => n != null ? `${(n * 100).toFixed(2)}%` : "—";
+
+          const rows = [
+            { label: "P/E RATIO",       current: fmtPe(peRatio),    avg: fmtPe(pe5yAvg) },
+            { label: "VS INDUSTRY P/E", current: fmtPe(industryPe), avg: "—" },
+            { label: "FCF YIELD",       current: fmtYld(fcfYield),  avg: fmtYld(fcf5yAvg) },
+            { label: "DIVIDEND YIELD",  current: fmtYld(divYield),  avg: fmtYld(div5yAvg) },
+          ];
+
+          let verdict: { text: string; color: string } | null = null;
+          if (peRatio != null && pe5yAvg != null) {
+            if (peRatio > pe5yAvg * 1.2) {
+              verdict = {
+                text: `Trading above its historical average — currently expensive relative to its own earnings history (${peRatio.toFixed(1)}x vs ${pe5yAvg.toFixed(1)}x avg)`,
+                color: "#f59e0b",
+              };
+            } else if (peRatio < pe5yAvg * 0.8) {
+              verdict = {
+                text: `Trading below its historical average — may represent a discount relative to its past earnings (${peRatio.toFixed(1)}x vs ${pe5yAvg.toFixed(1)}x avg)`,
+                color: "#00ff41",
+              };
+            } else {
+              verdict = {
+                text: `Trading in line with its historical P/E average (${peRatio.toFixed(1)}x vs ${pe5yAvg.toFixed(1)}x avg)`,
+                color: "rgba(0,255,65,0.6)",
+              };
+            }
+          }
+
+          return (
+            <section className="rounded overflow-hidden" style={card}>
+              <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
+                <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>VALUATION</p>
+              </div>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
+                    <th className="px-5 py-2 text-left font-normal tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>METRIC</th>
+                    <th className="px-5 py-2 text-right font-normal tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>CURRENT</th>
+                    <th className="px-5 py-2 text-right font-normal tracking-widest" style={{ color: "rgba(0,255,65,0.35)" }}>5Y AVG</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(({ label, current, avg }, i) => (
+                    <tr key={label} style={i < rows.length - 1 ? { borderBottom: "1px solid rgba(0,255,65,0.07)" } : {}}>
+                      <td className="px-5 py-3" style={{ color: "rgba(0,255,65,0.45)" }}>{label}</td>
+                      <td className="px-5 py-3 text-right font-mono font-bold" style={{ color: current === "—" ? "rgba(0,255,65,0.2)" : "#00ff41" }}>{current}</td>
+                      <td className="px-5 py-3 text-right font-mono" style={{ color: avg === "—" ? "rgba(0,255,65,0.2)" : "rgba(0,255,65,0.5)" }}>{avg}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {verdict && (
+                <div className="px-5 py-3" style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
+                  <p className="text-xs leading-relaxed" style={{ color: verdict.color }}>{verdict.text}</p>
+                </div>
+              )}
+            </section>
+          );
+        })()}
+
         <p className="text-center text-xs pb-4 tracking-wide" style={{ color: "rgba(0,255,65,0.2)" }}>
           DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
         </p>

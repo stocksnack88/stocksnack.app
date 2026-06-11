@@ -1534,24 +1534,24 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
                 <thead>
                   <tr>
-                    <th style={{ ...thStyle, textAlign: "left",   paddingRight: 8 }}>COMPARING</th>
-                    <th style={{ ...thStyle, textAlign: "right",  paddingRight: 6 }}>YOU</th>
-                    <th style={{ ...thStyle, textAlign: "center", paddingRight: 6 }}>VS</th>
-                    <th style={{ ...thStyle, textAlign: "right",  paddingRight: 8 }}>THEM</th>
-                    <th style={{ ...thStyle, textAlign: "right"                   }}>STATUS</th>
+                    <th style={{ ...thStyle, textAlign: "left",   paddingRight: 8 }}>BENCHMARK</th>
+                    <th style={{ ...thStyle, textAlign: "center"                  }}>CURRENT vs BENCHMARK</th>
+                    <th style={{ ...thStyle, textAlign: "right",  paddingLeft: 8  }}>STATUS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r, i) => {
                     const b = calcBadge(current, r.them, inverse);
                     const isLast = i === rows.length - 1;
+                    const noBottom = isLast ? { borderBottom: "none" } : {};
+                    const cmpStr = current != null || r.them != null
+                      ? <>{fmt(current)}<span style={{ color: "rgba(0,255,65,0.25)", margin: "0 4px" }}>vs</span>{fmt(r.them)}</>
+                      : <span style={{ color: "rgba(0,255,65,0.2)" }}>—</span>;
                     return (
                       <tr key={r.label}>
-                        <td style={{ ...tdStyle, color: "rgba(0,255,65,0.45)", paddingRight: 8, whiteSpace: "nowrap", ...(isLast ? { borderBottom: "none" } : {}) }}>{r.label}</td>
-                        <td style={{ ...tdStyle, color: current != null ? "#00ff41" : "rgba(0,255,65,0.2)", textAlign: "right", paddingRight: 6, fontWeight: "bold", ...(isLast ? { borderBottom: "none" } : {}) }}>{fmt(current)}</td>
-                        <td style={{ ...tdStyle, color: "rgba(0,255,65,0.25)", textAlign: "center", paddingRight: 6, ...(isLast ? { borderBottom: "none" } : {}) }}>vs</td>
-                        <td style={{ ...tdStyle, color: r.them != null ? "rgba(0,255,65,0.6)" : "rgba(0,255,65,0.2)", textAlign: "right", paddingRight: 8, ...(isLast ? { borderBottom: "none" } : {}) }}>{fmt(r.them)}</td>
-                        <td style={{ ...tdStyle, textAlign: "right", ...(isLast ? { borderBottom: "none" } : {}) }}>
+                        <td style={{ ...tdStyle, color: "rgba(0,255,65,0.45)", paddingRight: 8, whiteSpace: "nowrap", ...noBottom }}>{r.label}</td>
+                        <td style={{ ...tdStyle, textAlign: "center", color: "#00ff41", ...noBottom }}>{cmpStr}</td>
+                        <td style={{ ...tdStyle, textAlign: "right", paddingLeft: 8, ...noBottom }}>
                           {b
                             ? <span style={{ color: b.color, fontWeight: "bold", fontSize: 9, letterSpacing: "0.1em" }}>{b.label}</span>
                             : <span style={{ color: "rgba(0,255,65,0.2)" }}>—</span>
@@ -1597,108 +1597,103 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             tableRows: TableRow[],
             fmt: (n: number | null) => string,
             inverse: boolean,
-            isLast: boolean,
           ) {
             const verdict = getVerdict(current, tableRows, inverse);
             return (
-              <div key={title} style={isLast ? {} : { borderBottom: "1px solid rgba(0,255,65,0.1)", paddingBottom: 22, marginBottom: 22 }}>
-                {/* Header: name + current value */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
-                  <span style={{ fontSize: 10, color: "rgba(0,255,65,0.45)", letterSpacing: "0.18em" }}>{title}</span>
-                  <span style={{ fontSize: 22, fontWeight: "bold", color: current != null ? "#00ff41" : "rgba(0,255,65,0.2)" }}>{fmt(current)}</span>
+              <section key={title} className="rounded overflow-hidden" style={card}>
+                {/* Card header */}
+                <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
+                  <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>{title}</p>
                 </div>
 
-                {/* Bar chart */}
-                {renderBarChart(groups, current, fmt)}
+                <div className="px-5 py-5" style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
+                  {/* Bar chart */}
+                  {renderBarChart(groups, current, fmt)}
 
-                {/* Legend */}
-                <div style={{ display: "flex", gap: 14, marginTop: 8, marginBottom: 16, fontSize: 8, color: "rgba(0,255,65,0.4)", letterSpacing: "0.1em", fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#00ff41", flexShrink: 0 }} />
-                    CURRENT
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "rgba(0,255,65,0.28)", flexShrink: 0 }} />
-                    5Y AVG
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <span style={{ display: "inline-block", width: 16, borderTop: "1px dashed rgba(0,255,65,0.65)", flexShrink: 0 }} />
-                    STOCK NOW
-                  </span>
+                  {/* Legend */}
+                  <div style={{ display: "flex", gap: 14, marginTop: 8, marginBottom: 16, fontSize: 8, color: "rgba(0,255,65,0.4)", letterSpacing: "0.1em" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#00ff41", flexShrink: 0 }} />
+                      CURRENT
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "rgba(0,255,65,0.28)", flexShrink: 0 }} />
+                      5Y AVG
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ display: "inline-block", width: 16, borderTop: "1px dashed rgba(0,255,65,0.65)", flexShrink: 0 }} />
+                      STOCK NOW
+                    </span>
+                  </div>
+
+                  {/* Divider */}
+                  <div style={{ height: 1, background: "rgba(0,255,65,0.1)", marginBottom: 14 }} />
+
+                  {/* Comparison table */}
+                  {renderTable(current, fmt, tableRows, inverse)}
+
+                  {/* Verdict */}
+                  {verdict && (
+                    <p style={{ marginTop: 10, fontSize: 11, color: "rgba(0,255,65,0.5)", lineHeight: 1.5 }}>
+                      {verdict}
+                    </p>
+                  )}
                 </div>
-
-                {/* Divider */}
-                <div style={{ height: 1, background: "rgba(0,255,65,0.1)", marginBottom: 14 }} />
-
-                {/* Comparison table */}
-                {renderTable(current, fmt, tableRows, inverse)}
-
-                {/* Verdict */}
-                {verdict && (
-                  <p style={{ marginTop: 10, fontSize: 11, color: "rgba(0,255,65,0.5)", lineHeight: 1.5, fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
-                    {verdict}
-                  </p>
-                )}
-              </div>
+              </section>
             );
           }
 
           return (
-            <section className="rounded overflow-hidden" style={card}>
-              <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-                <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>VALUATION</p>
-              </div>
-              <div className="px-5 py-5" style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
-                {renderMetric(
-                  "P/E RATIO", peRatio,
-                  [
-                    { label: "STOCK",    cur: peRatio,      avg: pe5yAvg,      isStock: true },
-                    { label: "INDUSTRY", cur: industryPe,   avg: industryPe5y  },
-                    { label: "S&P 500",  cur: SP500_PE_NOW, avg: SP500_PE_5Y   },
-                  ],
-                  [
-                    { label: "Own history",      them: pe5yAvg       },
-                    { label: "Industry now",     them: industryPe    },
-                    { label: "Industry history", them: industryPe5y  },
-                    { label: "S&P 500 now",      them: SP500_PE_NOW  },
-                    { label: "S&P 500 history",  them: SP500_PE_5Y   },
-                  ],
-                  fmtPe, false, false,
-                )}
-                {renderMetric(
-                  "FCF YIELD", fcfYield,
-                  [
-                    { label: "STOCK",    cur: fcfYield,      avg: fcf5yAvg,     isStock: true },
-                    { label: "INDUSTRY", cur: null,          avg: null          },
-                    { label: "S&P 500",  cur: SP500_FCF_NOW, avg: SP500_FCF_5Y  },
-                  ],
-                  [
-                    { label: "Own history",      them: fcf5yAvg      },
-                    { label: "Industry now",     them: null          },
-                    { label: "Industry history", them: null          },
-                    { label: "S&P 500 now",      them: SP500_FCF_NOW },
-                    { label: "S&P 500 history",  them: SP500_FCF_5Y  },
-                  ],
-                  fmtYld, true, false,
-                )}
-                {renderMetric(
-                  "DIVIDEND YIELD", divYield,
-                  [
-                    { label: "STOCK",    cur: divYield,      avg: div5yAvg,     isStock: true },
-                    { label: "INDUSTRY", cur: null,          avg: null          },
-                    { label: "S&P 500",  cur: SP500_DIV_NOW, avg: SP500_DIV_5Y  },
-                  ],
-                  [
-                    { label: "Own history",      them: div5yAvg      },
-                    { label: "Industry now",     them: null          },
-                    { label: "Industry history", them: null          },
-                    { label: "S&P 500 now",      them: SP500_DIV_NOW },
-                    { label: "S&P 500 history",  them: SP500_DIV_5Y  },
-                  ],
-                  fmtYld, true, true,
-                )}
-              </div>
-            </section>
+            <>
+              {renderMetric(
+                "P/E RATIO ANALYSIS", peRatio,
+                [
+                  { label: "STOCK",    cur: peRatio,      avg: pe5yAvg,      isStock: true },
+                  { label: "INDUSTRY", cur: industryPe,   avg: industryPe5y  },
+                  { label: "S&P 500",  cur: SP500_PE_NOW, avg: SP500_PE_5Y   },
+                ],
+                [
+                  { label: `${ticker} 5Y Avg`,   them: pe5yAvg       },
+                  { label: "Industry Now",        them: industryPe    },
+                  { label: "Industry 5Y Avg",     them: industryPe5y  },
+                  { label: "S&P 500 Now",         them: SP500_PE_NOW  },
+                  { label: "S&P 500 5Y Avg",      them: SP500_PE_5Y   },
+                ],
+                fmtPe, false,
+              )}
+              {renderMetric(
+                "FCF YIELD ANALYSIS", fcfYield,
+                [
+                  { label: "STOCK",    cur: fcfYield,      avg: fcf5yAvg,     isStock: true },
+                  { label: "INDUSTRY", cur: null,          avg: null          },
+                  { label: "S&P 500",  cur: SP500_FCF_NOW, avg: SP500_FCF_5Y  },
+                ],
+                [
+                  { label: `${ticker} 5Y Avg`,   them: fcf5yAvg      },
+                  { label: "Industry Now",        them: null          },
+                  { label: "Industry 5Y Avg",     them: null          },
+                  { label: "S&P 500 Now",         them: SP500_FCF_NOW },
+                  { label: "S&P 500 5Y Avg",      them: SP500_FCF_5Y  },
+                ],
+                fmtYld, true,
+              )}
+              {renderMetric(
+                "DIVIDEND YIELD ANALYSIS", divYield,
+                [
+                  { label: "STOCK",    cur: divYield,      avg: div5yAvg,     isStock: true },
+                  { label: "INDUSTRY", cur: null,          avg: null          },
+                  { label: "S&P 500",  cur: SP500_DIV_NOW, avg: SP500_DIV_5Y  },
+                ],
+                [
+                  { label: `${ticker} 5Y Avg`,   them: div5yAvg      },
+                  { label: "Industry Now",        them: null          },
+                  { label: "Industry 5Y Avg",     them: null          },
+                  { label: "S&P 500 Now",         them: SP500_DIV_NOW },
+                  { label: "S&P 500 5Y Avg",      them: SP500_DIV_5Y  },
+                ],
+                fmtYld, true,
+              )}
+            </>
           );
         })()}
 

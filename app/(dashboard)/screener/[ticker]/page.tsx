@@ -1574,26 +1574,34 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           }
 
           // ── Verdict ──────────────────────────────────────────────────────────
-          function getVerdict(current: number | null, rows: TableRow[], inverse: boolean): string | null {
+          function getVerdict(current: number | null, rows: TableRow[], inverse: boolean, metricType: "pe" | "fcf" | "div"): string | null {
             if (current == null) return null;
             const badges = rows.map(r => calcBadge(current, r.them, inverse)).filter(Boolean) as { label: string; color: string }[];
             if (badges.length === 0) return null;
-            if (!inverse) {
+            if (metricType === "pe") {
               const exp   = badges.filter(b => b.label === "EXPENSIVE").length;
               const cheap = badges.filter(b => b.label === "CHEAPER").length;
-              if (exp >= 3)   return "Trading at a significant premium across most benchmarks.";
-              if (exp >= 2)   return "Looks elevated relative to several benchmarks — watch for mean reversion.";
-              if (cheap >= 3) return "Trading at a meaningful discount across most benchmarks.";
-              if (cheap >= 2) return "Appears undervalued relative to several benchmarks.";
-              return "Valuation is broadly in line with historical and sector averages.";
+              if (exp >= 3)   return "Priced at a premium — you're paying more than most benchmarks suggest it's worth.";
+              if (exp >= 2)   return "Slightly expensive compared to a few benchmarks — worth watching.";
+              if (cheap >= 3) return "Looks cheap across the board — could be a good entry point.";
+              if (cheap >= 2) return "Underpriced against a few benchmarks — potentially good value.";
+              return "Fairly priced — nothing screaming buy or sell here.";
+            } else if (metricType === "fcf") {
+              const high = badges.filter(b => b.label === "CHEAPER").length;
+              const low  = badges.filter(b => b.label === "EXPENSIVE").length;
+              if (high >= 3)  return "Strong cash generation relative to price — the business is throwing off a lot of free cash.";
+              if (high >= 2)  return "Above-average FCF yield compared to a few benchmarks — decent cash returns.";
+              if (low >= 3)   return "Weak FCF yield across the board — not much cash being returned relative to what you're paying.";
+              if (low >= 2)   return "FCF yield trails a few benchmarks — moderate cash generation for the price.";
+              return "FCF yield is in line with what you'd expect — nothing unusual here.";
             } else {
               const high = badges.filter(b => b.label === "CHEAPER").length;
               const low  = badges.filter(b => b.label === "EXPENSIVE").length;
-              if (high >= 3)  return "Significantly above-average yield across most benchmarks — standout income.";
-              if (high >= 2)  return "Above-average yield relative to several benchmarks.";
-              if (low >= 3)   return "Below-average yield across most benchmarks.";
-              if (low >= 2)   return "Yield lags behind several benchmarks.";
-              return "Yield is broadly in line with historical and sector averages.";
+              if (high >= 3)  return "High dividend yield across the board — stands out as an income play.";
+              if (high >= 2)  return "Pays more than a few benchmarks — solid income relative to price.";
+              if (low >= 3)   return "Low dividend yield across the board — not an income-focused stock.";
+              if (low >= 2)   return "Dividend yield is below a few benchmarks — modest income.";
+              return "Dividend yield is about average — nothing exceptional either way.";
             }
           }
 
@@ -1605,8 +1613,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             tableRows: TableRow[],
             fmt: (n: number | null) => string,
             inverse: boolean,
+            metricType: "pe" | "fcf" | "div",
           ) {
-            const verdict = getVerdict(current, tableRows, inverse);
+            const verdict = getVerdict(current, tableRows, inverse, metricType);
             return (
               <section key={title} className="rounded overflow-hidden" style={card}>
                 {/* Card header */}
@@ -1667,7 +1676,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_PE_NOW  },
                   { label: "S&P 500 5Y Avg",      them: SP500_PE_5Y   },
                 ],
-                fmtPe, false,
+                fmtPe, false, "pe",
               )}
               {renderMetric(
                 "FCF YIELD ANALYSIS", fcfYield,
@@ -1683,7 +1692,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_FCF_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_FCF_5Y  },
                 ],
-                fmtYld, true,
+                fmtYld, true, "fcf",
               )}
               {renderMetric(
                 "DIVIDEND YIELD ANALYSIS", divYield,
@@ -1699,7 +1708,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_DIV_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_DIV_5Y  },
                 ],
-                fmtYld, true,
+                fmtYld, true, "div",
               )}
             </>
           );

@@ -1507,8 +1507,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           function calcBadge(cur: number | null, them: number | null, inverse: boolean) {
             if (cur == null || them == null) return null;
             if (inverse) {
-              if (cur > them * 1.1) return { label: "HIGHER",    color: "#00ff41" };
-              if (cur < them * 0.9) return { label: "LOWER",     color: "#ef4444" };
+              if (cur > them * 1.1) return { label: "CHEAPER",   color: "#00ff41" };
+              if (cur < them * 0.9) return { label: "EXPENSIVE", color: "#ef4444" };
               return                       { label: "FAIR",      color: "#f59e0b" };
             }
             if (cur > them * 1.1)   return { label: "EXPENSIVE", color: "#ef4444" };
@@ -1587,8 +1587,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               if (cheap >= 2) return "Appears undervalued relative to several benchmarks.";
               return "Valuation is broadly in line with historical and sector averages.";
             } else {
-              const high = badges.filter(b => b.label === "HIGHER").length;
-              const low  = badges.filter(b => b.label === "LOWER").length;
+              const high = badges.filter(b => b.label === "CHEAPER").length;
+              const low  = badges.filter(b => b.label === "EXPENSIVE").length;
               if (high >= 3)  return "Significantly above-average yield across most benchmarks — standout income.";
               if (high >= 2)  return "Above-average yield relative to several benchmarks.";
               if (low >= 3)   return "Below-average yield across most benchmarks.";

@@ -8,6 +8,7 @@ import DescriptionToggle from "@/components/ui/DescriptionToggle";
 import HealthCategories from "@/components/ui/HealthCategories";
 import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 import HazardTooltip from "@/components/ui/HazardTooltip";
+import { LayerProvider, CollapsibleLayer, ExpandCollapseButton } from "@/components/ui/LayersAccordion";
 
 const FREE_LIMIT = 5;
 
@@ -416,17 +417,23 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           );
         })()}
 
-        {/* ── Layer 1: PPM ─────────────────────────────────────────────────────── */}
-        <section className="rounded overflow-hidden" style={card}>
-          {/* Header */}
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
-              LAYER 1 — HOW WE PROJECT THE PRICE
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
-              3 independent methods blended into a single 5-year price target
-            </p>
+        {/* ── Layers 1–5 ───────────────────────────────────────────────────────── */}
+        <LayerProvider count={5}>
+          <div className="flex justify-end">
+            <ExpandCollapseButton />
           </div>
+
+          {/* Layer 1: PPM */}
+          <CollapsibleLayer id={0} header={(
+            <>
+              <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
+                LAYER 1 — HOW WE PROJECT THE PRICE
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
+                3 independent methods blended into a single 5-year price target
+              </p>
+            </>
+          )}>
 
           {/* Compact summary row */}
           <p className="text-center text-[9px] font-mono tracking-widest py-2.5" style={{ color: "rgba(0,255,65,0.45)", borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
@@ -852,18 +859,19 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             );
           })()}
 
-        </section>
+        </CollapsibleLayer>
 
-        {/* ── Layer 2: Growth ──────────────────────────────────────────────────── */}
-        <section className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
-              LAYER 2 — GROWTH QUALITY
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
-              Historical financials and growth trajectory
-            </p>
-          </div>
+          {/* Layer 2: Growth */}
+          <CollapsibleLayer id={1} header={(
+            <>
+              <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
+                LAYER 2 — GROWTH QUALITY
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>
+                Historical financials and growth trajectory
+              </p>
+            </>
+          )}>
           {/* Bar charts — 5-year actuals */}
           {(() => {
             type FundRow = { fiscal_year: number; revenue: number | null; ebitda: number | null; free_cash_flow: number | null };
@@ -1277,48 +1285,47 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </>
             );
           })()}
-        </section>
+        </CollapsibleLayer>
 
-        {/* ── Layer 3: Health — 24 checks ──────────────────────────────────────── */}
-        <section className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-            <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "#00ff41" }}>
-              LAYER 3 — FINANCIAL HEALTH
-            </p>
-            <div className="flex items-center rounded-lg p-4 mb-3" style={{ border: "1px solid rgba(0,255,65,0.2)" }}>
-              <div className="flex-1 flex flex-col items-center">
-                <p className="text-4xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
-                  {score?.health_passes ?? 0}/{scoredTotal}
-                </p>
-                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: healthColor(score?.health_score), opacity: 0.6 }}>
-                  CHECKS PASSED
-                </p>
+          {/* Layer 3: Health */}
+          <CollapsibleLayer id={2} header={(
+            <>
+              <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "#00ff41" }}>
+                LAYER 3 — FINANCIAL HEALTH
+              </p>
+              <div className="flex items-center rounded-lg p-4 mb-3" style={{ border: "1px solid rgba(0,255,65,0.2)" }}>
+                <div className="flex-1 flex flex-col items-center">
+                  <p className="text-4xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
+                    {score?.health_passes ?? 0}/{scoredTotal}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: healthColor(score?.health_score), opacity: 0.6 }}>
+                    CHECKS PASSED
+                  </p>
+                </div>
+                <div className="self-stretch mx-4" style={{ width: 1, background: "rgba(0,255,65,0.2)" }} />
+                <div className="flex-1 flex flex-col items-center">
+                  <p className="text-4xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
+                    {score?.health_score != null ? `${Number(score.health_score).toFixed(1)}%` : "—"}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: healthColor(score?.health_score), opacity: 0.6 }}>
+                    HEALTH SCORE
+                  </p>
+                </div>
               </div>
-              <div className="self-stretch mx-4" style={{ width: 1, background: "rgba(0,255,65,0.2)" }} />
-              <div className="flex-1 flex flex-col items-center">
-                <p className="text-4xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
-                  {score?.health_score != null ? `${Number(score.health_score).toFixed(1)}%` : "—"}
-                </p>
-                <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: healthColor(score?.health_score), opacity: 0.6 }}>
-                  HEALTH SCORE
-                </p>
+              <div className="h-1 rounded-full w-full" style={{ background: "rgba(0,255,65,0.1)" }}>
+                <div className="h-full rounded-full" style={{ width: `${score?.health_score ?? 0}%`, background: healthColor(score?.health_score), opacity: 0.8 }} />
               </div>
-            </div>
-            <div className="h-1 rounded-full w-full" style={{ background: "rgba(0,255,65,0.1)" }}>
-              <div className="h-full rounded-full" style={{ width: `${score?.health_score ?? 0}%`, background: healthColor(score?.health_score), opacity: 0.8 }} />
-            </div>
-          </div>
-
+            </>
+          )}>
           <HealthCategories cats={healthCats} />
-        </section>
+        </CollapsibleLayer>
 
-        {/* ── Layer 4: Final ───────────────────────────────────────────────────── */}
-        <section className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
+          {/* Layer 4: Final */}
+          <CollapsibleLayer id={3} header={(
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 4 — FINAL SCORE
             </p>
-          </div>
+          )}>
           <div className="px-5 py-6 space-y-3">
             {/* ROW 1–3 — Column: bordered label box → weight → score */}
             <div className="grid grid-cols-3 gap-2">
@@ -1383,10 +1390,16 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               })()}
             </div>
           </div>
-        </section>
+        </CollapsibleLayer>
 
-        {/* ── Valuation ───────────────────────────────────────────────────────── */}
-        {(() => {
+          {/* Layer 5: Valuation */}
+          <CollapsibleLayer id={4} header={(
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
+              LAYER 5 — VALUATION ANALYSIS
+            </p>
+          )}>
+          <div className="p-5 space-y-5">
+          {(() => {
           // ── Data ──────────────────────────────────────────────────────────────
           const peRatio      = score?.pe_ratio          != null ? Number(score.pe_ratio)          : null;
           const pe5yAvg      = score?.pe_5y_avg          != null ? Number(score.pe_5y_avg)          : null;
@@ -1713,6 +1726,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             </>
           );
         })()}
+          </div>
+          </CollapsibleLayer>
+        </LayerProvider>
 
         <p className="text-center text-xs pb-4 tracking-wide" style={{ color: "rgba(0,255,65,0.2)" }}>
           DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY

@@ -4,6 +4,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import HazardTooltip from "@/components/ui/HazardTooltip";
 
+const EXTENSION_MS = 15 * 60 * 1000
+
 // ── ScreenerRow type ──────────────────────────────────────────────────────────
 
 export type ScreenerRow = {
@@ -358,14 +360,16 @@ export default function ScreenerTable({
 
 
   useEffect(() => {
-    // UPSELL TOAST — show only when: logged-in, not pro, trial fully consumed,
-    // extension was taken and has expired (server sets trialStartedAt=null when
-    // isTrialActive=false, which includes after extension expires).
-    if (isPro) return;                                    // never show to pro users
-    if (!trialUsed) return;                               // never show before trial is used
-    if (trialStartedAt) return;                           // never show during active trial or active extension
-    if (trialUsed && !trialExtensionStartedAt) return;    // never show when extension banner is showing
-    // Reaches here: trial used, extension taken, extension expired → show upsell
+    // UPSELL TOAST — show only when: logged-in, not pro, trial_used=true,
+    // extension was taken (trialExtensionStartedAt set), and extension has expired.
+    if (isPro) return;                                          // never show to pro users
+    if (!trialUsed) return;                                     // never show before trial is used
+    if (!trialExtensionStartedAt) return;                       // never show when extension banner is showing (no extension yet)
+    // Client-side expiry check — avoids relying on the server-rendered trialStartedAt
+    // prop which is stale once extension expires mid-session.
+    const extensionElapsed = Date.now() - new Date(trialExtensionStartedAt).getTime();
+    if (extensionElapsed < EXTENSION_MS) return;                // extension still active: never show
+    // Reaches here: trial used, extension taken and expired → show upsell
     let timer: ReturnType<typeof setTimeout>;
     function startTimer() {
       timer = setTimeout(() => setShowUpsellModal(true), 60000);
@@ -383,7 +387,7 @@ export default function ScreenerTable({
       clearTimeout(timer);
       window.removeEventListener('onboarding-dismissed', onOnboardingDismissed);
     };
-  }, [isPro, trialStartedAt, trialUsed, trialExtensionStartedAt]);
+  }, [isPro, trialUsed, trialExtensionStartedAt]);
 
   function clearAllFilters() {
     setFilters([]);

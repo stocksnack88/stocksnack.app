@@ -48,7 +48,6 @@ export default function VerifyPhonePage() {
       const data = await r.json();
       if (r.ok) {
         router.push("/screener");
-        router.refresh();
       } else {
         setError(data.error ?? "Verification failed. Please try again.");
       }

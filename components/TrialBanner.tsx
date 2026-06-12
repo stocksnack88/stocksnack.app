@@ -32,12 +32,12 @@ export default function TrialBanner() {
     fetch('/api/trial/expire', { method: 'POST' }).catch(() => {})
   }, [])
 
-  const handleExtended = useCallback((extensionAt: string) => {
-    setTrialExtensionStartedAt(extensionAt)
-    setPhase('extension')
-    setShowExpiredModal(false)
-    router.refresh()
-  }, [router])
+  const handleExtended = useCallback((_extensionAt: string) => {
+    // Full reload: re-renders server component (shows all 500 stocks) and remounts
+    // TrialBanner cleanly so the initial fetch detects the extension and starts
+    // the countdown. router.refresh() can silently reset client state mid-render.
+    window.location.reload()
+  }, [])
 
   // Initial fetch
   useEffect(() => {

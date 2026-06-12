@@ -61,7 +61,7 @@ export default function TrialExpiredModal({ hasPhone, onExtended, onClose }: Pro
             UPGRADE TO PRO →
           </a>
           <button
-            onClick={onClose}
+            onClick={() => { window.location.href = '/screener' }}
             className="w-full py-2 text-xs tracking-widest transition-colors"
             style={{ color: 'rgba(0,255,65,0.25)', background: 'transparent' }}
           >

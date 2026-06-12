@@ -260,7 +260,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </div>
 
         {/* ── Overview + Layers 1–5 ───────────────────────────────────────────── */}
-        <LayerProvider count={12} animCount={6} childMap={{ 0: [6,7,8], 5: [9,10,11] }}>
+        <LayerProvider count={12} animCount={6} childMap={{ 0: [6,7,8], 1: [9,10,11] }}>
           <div className="flex justify-end">
             <ExpandCollapseButton />
           </div>
@@ -435,8 +435,341 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </ChildCollapsibleLayer>
           </CollapsibleLayer>
 
-          {/* Layer 1: PPM */}
+          {/* Market Comparison */}
           <CollapsibleLayer id={1} header={(
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
+              MARKET COMPARISON
+            </p>
+          )}>
+          {(() => {
+          // ── Data ──────────────────────────────────────────────────────────────
+          const peRatio      = score?.pe_ratio          != null ? Number(score.pe_ratio)          : null;
+          const pe5yAvg      = score?.pe_5y_avg          != null ? Number(score.pe_5y_avg)          : null;
+          const industryPe   = score?.industry_pe        != null ? Number(score.industry_pe)        : null;
+          const industryPe5y = score?.industry_pe_5y_avg != null ? Number(score.industry_pe_5y_avg) : null;
+          const fcfYield       = score?.fcf_yield           != null ? Number(score.fcf_yield)           : null;
+          const fcf5yAvg       = score?.fcf_5y_avg          != null ? Number(score.fcf_5y_avg)          : null;
+          const industryFcf    = score?.industry_fcf_yield     != null ? Number(score.industry_fcf_yield)     : null;
+          const industryFcf5y  = score?.industry_fcf_5y_avg   != null ? Number(score.industry_fcf_5y_avg)   : null;
+          const divYield       = score?.div_yield              != null ? Number(score.div_yield)              : null;
+          const div5yAvg       = score?.div_yield_5y_avg       != null ? Number(score.div_yield_5y_avg)       : null;
+          const industryDiv    = score?.industry_div_yield     != null ? Number(score.industry_div_yield)     : null;
+          const industryDiv5y  = score?.industry_div_yield_5y_avg != null ? Number(score.industry_div_yield_5y_avg) : null;
+
+          // S&P 500 benchmarks (hardcoded — live data later)
+          const SP500_PE_NOW = 22;    const SP500_PE_5Y  = 19;
+          const SP500_FCF_NOW = 0.035; const SP500_FCF_5Y  = 0.032;
+          const SP500_DIV_NOW = 0.013; const SP500_DIV_5Y  = 0.018;
+
+          const fmtPe  = (n: number | null) => n != null ? `${n.toFixed(1)}x`              : "—";
+          const fmtYld = (n: number | null) => n != null ? `${(n * 100).toFixed(2)}%`      : "—";
+
+          // ── Bar chart ────────────────────────────────────────────────────────
+          type BarGroup = { label: string; cur: number | null; avg: number | null; isStock?: boolean };
+
+          function renderBarChart(groups: BarGroup[], stockNow: number | null, fmt: (n: number | null) => string) {
+            if (stockNow == null) return null;
+            const allVals = groups.flatMap(g => [g.cur, g.avg]).filter((v): v is number => v != null && v > 0);
+            const maxVal  = allVals.length > 0 ? Math.max(...allVals) : 0;
+            if (maxVal === 0) return null;
+
+            const H      = 90;  // chart height px
+            const BAR_W  = 14;
+            const BAR_GAP = 4;
+            const GRP_GAP = 20;
+            const AXIS_W  = 32;
+
+            const px = (v: number | null) => v != null && v > 0 ? Math.round((v / maxVal) * H) : 0;
+            const refPx = Math.round((stockNow / maxVal) * H);
+            const yTicks = [0, 0.25, 0.5, 0.75, 1.0];
+
+            return (
+              <div style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace", userSelect: "none" }}>
+                {/* Chart row */}
+                <div style={{ display: "flex" }}>
+                  {/* Y-axis */}
+                  <div style={{ width: AXIS_W, height: H, position: "relative", flexShrink: 0 }}>
+                    {yTicks.map(f => (
+                      <span key={f} style={{
+                        position: "absolute", right: 4, bottom: `${f * 100}%`,
+                        transform: "translateY(50%)", fontSize: 8,
+                        color: "rgba(0,255,65,0.28)", whiteSpace: "nowrap", lineHeight: 1,
+                      }}>
+                        {fmt(maxVal * f)}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Bars + grid */}
+                  <div style={{ flex: 1, height: H, position: "relative" }}>
+                    {/* Grid lines */}
+                    {yTicks.map(f => (
+                      <div key={f} style={{
+                        position: "absolute", left: 0, right: 0, bottom: `${f * 100}%`, height: 1,
+                        background: f === 0 ? "rgba(0,255,65,0.25)" : "rgba(0,255,65,0.07)",
+                      }} />
+                    ))}
+
+                    {/* Reference line */}
+                    <div style={{
+                      position: "absolute", left: 0, right: 0, bottom: refPx,
+                      borderTop: "1px dashed rgba(0,255,65,0.65)", zIndex: 2,
+                    }}>
+                      <span style={{
+                        position: "absolute", right: 2, top: -13,
+                        fontSize: 8, color: "rgba(0,255,65,0.65)", whiteSpace: "nowrap",
+                      }}>
+                        STOCK NOW — {fmt(stockNow)}
+                      </span>
+                    </div>
+
+                    {/* Bar groups */}
+                    <div style={{ display: "flex", alignItems: "flex-end", height: "100%", gap: GRP_GAP, paddingLeft: 4, paddingRight: 4 }}>
+                      {groups.map(g => {
+                        const isStock    = g.isStock ?? false;
+                        const curColor   = isStock ? "#00ff41"
+                          : (g.cur != null && g.cur > stockNow ? "#ef4444" : "#00ff41");
+                        const avgColor   = isStock ? "rgba(0,255,65,0.28)"
+                          : (g.avg != null && g.avg > stockNow ? "rgba(239,68,68,0.28)" : "rgba(0,255,65,0.28)");
+                        return (
+                          <div key={g.label} style={{ display: "flex", alignItems: "flex-end", gap: BAR_GAP, flexShrink: 0 }}>
+                            <div style={{ width: BAR_W, height: px(g.cur),  background: curColor }} />
+                            <div style={{ width: BAR_W, height: px(g.avg),  background: avgColor }} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* X-axis labels */}
+                <div style={{ display: "flex", paddingLeft: AXIS_W + 4, gap: GRP_GAP, marginTop: 5 }}>
+                  {groups.map(g => (
+                    <div key={g.label} style={{
+                      width: BAR_W * 2 + BAR_GAP, textAlign: "center",
+                      fontSize: 8, color: "rgba(0,255,65,0.38)",
+                      whiteSpace: "nowrap", flexShrink: 0,
+                    }}>
+                      {g.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          // ── Status badge ─────────────────────────────────────────────────────
+          function calcBadge(cur: number | null, them: number | null, inverse: boolean) {
+            if (cur == null || them == null) return null;
+            if (inverse) {
+              if (cur > them * 1.1) return { label: "CHEAPER",   color: "#00ff41" };
+              if (cur < them * 0.9) return { label: "EXPENSIVE", color: "#ef4444" };
+              return                       { label: "FAIR",      color: "#f59e0b" };
+            }
+            if (cur > them * 1.1)   return { label: "EXPENSIVE", color: "#ef4444" };
+            if (cur < them * 0.9)   return { label: "CHEAPER",   color: "#00ff41" };
+            return                         { label: "FAIR",      color: "#f59e0b" };
+          }
+
+          // ── Comparison table ─────────────────────────────────────────────────
+          type TableRow = { label: string; them: number | null };
+
+          function renderTable(
+            current: number | null,
+            fmt: (n: number | null) => string,
+            rows: TableRow[],
+            inverse: boolean,
+          ) {
+            const thStyle: React.CSSProperties = {
+              fontSize: 9, color: "rgba(0,255,65,0.35)", fontFamily: "inherit",
+              fontWeight: "normal", letterSpacing: "0.1em",
+              paddingBottom: 6, borderBottom: "1px solid rgba(0,255,65,0.12)",
+            };
+            const tdStyle: React.CSSProperties = {
+              fontSize: 11, fontFamily: "inherit",
+              padding: "5px 0", borderBottom: "1px solid rgba(0,255,65,0.07)",
+            };
+            return (
+              <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...thStyle, textAlign: "left",   paddingRight: 8 }}>BENCHMARK</th>
+                    <th style={{ ...thStyle, textAlign: "center"                  }}>CURRENT vs BENCHMARK</th>
+                    <th style={{ ...thStyle, textAlign: "right",  paddingLeft: 8  }}>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => {
+                    const b = calcBadge(current, r.them, inverse);
+                    const isLast = i === rows.length - 1;
+                    const noBottom = isLast ? { borderBottom: "none" } : {};
+                    const cmpStr = (
+                      <div style={{ display: "grid", gridTemplateColumns: "52px 24px 52px", gap: 0 }}>
+                        <span style={{ textAlign: "right",  color: current != null ? "#00ff41" : "rgba(0,255,65,0.2)", fontWeight: 700 }}>{fmt(current)}</span>
+                        <span style={{ textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 9 }}>vs</span>
+                        <span style={{ textAlign: "left",   color: r.them  != null ? "rgba(0,255,65,0.5)" : "rgba(0,255,65,0.2)" }}>{fmt(r.them)}</span>
+                      </div>
+                    );
+                    return (
+                      <tr key={r.label}>
+                        <td style={{ ...tdStyle, color: "rgba(0,255,65,0.45)", paddingRight: 8, whiteSpace: "nowrap", ...noBottom }}>{r.label}</td>
+                        <td style={{ ...tdStyle, textAlign: "center", color: "#00ff41", ...noBottom }}>{cmpStr}</td>
+                        <td style={{ ...tdStyle, textAlign: "right", paddingLeft: 8, ...noBottom }}>
+                          {b
+                            ? <span style={{ color: b.color, fontWeight: "bold", fontSize: 9, letterSpacing: "0.1em" }}>{b.label}</span>
+                            : <span style={{ color: "rgba(0,255,65,0.2)" }}>—</span>
+                          }
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            );
+          }
+
+          // ── Verdict ──────────────────────────────────────────────────────────
+          function getVerdict(current: number | null, rows: TableRow[], inverse: boolean, metricType: "pe" | "fcf" | "div"): string | null {
+            if (current == null) return null;
+            const badges = rows.map(r => calcBadge(current, r.them, inverse)).filter(Boolean) as { label: string; color: string }[];
+            if (badges.length === 0) return null;
+            if (metricType === "pe") {
+              const exp   = badges.filter(b => b.label === "EXPENSIVE").length;
+              const cheap = badges.filter(b => b.label === "CHEAPER").length;
+              if (exp >= 3)   return "Priced at a premium — you're paying more than most benchmarks suggest it's worth.";
+              if (exp >= 2)   return "Slightly expensive compared to a few benchmarks — worth watching.";
+              if (cheap >= 3) return "Looks cheap across the board — could be a good entry point.";
+              if (cheap >= 2) return "Underpriced against a few benchmarks — potentially good value.";
+              return "Fairly priced — nothing screaming buy or sell here.";
+            } else if (metricType === "fcf") {
+              const high = badges.filter(b => b.label === "CHEAPER").length;
+              const low  = badges.filter(b => b.label === "EXPENSIVE").length;
+              if (high >= 3)  return "Strong cash generation relative to price — the business is throwing off a lot of free cash.";
+              if (high >= 2)  return "Above-average FCF yield compared to a few benchmarks — decent cash returns.";
+              if (low >= 3)   return "Weak FCF yield across the board — not much cash being returned relative to what you're paying.";
+              if (low >= 2)   return "FCF yield trails a few benchmarks — moderate cash generation for the price.";
+              return "FCF yield is in line with what you'd expect — nothing unusual here.";
+            } else {
+              const high = badges.filter(b => b.label === "CHEAPER").length;
+              const low  = badges.filter(b => b.label === "EXPENSIVE").length;
+              if (high >= 3)  return "High dividend yield across the board — stands out as an income play.";
+              if (high >= 2)  return "Pays more than a few benchmarks — solid income relative to price.";
+              if (low >= 3)   return "Low dividend yield across the board — not an income-focused stock.";
+              if (low >= 2)   return "Dividend yield is below a few benchmarks — modest income.";
+              return "Dividend yield is about average — nothing exceptional either way.";
+            }
+          }
+
+          // ── Metric block ─────────────────────────────────────────────────────
+          function renderMetric(
+            title: string,
+            current: number | null,
+            groups: BarGroup[],
+            tableRows: TableRow[],
+            fmt: (n: number | null) => string,
+            inverse: boolean,
+            metricType: "pe" | "fcf" | "div",
+            id: number,
+          ) {
+            const verdict = getVerdict(current, tableRows, inverse, metricType);
+            return (
+              <ChildCollapsibleLayer key={title} id={id} header={
+                <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>{title}</p>
+              }>
+                <div className="px-5 py-5" style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
+                  {/* Bar chart */}
+                  {renderBarChart(groups, current, fmt)}
+
+                  {/* Legend */}
+                  <div style={{ display: "flex", gap: 14, marginTop: 8, marginBottom: 16, fontSize: 8, color: "rgba(0,255,65,0.4)", letterSpacing: "0.1em" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#00ff41", flexShrink: 0 }} />
+                      CURRENT
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "rgba(0,255,65,0.28)", flexShrink: 0 }} />
+                      5Y AVG
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ display: "inline-block", width: 16, borderTop: "1px dashed rgba(0,255,65,0.65)", flexShrink: 0 }} />
+                      STOCK NOW
+                    </span>
+                  </div>
+
+                  {/* Divider */}
+                  <div style={{ height: 1, background: "rgba(0,255,65,0.1)", marginBottom: 14 }} />
+
+                  {/* Comparison table */}
+                  {renderTable(current, fmt, tableRows, inverse)}
+
+                  {/* Verdict */}
+                  {verdict && (
+                    <p style={{ marginTop: 10, fontSize: 11, color: "rgba(0,255,65,0.5)", lineHeight: 1.5 }}>
+                      {verdict}
+                    </p>
+                  )}
+                </div>
+              </ChildCollapsibleLayer>
+            );
+          }
+
+          return (
+            <>
+              {renderMetric(
+                "P/E RATIO ANALYSIS", peRatio,
+                [
+                  { label: "STOCK",    cur: peRatio,      avg: pe5yAvg,      isStock: true },
+                  { label: "INDUSTRY", cur: industryPe,   avg: industryPe5y  },
+                  { label: "S&P 500",  cur: SP500_PE_NOW, avg: SP500_PE_5Y   },
+                ],
+                [
+                  { label: `${ticker} 5Y Avg`,   them: pe5yAvg       },
+                  { label: "Industry Now",        them: industryPe    },
+                  { label: "Industry 5Y Avg",     them: industryPe5y  },
+                  { label: "S&P 500 Now",         them: SP500_PE_NOW  },
+                  { label: "S&P 500 5Y Avg",      them: SP500_PE_5Y   },
+                ],
+                fmtPe, false, "pe", 9,
+              )}
+              {renderMetric(
+                "FCF YIELD ANALYSIS", fcfYield,
+                [
+                  { label: "STOCK",    cur: fcfYield,      avg: fcf5yAvg,     isStock: true },
+                  { label: "INDUSTRY", cur: industryFcf,   avg: industryFcf5y ?? 0 },
+                  { label: "S&P 500",  cur: SP500_FCF_NOW, avg: SP500_FCF_5Y  },
+                ],
+                [
+                  { label: `${ticker} 5Y Avg`,   them: fcf5yAvg      },
+                  { label: "Industry Now",        them: industryFcf   },
+                  { label: "Industry 5Y Avg",     them: industryFcf5y },
+                  { label: "S&P 500 Now",         them: SP500_FCF_NOW },
+                  { label: "S&P 500 5Y Avg",      them: SP500_FCF_5Y  },
+                ],
+                fmtYld, true, "fcf", 10,
+              )}
+              {renderMetric(
+                "DIVIDEND YIELD ANALYSIS", divYield,
+                [
+                  { label: "STOCK",    cur: divYield,      avg: div5yAvg,     isStock: true },
+                  { label: "INDUSTRY", cur: industryDiv,   avg: industryDiv5y ?? 0 },
+                  { label: "S&P 500",  cur: SP500_DIV_NOW, avg: SP500_DIV_5Y  },
+                ],
+                [
+                  { label: `${ticker} 5Y Avg`,   them: div5yAvg      },
+                  { label: "Industry Now",        them: industryDiv   },
+                  { label: "Industry 5Y Avg",     them: industryDiv5y },
+                  { label: "S&P 500 Now",         them: SP500_DIV_NOW },
+                  { label: "S&P 500 5Y Avg",      them: SP500_DIV_5Y  },
+                ],
+                fmtYld, true, "div", 11,
+              )}
+            </>
+          );
+        })()}
+          </CollapsibleLayer>
+
+          {/* Layer 1: PPM */}
+          <CollapsibleLayer id={2} header={(
             <>
               <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
                 LAYER 1 — HOW WE PROJECT THE PRICE
@@ -874,7 +1207,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </CollapsibleLayer>
 
           {/* Layer 2: Growth */}
-          <CollapsibleLayer id={2} header={(
+          <CollapsibleLayer id={3} header={(
             <>
               <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
                 LAYER 2 — GROWTH QUALITY
@@ -1300,7 +1633,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </CollapsibleLayer>
 
           {/* Layer 3: Health */}
-          <CollapsibleLayer id={3} header={(
+          <CollapsibleLayer id={4} header={(
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 3 — FINANCIAL HEALTH
             </p>
@@ -1333,7 +1666,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </CollapsibleLayer>
 
           {/* Layer 4: Final */}
-          <CollapsibleLayer id={4} header={(
+          <CollapsibleLayer id={5} header={(
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 4 — FINAL SCORE
             </p>
@@ -1404,338 +1737,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </div>
         </CollapsibleLayer>
 
-          {/* Layer 5: Valuation */}
-          <CollapsibleLayer id={5} header={(
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
-              LAYER 5 — VALUATION ANALYSIS
-            </p>
-          )}>
-          {(() => {
-          // ── Data ──────────────────────────────────────────────────────────────
-          const peRatio      = score?.pe_ratio          != null ? Number(score.pe_ratio)          : null;
-          const pe5yAvg      = score?.pe_5y_avg          != null ? Number(score.pe_5y_avg)          : null;
-          const industryPe   = score?.industry_pe        != null ? Number(score.industry_pe)        : null;
-          const industryPe5y = score?.industry_pe_5y_avg != null ? Number(score.industry_pe_5y_avg) : null;
-          const fcfYield       = score?.fcf_yield           != null ? Number(score.fcf_yield)           : null;
-          const fcf5yAvg       = score?.fcf_5y_avg          != null ? Number(score.fcf_5y_avg)          : null;
-          const industryFcf    = score?.industry_fcf_yield     != null ? Number(score.industry_fcf_yield)     : null;
-          const industryFcf5y  = score?.industry_fcf_5y_avg   != null ? Number(score.industry_fcf_5y_avg)   : null;
-          const divYield       = score?.div_yield              != null ? Number(score.div_yield)              : null;
-          const div5yAvg       = score?.div_yield_5y_avg       != null ? Number(score.div_yield_5y_avg)       : null;
-          const industryDiv    = score?.industry_div_yield     != null ? Number(score.industry_div_yield)     : null;
-          const industryDiv5y  = score?.industry_div_yield_5y_avg != null ? Number(score.industry_div_yield_5y_avg) : null;
-
-          // S&P 500 benchmarks (hardcoded — live data later)
-          const SP500_PE_NOW = 22;    const SP500_PE_5Y  = 19;
-          const SP500_FCF_NOW = 0.035; const SP500_FCF_5Y  = 0.032;
-          const SP500_DIV_NOW = 0.013; const SP500_DIV_5Y  = 0.018;
-
-          const fmtPe  = (n: number | null) => n != null ? `${n.toFixed(1)}x`              : "—";
-          const fmtYld = (n: number | null) => n != null ? `${(n * 100).toFixed(2)}%`      : "—";
-
-          // ── Bar chart ────────────────────────────────────────────────────────
-          type BarGroup = { label: string; cur: number | null; avg: number | null; isStock?: boolean };
-
-          function renderBarChart(groups: BarGroup[], stockNow: number | null, fmt: (n: number | null) => string) {
-            if (stockNow == null) return null;
-            const allVals = groups.flatMap(g => [g.cur, g.avg]).filter((v): v is number => v != null && v > 0);
-            const maxVal  = allVals.length > 0 ? Math.max(...allVals) : 0;
-            if (maxVal === 0) return null;
-
-            const H      = 90;  // chart height px
-            const BAR_W  = 14;
-            const BAR_GAP = 4;
-            const GRP_GAP = 20;
-            const AXIS_W  = 32;
-
-            const px = (v: number | null) => v != null && v > 0 ? Math.round((v / maxVal) * H) : 0;
-            const refPx = Math.round((stockNow / maxVal) * H);
-            const yTicks = [0, 0.25, 0.5, 0.75, 1.0];
-
-            return (
-              <div style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace", userSelect: "none" }}>
-                {/* Chart row */}
-                <div style={{ display: "flex" }}>
-                  {/* Y-axis */}
-                  <div style={{ width: AXIS_W, height: H, position: "relative", flexShrink: 0 }}>
-                    {yTicks.map(f => (
-                      <span key={f} style={{
-                        position: "absolute", right: 4, bottom: `${f * 100}%`,
-                        transform: "translateY(50%)", fontSize: 8,
-                        color: "rgba(0,255,65,0.28)", whiteSpace: "nowrap", lineHeight: 1,
-                      }}>
-                        {fmt(maxVal * f)}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Bars + grid */}
-                  <div style={{ flex: 1, height: H, position: "relative" }}>
-                    {/* Grid lines */}
-                    {yTicks.map(f => (
-                      <div key={f} style={{
-                        position: "absolute", left: 0, right: 0, bottom: `${f * 100}%`, height: 1,
-                        background: f === 0 ? "rgba(0,255,65,0.25)" : "rgba(0,255,65,0.07)",
-                      }} />
-                    ))}
-
-                    {/* Reference line */}
-                    <div style={{
-                      position: "absolute", left: 0, right: 0, bottom: refPx,
-                      borderTop: "1px dashed rgba(0,255,65,0.65)", zIndex: 2,
-                    }}>
-                      <span style={{
-                        position: "absolute", right: 2, top: -13,
-                        fontSize: 8, color: "rgba(0,255,65,0.65)", whiteSpace: "nowrap",
-                      }}>
-                        STOCK NOW — {fmt(stockNow)}
-                      </span>
-                    </div>
-
-                    {/* Bar groups */}
-                    <div style={{ display: "flex", alignItems: "flex-end", height: "100%", gap: GRP_GAP, paddingLeft: 4, paddingRight: 4 }}>
-                      {groups.map(g => {
-                        const isStock    = g.isStock ?? false;
-                        const curColor   = isStock ? "#00ff41"
-                          : (g.cur != null && g.cur > stockNow ? "#ef4444" : "#00ff41");
-                        const avgColor   = isStock ? "rgba(0,255,65,0.28)"
-                          : (g.avg != null && g.avg > stockNow ? "rgba(239,68,68,0.28)" : "rgba(0,255,65,0.28)");
-                        return (
-                          <div key={g.label} style={{ display: "flex", alignItems: "flex-end", gap: BAR_GAP, flexShrink: 0 }}>
-                            <div style={{ width: BAR_W, height: px(g.cur),  background: curColor }} />
-                            <div style={{ width: BAR_W, height: px(g.avg),  background: avgColor }} />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* X-axis labels */}
-                <div style={{ display: "flex", paddingLeft: AXIS_W + 4, gap: GRP_GAP, marginTop: 5 }}>
-                  {groups.map(g => (
-                    <div key={g.label} style={{
-                      width: BAR_W * 2 + BAR_GAP, textAlign: "center",
-                      fontSize: 8, color: "rgba(0,255,65,0.38)",
-                      whiteSpace: "nowrap", flexShrink: 0,
-                    }}>
-                      {g.label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          }
-
-          // ── Status badge ─────────────────────────────────────────────────────
-          function calcBadge(cur: number | null, them: number | null, inverse: boolean) {
-            if (cur == null || them == null) return null;
-            if (inverse) {
-              if (cur > them * 1.1) return { label: "CHEAPER",   color: "#00ff41" };
-              if (cur < them * 0.9) return { label: "EXPENSIVE", color: "#ef4444" };
-              return                       { label: "FAIR",      color: "#f59e0b" };
-            }
-            if (cur > them * 1.1)   return { label: "EXPENSIVE", color: "#ef4444" };
-            if (cur < them * 0.9)   return { label: "CHEAPER",   color: "#00ff41" };
-            return                         { label: "FAIR",      color: "#f59e0b" };
-          }
-
-          // ── Comparison table ─────────────────────────────────────────────────
-          type TableRow = { label: string; them: number | null };
-
-          function renderTable(
-            current: number | null,
-            fmt: (n: number | null) => string,
-            rows: TableRow[],
-            inverse: boolean,
-          ) {
-            const thStyle: React.CSSProperties = {
-              fontSize: 9, color: "rgba(0,255,65,0.35)", fontFamily: "inherit",
-              fontWeight: "normal", letterSpacing: "0.1em",
-              paddingBottom: 6, borderBottom: "1px solid rgba(0,255,65,0.12)",
-            };
-            const tdStyle: React.CSSProperties = {
-              fontSize: 11, fontFamily: "inherit",
-              padding: "5px 0", borderBottom: "1px solid rgba(0,255,65,0.07)",
-            };
-            return (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
-                <thead>
-                  <tr>
-                    <th style={{ ...thStyle, textAlign: "left",   paddingRight: 8 }}>BENCHMARK</th>
-                    <th style={{ ...thStyle, textAlign: "center"                  }}>CURRENT vs BENCHMARK</th>
-                    <th style={{ ...thStyle, textAlign: "right",  paddingLeft: 8  }}>STATUS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r, i) => {
-                    const b = calcBadge(current, r.them, inverse);
-                    const isLast = i === rows.length - 1;
-                    const noBottom = isLast ? { borderBottom: "none" } : {};
-                    const cmpStr = (
-                      <div style={{ display: "grid", gridTemplateColumns: "52px 24px 52px", gap: 0 }}>
-                        <span style={{ textAlign: "right",  color: current != null ? "#00ff41" : "rgba(0,255,65,0.2)", fontWeight: 700 }}>{fmt(current)}</span>
-                        <span style={{ textAlign: "center", color: "rgba(255,255,255,0.2)", fontSize: 9 }}>vs</span>
-                        <span style={{ textAlign: "left",   color: r.them  != null ? "rgba(0,255,65,0.5)" : "rgba(0,255,65,0.2)" }}>{fmt(r.them)}</span>
-                      </div>
-                    );
-                    return (
-                      <tr key={r.label}>
-                        <td style={{ ...tdStyle, color: "rgba(0,255,65,0.45)", paddingRight: 8, whiteSpace: "nowrap", ...noBottom }}>{r.label}</td>
-                        <td style={{ ...tdStyle, textAlign: "center", color: "#00ff41", ...noBottom }}>{cmpStr}</td>
-                        <td style={{ ...tdStyle, textAlign: "right", paddingLeft: 8, ...noBottom }}>
-                          {b
-                            ? <span style={{ color: b.color, fontWeight: "bold", fontSize: 9, letterSpacing: "0.1em" }}>{b.label}</span>
-                            : <span style={{ color: "rgba(0,255,65,0.2)" }}>—</span>
-                          }
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            );
-          }
-
-          // ── Verdict ──────────────────────────────────────────────────────────
-          function getVerdict(current: number | null, rows: TableRow[], inverse: boolean, metricType: "pe" | "fcf" | "div"): string | null {
-            if (current == null) return null;
-            const badges = rows.map(r => calcBadge(current, r.them, inverse)).filter(Boolean) as { label: string; color: string }[];
-            if (badges.length === 0) return null;
-            if (metricType === "pe") {
-              const exp   = badges.filter(b => b.label === "EXPENSIVE").length;
-              const cheap = badges.filter(b => b.label === "CHEAPER").length;
-              if (exp >= 3)   return "Priced at a premium — you're paying more than most benchmarks suggest it's worth.";
-              if (exp >= 2)   return "Slightly expensive compared to a few benchmarks — worth watching.";
-              if (cheap >= 3) return "Looks cheap across the board — could be a good entry point.";
-              if (cheap >= 2) return "Underpriced against a few benchmarks — potentially good value.";
-              return "Fairly priced — nothing screaming buy or sell here.";
-            } else if (metricType === "fcf") {
-              const high = badges.filter(b => b.label === "CHEAPER").length;
-              const low  = badges.filter(b => b.label === "EXPENSIVE").length;
-              if (high >= 3)  return "Strong cash generation relative to price — the business is throwing off a lot of free cash.";
-              if (high >= 2)  return "Above-average FCF yield compared to a few benchmarks — decent cash returns.";
-              if (low >= 3)   return "Weak FCF yield across the board — not much cash being returned relative to what you're paying.";
-              if (low >= 2)   return "FCF yield trails a few benchmarks — moderate cash generation for the price.";
-              return "FCF yield is in line with what you'd expect — nothing unusual here.";
-            } else {
-              const high = badges.filter(b => b.label === "CHEAPER").length;
-              const low  = badges.filter(b => b.label === "EXPENSIVE").length;
-              if (high >= 3)  return "High dividend yield across the board — stands out as an income play.";
-              if (high >= 2)  return "Pays more than a few benchmarks — solid income relative to price.";
-              if (low >= 3)   return "Low dividend yield across the board — not an income-focused stock.";
-              if (low >= 2)   return "Dividend yield is below a few benchmarks — modest income.";
-              return "Dividend yield is about average — nothing exceptional either way.";
-            }
-          }
-
-          // ── Metric block ─────────────────────────────────────────────────────
-          function renderMetric(
-            title: string,
-            current: number | null,
-            groups: BarGroup[],
-            tableRows: TableRow[],
-            fmt: (n: number | null) => string,
-            inverse: boolean,
-            metricType: "pe" | "fcf" | "div",
-            id: number,
-          ) {
-            const verdict = getVerdict(current, tableRows, inverse, metricType);
-            return (
-              <ChildCollapsibleLayer key={title} id={id} header={
-                <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>{title}</p>
-              }>
-                <div className="px-5 py-5" style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
-                  {/* Bar chart */}
-                  {renderBarChart(groups, current, fmt)}
-
-                  {/* Legend */}
-                  <div style={{ display: "flex", gap: 14, marginTop: 8, marginBottom: 16, fontSize: 8, color: "rgba(0,255,65,0.4)", letterSpacing: "0.1em" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#00ff41", flexShrink: 0 }} />
-                      CURRENT
-                    </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "rgba(0,255,65,0.28)", flexShrink: 0 }} />
-                      5Y AVG
-                    </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <span style={{ display: "inline-block", width: 16, borderTop: "1px dashed rgba(0,255,65,0.65)", flexShrink: 0 }} />
-                      STOCK NOW
-                    </span>
-                  </div>
-
-                  {/* Divider */}
-                  <div style={{ height: 1, background: "rgba(0,255,65,0.1)", marginBottom: 14 }} />
-
-                  {/* Comparison table */}
-                  {renderTable(current, fmt, tableRows, inverse)}
-
-                  {/* Verdict */}
-                  {verdict && (
-                    <p style={{ marginTop: 10, fontSize: 11, color: "rgba(0,255,65,0.5)", lineHeight: 1.5 }}>
-                      {verdict}
-                    </p>
-                  )}
-                </div>
-              </ChildCollapsibleLayer>
-            );
-          }
-
-          return (
-            <>
-              {renderMetric(
-                "P/E RATIO ANALYSIS", peRatio,
-                [
-                  { label: "STOCK",    cur: peRatio,      avg: pe5yAvg,      isStock: true },
-                  { label: "INDUSTRY", cur: industryPe,   avg: industryPe5y  },
-                  { label: "S&P 500",  cur: SP500_PE_NOW, avg: SP500_PE_5Y   },
-                ],
-                [
-                  { label: `${ticker} 5Y Avg`,   them: pe5yAvg       },
-                  { label: "Industry Now",        them: industryPe    },
-                  { label: "Industry 5Y Avg",     them: industryPe5y  },
-                  { label: "S&P 500 Now",         them: SP500_PE_NOW  },
-                  { label: "S&P 500 5Y Avg",      them: SP500_PE_5Y   },
-                ],
-                fmtPe, false, "pe", 9,
-              )}
-              {renderMetric(
-                "FCF YIELD ANALYSIS", fcfYield,
-                [
-                  { label: "STOCK",    cur: fcfYield,      avg: fcf5yAvg,     isStock: true },
-                  { label: "INDUSTRY", cur: industryFcf,   avg: industryFcf5y ?? 0 },
-                  { label: "S&P 500",  cur: SP500_FCF_NOW, avg: SP500_FCF_5Y  },
-                ],
-                [
-                  { label: `${ticker} 5Y Avg`,   them: fcf5yAvg      },
-                  { label: "Industry Now",        them: industryFcf   },
-                  { label: "Industry 5Y Avg",     them: industryFcf5y },
-                  { label: "S&P 500 Now",         them: SP500_FCF_NOW },
-                  { label: "S&P 500 5Y Avg",      them: SP500_FCF_5Y  },
-                ],
-                fmtYld, true, "fcf", 10,
-              )}
-              {renderMetric(
-                "DIVIDEND YIELD ANALYSIS", divYield,
-                [
-                  { label: "STOCK",    cur: divYield,      avg: div5yAvg,     isStock: true },
-                  { label: "INDUSTRY", cur: industryDiv,   avg: industryDiv5y ?? 0 },
-                  { label: "S&P 500",  cur: SP500_DIV_NOW, avg: SP500_DIV_5Y  },
-                ],
-                [
-                  { label: `${ticker} 5Y Avg`,   them: div5yAvg      },
-                  { label: "Industry Now",        them: industryDiv   },
-                  { label: "Industry 5Y Avg",     them: industryDiv5y },
-                  { label: "S&P 500 Now",         them: SP500_DIV_NOW },
-                  { label: "S&P 500 5Y Avg",      them: SP500_DIV_5Y  },
-                ],
-                fmtYld, true, "div", 11,
-              )}
-            </>
-          );
-        })()}
-          </CollapsibleLayer>
         </LayerProvider>
       </div>
     </div>

@@ -21,6 +21,7 @@ export default function TrialManager() {
   const countdownRef = useRef<{ origin: string; total: number } | null>(null)
   const expiredCalledRef = useRef(false)
 
+  // Called when countdown hits 0 mid-session — shows modal
   const expire = useCallback(() => {
     if (expiredCalledRef.current) return
     expiredCalledRef.current = true
@@ -43,7 +44,11 @@ export default function TrialManager() {
         // STATE 4 / 5: extension exists
         if (trialExtensionStartedAt) {
           const elapsed = Date.now() - new Date(trialExtensionStartedAt).getTime()
-          if (elapsed >= EXTENSION_MS) { expire(); return }  // STATE 5: extension expired
+          if (elapsed >= EXTENSION_MS) {
+            // Already expired before page loaded — silently stay in free tier, no modal
+            fetch('/api/trial/expire', { method: 'POST' }).catch(() => {})
+            return
+          }
           countdownRef.current = { origin: trialExtensionStartedAt, total: EXTENSION_MS }
           setPhase('extension')  // STATE 4: extension active
           return
@@ -59,7 +64,11 @@ export default function TrialManager() {
         // STATE 2: trial in progress
         if (trialStartedAt) {
           const elapsed = Date.now() - new Date(trialStartedAt).getTime()
-          if (elapsed >= TRIAL_MS) { expire(); return }
+          if (elapsed >= TRIAL_MS) {
+            // Already expired before page loaded — silently stay in free tier, no modal
+            fetch('/api/trial/expire', { method: 'POST' }).catch(() => {})
+            return
+          }
           countdownRef.current = { origin: trialStartedAt, total: TRIAL_MS }
           setPhase('trial')
           return

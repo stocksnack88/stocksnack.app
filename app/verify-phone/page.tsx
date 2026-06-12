@@ -103,12 +103,12 @@ export default function VerifyPhonePage() {
             <select
               value={countryCode}
               onChange={(e) => setCountryCode(e.target.value)}
-              className="rounded px-2 py-2.5 text-sm focus:outline-none"
+              className="shrink-0 rounded px-2 py-2.5 text-sm focus:outline-none"
               style={{
                 background: "#000",
                 border: "1px solid rgba(0,255,65,0.3)",
                 color: "#00ff41",
-                minWidth: "96px",
+                width: "96px",
               }}
             >
               {COUNTRIES.map((c) => (
@@ -123,7 +123,7 @@ export default function VerifyPhonePage() {
               placeholder="123456789"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="flex-1 rounded px-3 py-2.5 text-sm focus:outline-none transition-colors"
+              className="flex-1 min-w-0 rounded px-3 py-2.5 text-sm focus:outline-none transition-colors"
               style={{
                 background: "#000",
                 border: "1px solid rgba(0,255,65,0.3)",

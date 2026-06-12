@@ -219,11 +219,15 @@ export default function ScreenerTable({
   hasSession,
   isPro,
   trialStartedAt = null,
+  trialUsed = true,
+  trialExtensionStartedAt = null,
 }: {
   visibleStocks: ScreenerRow[];
   hasSession: boolean;
   isPro: boolean;
   trialStartedAt?: string | null;
+  trialUsed?: boolean;
+  trialExtensionStartedAt?: string | null;
 }) {
   const [detailLevel,  setDetailLevel]  = useState(0);
   const [showFilters,  setShowFilters]  = useState(false);
@@ -355,7 +359,8 @@ export default function ScreenerTable({
 
   useEffect(() => {
     if (isPro) return;
-    if (trialStartedAt) return; // suppress upsell during trial
+    if (trialStartedAt) return; // suppress during active trial
+    if (trialUsed && !trialExtensionStartedAt) return; // suppress when extension banner is showing
     let timer: ReturnType<typeof setTimeout>;
     function startTimer() {
       timer = setTimeout(() => setShowUpsellModal(true), 60000);
@@ -373,7 +378,7 @@ export default function ScreenerTable({
       clearTimeout(timer);
       window.removeEventListener('onboarding-dismissed', onOnboardingDismissed);
     };
-  }, [isPro, trialStartedAt]);
+  }, [isPro, trialStartedAt, trialUsed, trialExtensionStartedAt]);
 
   function clearAllFilters() {
     setFilters([]);

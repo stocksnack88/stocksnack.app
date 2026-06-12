@@ -40,6 +40,7 @@ export default async function ScreenerPage({
   let isTrialActive = false;
   let trialStartedAt: string | null = null;
   let trialUsed = true;
+  let trialExtensionStartedAt: string | null = null;
   if (session?.user?.id) {
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
@@ -51,7 +52,7 @@ export default async function ScreenerPage({
       profile?.subscription_status === "trialing";
     trialStartedAt = profile?.trial_started_at ?? null;
     trialUsed = profile?.trial_used ?? true;
-    const trialExtensionStartedAt = profile?.trial_extension_started_at ?? null;
+    trialExtensionStartedAt = profile?.trial_extension_started_at ?? null;
     console.log('[screener] trial_used:', profile?.trial_used ?? null)
     console.log('[screener] trial_extension_started_at:', trialExtensionStartedAt)
     const trialElapsed = trialStartedAt ? Date.now() - new Date(trialStartedAt).getTime() : Infinity;
@@ -203,6 +204,8 @@ export default async function ScreenerPage({
             hasSession={!!session}
             isPro={isPro}
             trialStartedAt={isTrialActive ? trialStartedAt : null}
+            trialUsed={trialUsed}
+            trialExtensionStartedAt={trialExtensionStartedAt}
           />
           <p className="mt-4 text-xs text-[#00ff41]/20 text-center tracking-wide">
             DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY

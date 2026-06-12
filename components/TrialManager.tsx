@@ -102,7 +102,6 @@ export default function TrialManager() {
         <TrialExpiredModal
           hasPhone={hasPhone}
           onExtended={() => window.location.reload()}
-          onClose={() => window.location.reload()}
         />
       )}
 

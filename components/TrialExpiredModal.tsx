@@ -4,10 +4,9 @@ import { useState } from 'react'
 interface Props {
   hasPhone: boolean
   onExtended: (extensionAt: string) => void
-  onClose: () => void
 }
 
-export default function TrialExpiredModal({ hasPhone, onExtended, onClose }: Props) {
+export default function TrialExpiredModal({ hasPhone, onExtended }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   async function handleGetMore() {

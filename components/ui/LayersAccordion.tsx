@@ -17,8 +17,21 @@ function useLayerCtx() {
   return ctx
 }
 
-export function LayerProvider({ count, animCount, children }: { count: number; animCount?: number; children: React.ReactNode }) {
-  const [opens, setOpens] = useState<boolean[]>(Array(count).fill(false))
+export function LayerProvider({
+  count,
+  animCount,
+  childMap,
+  children,
+}: {
+  count: number
+  animCount?: number
+  childMap?: Record<number, number[]>
+  children: React.ReactNode
+}) {
+  const allChildIds = childMap ? Object.values(childMap).flat() : []
+  const [opens, setOpens] = useState<boolean[]>(
+    Array.from({ length: count }, (_, i) => allChildIds.includes(i))
+  )
   const [isEntering, setIsEntering] = useState(true)
 
   const stopEntering = useCallback(() => setIsEntering(false), [])
@@ -28,7 +41,6 @@ export function LayerProvider({ count, animCount, children }: { count: number; a
   }, [isEntering])
 
   useEffect(() => {
-    // wait for all staggered fade-ins to finish: last section delay + animation duration + buffer
     const timerCount = animCount ?? count
     const ms = (timerCount - 1) * 200 + 700
     console.log('[LayerProvider] mounted, count:', count, 'timer ms:', ms)
@@ -36,7 +48,16 @@ export function LayerProvider({ count, animCount, children }: { count: number; a
     return () => clearTimeout(t)
   }, [count, animCount, stopEntering])
 
-  const toggle = (i: number) => setOpens(prev => prev.map((v, j) => (j === i ? !v : v)))
+  const toggle = (i: number) => setOpens(prev => {
+    const wasOpen = prev[i]
+    const next = prev.map((v, j): boolean => (j === i ? !v : v))
+    // When opening a parent, also open its children
+    if (!wasOpen && childMap?.[i]) {
+      for (const cid of childMap[i]) next[cid] = true
+    }
+    return next
+  })
+
   const setAll = (open: boolean) => {
     stopEntering()
     setOpens(Array(count).fill(open))
@@ -113,25 +134,25 @@ export function ChildCollapsibleLayer({
 }) {
   const { opens, isEntering, toggle, stopEntering } = useLayerCtx()
   const open = opens[id] ?? false
-  const showBody = open || isEntering
 
   return (
     <div style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
       <div
-        className="px-5 py-3 flex items-start justify-between cursor-pointer select-none"
+        className="px-5 py-4 flex items-start justify-between cursor-pointer select-none"
+        style={{ background: "#001a00", borderBottom: open ? "1px solid rgba(0,255,65,0.1)" : "none" }}
         onClick={() => { if (isEntering) stopEntering(); toggle(id) }}
       >
         <div className="flex-1 min-w-0">{header}</div>
-        <div className="ml-3 mt-0.5 flex-shrink-0" style={{ color: "rgba(0,204,0,0.4)" }}>
+        <div className="ml-3 mt-0.5 flex-shrink-0" style={{ color: "rgba(0,255,65,0.4)" }}>
           <svg
             width="12" height="12" viewBox="0 0 12 12" fill="none"
-            style={{ transform: showBody ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+            style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
           >
             <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
       </div>
-      {showBody && <>{children}</>}
+      {open && <>{children}</>}
     </div>
   )
 }

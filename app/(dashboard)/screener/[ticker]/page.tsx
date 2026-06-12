@@ -260,7 +260,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </div>
 
         {/* ── Overview + Layers 1–5 ───────────────────────────────────────────── */}
-        <LayerProvider count={12} animCount={6}>
+        <LayerProvider count={12} animCount={6} childMap={{ 0: [6,7,8], 5: [9,10,11] }}>
           <div className="flex justify-end">
             <ExpandCollapseButton />
           </div>
@@ -274,7 +274,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
           {/* Price projection */}
           <ChildCollapsibleLayer id={6} header={
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00cc00" }}>PRICE PROJECTION</p>
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>PRICE PROJECTION</p>
           }>
           <div className="px-5 py-4">
             <p className="text-[11px] font-bold tracking-widest mb-3" style={{ color: "#00ff41" }}>{ticker} Price In 5 Years (Projected)</p>
@@ -306,7 +306,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
           {/* ── Scorecard ────────────────────────────────────────────────────── */}
           <ChildCollapsibleLayer id={7} header={
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00cc00" }}>WHAT YOU ARE BUYING</p>
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>WHAT YOU ARE BUYING</p>
           }>
           {(() => {
             // 5Y RETURN color
@@ -394,7 +394,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
           {/* ── About the Business ──────────────────────────────────────────────── */}
           <ChildCollapsibleLayer id={8} header={
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00cc00" }}>ABOUT THE BUSINESS</p>
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>ABOUT THE BUSINESS</p>
           }>
           {(() => {
           const rawProduct = scoreEx != null ? scoreEx.product_segments : undefined;
@@ -1643,7 +1643,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const verdict = getVerdict(current, tableRows, inverse, metricType);
             return (
               <ChildCollapsibleLayer key={title} id={id} header={
-                <p className="text-xs font-bold tracking-widest" style={{ color: "#00cc00" }}>{title}</p>
+                <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>{title}</p>
               }>
                 <div className="px-5 py-5" style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
                   {/* Bar chart */}

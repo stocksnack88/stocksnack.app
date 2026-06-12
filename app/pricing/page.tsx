@@ -63,10 +63,6 @@ export default async function PricingPage() {
     ...ctaBase, border: "0.5px solid rgba(0,255,65,0.25)", color: "rgba(0,255,65,0.4)",
   };
 
-  const ctaCurrentFree: React.CSSProperties = {
-    ...ctaBase, border: "0.5px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.3)",
-  };
-
   const annualCell: React.CSSProperties = {
     background: "rgba(0,255,65,0.06)",
   };

@@ -45,6 +45,7 @@ export default function TrialBanner() {
     fetch('/api/trial/status')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
+        console.log('[TrialBanner] /api/trial/status response:', data)
         if (!data || data.isPro) return
         setHasPhone(!!data.hasPhone)
 
@@ -52,24 +53,31 @@ export default function TrialBanner() {
         if (data.trialExtensionStartedAt) {
           setTrialExtensionStartedAt(data.trialExtensionStartedAt)
           const elapsed = Date.now() - new Date(data.trialExtensionStartedAt).getTime()
-          setPhase(elapsed >= EXTENSION_MS ? 'done' : 'extension')
+          const nextPhase = elapsed >= EXTENSION_MS ? 'done' : 'extension'
+          console.log('[TrialBanner] extension branch → phase:', nextPhase, '| elapsed:', elapsed)
+          setPhase(nextPhase)
           return
         }
         // Trial expired, no extension yet — show extension banner.
         // Requires trialStartedAt to be set: guests get trialUsed=true but
         // trialStartedAt=null, so this guard prevents showing to guests.
         if (data.trialUsed && data.trialStartedAt) {
+          console.log('[TrialBanner] expired branch → phase: expired')
           setPhase('expired')
           return
         }
         // Trial in progress — show countdown
         if (data.trialStartedAt) {
-          setTrialStartedAt(data.trialStartedAt)
           const elapsed = Date.now() - new Date(data.trialStartedAt).getTime()
+          const nextPhase = elapsed >= TRIAL_MS ? 'expired (handleExpiry)' : 'trial'
+          console.log('[TrialBanner] trial branch → phase:', nextPhase, '| elapsed:', elapsed, '| trialStartedAt:', data.trialStartedAt)
+          setTrialStartedAt(data.trialStartedAt)
           if (elapsed >= TRIAL_MS) { handleExpiry() } else { setPhase('trial') }
+        } else {
+          console.log('[TrialBanner] no matching branch — phase stays idle | trialUsed:', data.trialUsed, '| trialStartedAt:', data.trialStartedAt)
         }
       })
-      .catch(() => {})
+      .catch(err => console.log('[TrialBanner] /api/trial/status fetch error:', err))
   }, [handleExpiry])
 
   // trial:started event from TrialStarter

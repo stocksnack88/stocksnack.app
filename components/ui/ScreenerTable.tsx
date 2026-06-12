@@ -239,9 +239,13 @@ export default function ScreenerTable({
   const [nextId,       setNextId]       = useState(0);
   const [searchQuery,  setSearchQuery]  = useState("");
   const [soundOn, setSoundOn] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    const stored = localStorage.getItem('ss_sound');
-    return stored === null ? true : stored === '1';
+    try {
+      if (typeof window === 'undefined') return true;
+      const stored = localStorage.getItem('ss_sound');
+      return stored === null ? true : stored === '1';
+    } catch {
+      return true;
+    }
   });
 
   function playChime() {

@@ -5,6 +5,7 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase";
 import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
+import ScreenerTableErrorBoundary from "@/components/ui/ScreenerTableErrorBoundary";
 import NavHeightLogger from "@/components/ui/NavHeightLogger";
 import OnboardingModal from "@/components/ui/OnboardingModal";
 
@@ -200,14 +201,16 @@ export default async function ScreenerPage({
       {/* Table */}
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto">
-          <ScreenerTable
-            visibleStocks={visibleStocks}
-            hasSession={!!session}
-            isPro={isPro}
-            trialStartedAt={isTrialActive ? trialStartedAt : null}
-            trialUsed={trialUsed}
-            trialExtensionStartedAt={trialExtensionStartedAt}
-          />
+          <ScreenerTableErrorBoundary>
+            <ScreenerTable
+              visibleStocks={visibleStocks}
+              hasSession={!!session}
+              isPro={isPro}
+              trialStartedAt={isTrialActive ? trialStartedAt : null}
+              trialUsed={trialUsed}
+              trialExtensionStartedAt={trialExtensionStartedAt}
+            />
+          </ScreenerTableErrorBoundary>
           <p className="mt-4 text-xs text-[#00ff41]/20 text-center tracking-wide">
             DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
           </p>

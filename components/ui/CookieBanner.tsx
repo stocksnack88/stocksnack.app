@@ -9,7 +9,11 @@ export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) setVisible(true);
+    try {
+      if (!localStorage.getItem(STORAGE_KEY)) setVisible(true);
+    } catch {
+      setVisible(true);
+    }
   }, []);
 
   function accept() {

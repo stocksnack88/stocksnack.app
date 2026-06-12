@@ -5,20 +5,28 @@ export default function OnboardingModal() {
   const [visible, setVisible] = useState(false);
   const [cur, setCur] = useState(0);
   const [soundOn, setSoundOn] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    const stored = localStorage.getItem('ss_sound');
-    return stored === null ? true : stored === '1';
+    try {
+      if (typeof window === 'undefined') return true;
+      const stored = localStorage.getItem('ss_sound');
+      return stored === null ? true : stored === '1';
+    } catch {
+      return true;
+    }
   });
   const total = 7;
 
   useEffect(() => {
-    const seen = localStorage.getItem("ss_onboarding_seen");
-    if (!seen) setVisible(true);
+    try {
+      const seen = localStorage.getItem("ss_onboarding_seen");
+      if (!seen) setVisible(true);
+    } catch {
+      setVisible(true);
+    }
   }, []);
 
   function close() {
     playBonus();
-    localStorage.setItem("ss_onboarding_seen", "1");
+    try { localStorage.setItem("ss_onboarding_seen", "1"); } catch {}
     setVisible(false);
     window.dispatchEvent(new Event("onboarding-dismissed"));
   }

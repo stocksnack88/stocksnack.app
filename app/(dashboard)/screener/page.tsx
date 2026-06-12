@@ -31,7 +31,7 @@ export default async function ScreenerPage({
   const { data: { session } } = await supabase.auth.getSession();
   // getSession() reads from cookie and can return stale data; getUser() validates server-side
   const { data: { user: verifiedUser } } = await supabase.auth.getUser();
-  const isGuest = !verifiedUser;
+  const isGuest = !verifiedUser && !session?.user;
 
   let isPro = false;
   let isTrialActive = false;

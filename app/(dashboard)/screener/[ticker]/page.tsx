@@ -112,23 +112,25 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   const freeTickers = new Set((topRows ?? []).map((r: { ticker: string }) => r.ticker));
 
   const TRIAL_DURATION_MS = 5 * 60 * 1000;
+  const EXTENSION_DURATION_MS = 15 * 60 * 1000;
   let isPro = false;
   let isTrialActive = false;
   if (session?.user?.id) {
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
-      .select("subscription_status, trial_used, trial_started_at")
+      .select("subscription_status, trial_used, trial_started_at, trial_extension_started_at")
       .eq("id", session.user.id)
       .single();
     isPro =
       profile?.subscription_status === "active" ||
       profile?.subscription_status === "trialing";
     const trialStartedAt = profile?.trial_started_at ?? null;
+    const trialExtensionStartedAt = profile?.trial_extension_started_at ?? null;
+    const trialElapsed = trialStartedAt ? Date.now() - new Date(trialStartedAt).getTime() : Infinity;
+    const extensionElapsed = trialExtensionStartedAt ? Date.now() - new Date(trialExtensionStartedAt).getTime() : Infinity;
     isTrialActive =
-      !isPro &&
-      profile?.trial_used === false &&
-      trialStartedAt !== null &&
-      Date.now() - new Date(trialStartedAt).getTime() < TRIAL_DURATION_MS;
+      (!isPro && profile?.trial_used !== true && trialStartedAt !== null && trialElapsed < TRIAL_DURATION_MS) ||
+      (!isPro && trialExtensionStartedAt !== null && extensionElapsed < EXTENSION_DURATION_MS);
   }
 
   const [stockRes, priceRes, scoreRes, fundRes] = await Promise.all([

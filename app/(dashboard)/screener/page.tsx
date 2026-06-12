@@ -8,6 +8,7 @@ import TrialStarter from "@/components/TrialStarter";
 
 const FREE_LIMIT = 5;
 const TRIAL_DURATION_MS = 5 * 60 * 1000;
+const EXTENSION_DURATION_MS = 15 * 60 * 1000;
 
 export default async function ScreenerPage({
   searchParams,
@@ -39,7 +40,7 @@ export default async function ScreenerPage({
   if (session?.user?.id) {
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
-      .select("subscription_status, trial_used, trial_started_at")
+      .select("subscription_status, trial_used, trial_started_at, trial_extension_started_at")
       .eq("id", session.user.id)
       .single();
     isPro =
@@ -47,16 +48,12 @@ export default async function ScreenerPage({
       profile?.subscription_status === "trialing";
     trialStartedAt = profile?.trial_started_at ?? null;
     trialUsed = profile?.trial_used ?? true;
-    console.log('[screener] user.id:', session.user.id)
-    console.log('[screener] profile.trial_used (raw):', profile?.trial_used, '| trialUsed (computed):', trialUsed)
-    console.log('[screener] profile.trial_started_at (raw):', profile?.trial_started_at, '| trialStartedAt (computed):', trialStartedAt)
-    console.log('[screener] isPro:', isPro)
-    console.log('[screener] shouldStart will be:', !isPro && !trialUsed && trialStartedAt === null && !!session?.user?.id)
+    const trialExtensionStartedAt = profile?.trial_extension_started_at ?? null;
+    const trialElapsed = trialStartedAt ? Date.now() - new Date(trialStartedAt).getTime() : Infinity;
+    const extensionElapsed = trialExtensionStartedAt ? Date.now() - new Date(trialExtensionStartedAt).getTime() : Infinity;
     isTrialActive =
-      !isPro &&
-      profile?.trial_used !== true &&
-      trialStartedAt !== null &&
-      Date.now() - new Date(trialStartedAt).getTime() < TRIAL_DURATION_MS;
+      (!isPro && profile?.trial_used !== true && trialStartedAt !== null && trialElapsed < TRIAL_DURATION_MS) ||
+      (!isPro && trialExtensionStartedAt !== null && extensionElapsed < EXTENSION_DURATION_MS);
   }
   const effectivelyPro = isPro || isTrialActive;
 

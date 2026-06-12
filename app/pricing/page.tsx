@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
+import PricingTrialCountdown from "@/components/PricingTrialCountdown";
 
 const font = "var(--font-geist-mono), 'Courier New', monospace";
 const bV   = "0.5px solid rgba(0,255,65,0.1)";   // vertical column dividers
@@ -23,15 +24,21 @@ export default async function PricingPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   let isPro = false;
+  let trialStartedAt: string | null = null;
+  let trialExtensionStartedAt: string | null = null;
+  let trialUsed = true;
   if (user?.id) {
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
-      .select("subscription_status")
+      .select("subscription_status, trial_used, trial_started_at, trial_extension_started_at")
       .eq("id", user.id)
       .single();
     isPro =
       profile?.subscription_status === "active" ||
       profile?.subscription_status === "trialing";
+    trialStartedAt = profile?.trial_started_at ?? null;
+    trialExtensionStartedAt = profile?.trial_extension_started_at ?? null;
+    trialUsed = profile?.trial_used ?? true;
   }
 
   const isLoggedIn = !!user;
@@ -204,7 +211,11 @@ export default async function PricingPage() {
                 {/* FREE — CURRENT PLAN if logged in free user, trial CTA if guest */}
                 <td style={{ padding: "8px 6px", textAlign: "center", borderLeft: bV }}>
                   {isLoggedIn ? (
-                    <span style={ctaCurrentFree}>CURRENT PLAN</span>
+                    <PricingTrialCountdown
+                      trialStartedAt={trialStartedAt}
+                      trialExtensionStartedAt={trialExtensionStartedAt}
+                      trialUsed={trialUsed}
+                    />
                   ) : (
                     <a href="/signup" style={{ ...ctaBase, border: "0.5px solid rgba(0,255,65,0.35)", color: "rgba(0,255,65,0.7)" }}>
                       START FREE TRIAL →

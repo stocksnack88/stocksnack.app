@@ -32,6 +32,7 @@ export default function TrialBanner() {
     fetch('/api/trial/expire', { method: 'POST' }).catch(() => {})
   }, [])
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExtended = useCallback((_extensionAt: string) => {
     // Full reload: re-renders server component (shows all 500 stocks) and remounts
     // TrialBanner cleanly so the initial fetch detects the extension and starts
@@ -96,7 +97,18 @@ export default function TrialBanner() {
     if (phase === 'extension' && trialExtensionStartedAt) {
       const tick = () => {
         const left = EXTENSION_MS - (Date.now() - new Date(trialExtensionStartedAt).getTime())
-        if (left <= 0) { setTimeLeftMs(0); setPhase('done') } else { setTimeLeftMs(left) }
+        if (left <= 0) {
+          setTimeLeftMs(0)
+          setPhase('done')
+          // Force a full reload so the server re-evaluates isTrialActive.
+          // Both screener and stock detail pages compute access server-side
+          // only at render time — without a reload the user retains full access
+          // in their current session even after the extension expires.
+          fetch('/api/trial/expire', { method: 'POST' })
+            .finally(() => window.location.reload())
+        } else {
+          setTimeLeftMs(left)
+        }
       }
       tick()
       const id = setInterval(tick, 1000)

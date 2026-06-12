@@ -99,13 +99,9 @@ export default function TrialBanner() {
         const left = EXTENSION_MS - (Date.now() - new Date(trialExtensionStartedAt).getTime())
         if (left <= 0) {
           setTimeLeftMs(0)
-          setPhase('done')
-          // Force a full reload so the server re-evaluates isTrialActive.
-          // Both screener and stock detail pages compute access server-side
-          // only at render time — without a reload the user retains full access
-          // in their current session even after the extension expires.
-          fetch('/api/trial/expire', { method: 'POST' })
-            .finally(() => window.location.reload())
+          setPhase('expired')
+          setShowExpiredModal(true)
+          fetch('/api/trial/expire', { method: 'POST' }).catch(() => {})
         } else {
           setTimeLeftMs(left)
         }
@@ -132,7 +128,7 @@ export default function TrialBanner() {
         <TrialExpiredModal
           hasPhone={hasPhone}
           onExtended={handleExtended}
-          onClose={() => setShowExpiredModal(false)}
+          onClose={() => window.location.reload()}
         />
       )}
 

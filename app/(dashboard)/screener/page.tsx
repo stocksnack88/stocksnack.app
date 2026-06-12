@@ -32,6 +32,9 @@ export default async function ScreenerPage({
   // getSession() reads from cookie and can return stale data; getUser() validates server-side
   const { data: { user: verifiedUser } } = await supabase.auth.getUser();
   const isGuest = !verifiedUser && !session?.user;
+  console.log('[screener] verifiedUser:', verifiedUser?.id ?? null)
+  console.log('[screener] session?.user:', session?.user?.id ?? null)
+  console.log('[screener] isGuest:', isGuest)
 
   let isPro = false;
   let isTrialActive = false;
@@ -49,6 +52,8 @@ export default async function ScreenerPage({
     trialStartedAt = profile?.trial_started_at ?? null;
     trialUsed = profile?.trial_used ?? true;
     const trialExtensionStartedAt = profile?.trial_extension_started_at ?? null;
+    console.log('[screener] trial_used:', profile?.trial_used ?? null)
+    console.log('[screener] trial_extension_started_at:', trialExtensionStartedAt)
     const trialElapsed = trialStartedAt ? Date.now() - new Date(trialStartedAt).getTime() : Infinity;
     const extensionElapsed = trialExtensionStartedAt ? Date.now() - new Date(trialExtensionStartedAt).getTime() : Infinity;
     isTrialActive =

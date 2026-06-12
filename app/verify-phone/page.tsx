@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { parsePhoneNumber } from "libphonenumber-js";
 
 const COUNTRIES = [
   { label: "MY +60",  code: "+60"  },
@@ -32,11 +33,18 @@ export default function VerifyPhonePage() {
     e.preventDefault();
     setError(null);
 
-    const digits = phone.replace(/[\s\-\(\)]/g, "");
-    if (!digits || !/^\d+$/.test(digits)) {
-      setError("Please enter a valid phone number (digits only).");
+    let isValid = false;
+    try {
+      const parsed = parsePhoneNumber(countryCode + phone.trim());
+      isValid = parsed.isValid();
+    } catch {
+      isValid = false;
+    }
+    if (!isValid) {
+      setError("Please enter a valid phone number for the selected country.");
       return;
     }
+    const digits = phone.replace(/[\s\-\(\)]/g, "");
 
     setLoading(true);
     try {

@@ -12,6 +12,7 @@
     "@sentry/nextjs": "^10.52.0",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/supabase-js": "^2.105.3",
+    "libphonenumber-js": "^1.13.6",
     "next": "14.2.35",
     "posthog-js": "^1.372.10",
     "react": "^18",

@@ -17,7 +17,7 @@ function useLayerCtx() {
   return ctx
 }
 
-export function LayerProvider({ count, children }: { count: number; children: React.ReactNode }) {
+export function LayerProvider({ count, animCount, children }: { count: number; animCount?: number; children: React.ReactNode }) {
   const [opens, setOpens] = useState<boolean[]>(Array(count).fill(false))
   const [isEntering, setIsEntering] = useState(true)
 
@@ -29,11 +29,12 @@ export function LayerProvider({ count, children }: { count: number; children: Re
 
   useEffect(() => {
     // wait for all staggered fade-ins to finish: last section delay + animation duration + buffer
-    const ms = (count - 1) * 200 + 700
+    const timerCount = animCount ?? count
+    const ms = (timerCount - 1) * 200 + 700
     console.log('[LayerProvider] mounted, count:', count, 'timer ms:', ms)
     const t = setTimeout(stopEntering, ms)
     return () => clearTimeout(t)
-  }, [count, stopEntering])
+  }, [count, animCount, stopEntering])
 
   const toggle = (i: number) => setOpens(prev => prev.map((v, j) => (j === i ? !v : v)))
   const setAll = (open: boolean) => {
@@ -98,5 +99,39 @@ export function CollapsibleLayer({
       </div>
       {showBody && <>{children}</>}
     </section>
+  )
+}
+
+export function ChildCollapsibleLayer({
+  id,
+  header,
+  children,
+}: {
+  id: number
+  header: React.ReactNode
+  children: React.ReactNode
+}) {
+  const { opens, isEntering, toggle, stopEntering } = useLayerCtx()
+  const open = opens[id] ?? false
+  const showBody = open || isEntering
+
+  return (
+    <div style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
+      <div
+        className="px-5 py-3 flex items-start justify-between cursor-pointer select-none"
+        onClick={() => { if (isEntering) stopEntering(); toggle(id) }}
+      >
+        <div className="flex-1 min-w-0">{header}</div>
+        <div className="ml-3 mt-0.5 flex-shrink-0" style={{ color: "rgba(0,204,0,0.4)" }}>
+          <svg
+            width="12" height="12" viewBox="0 0 12 12" fill="none"
+            style={{ transform: showBody ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+          >
+            <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      </div>
+      {showBody && <>{children}</>}
+    </div>
   )
 }

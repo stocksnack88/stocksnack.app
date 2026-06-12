@@ -8,7 +8,7 @@ import DescriptionToggle from "@/components/ui/DescriptionToggle";
 import HealthCategories from "@/components/ui/HealthCategories";
 import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 import HazardTooltip from "@/components/ui/HazardTooltip";
-import { LayerProvider, CollapsibleLayer, ExpandCollapseButton } from "@/components/ui/LayersAccordion";
+import { LayerProvider, CollapsibleLayer, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
 
 const FREE_LIMIT = 5;
 
@@ -260,7 +260,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </div>
 
         {/* ── Overview + Layers 1–5 ───────────────────────────────────────────── */}
-        <LayerProvider count={6}>
+        <LayerProvider count={12} animCount={6}>
           <div className="flex justify-end">
             <ExpandCollapseButton />
           </div>
@@ -273,6 +273,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           )}>
 
           {/* Price projection */}
+          <ChildCollapsibleLayer id={6} header={
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00cc00" }}>PRICE PROJECTION</p>
+          }>
           <div className="px-5 py-4">
             <p className="text-[11px] font-bold tracking-widest mb-3" style={{ color: "#00ff41" }}>{ticker} Price In 5 Years (Projected)</p>
             <div className="flex items-center gap-4">
@@ -299,10 +302,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </div>
             </div>
           </div>
+          </ChildCollapsibleLayer>
 
           {/* ── Scorecard ────────────────────────────────────────────────────── */}
-          <div style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
-            <p className="text-xs font-bold tracking-widest px-5 pt-4 pb-0" style={{ color: "#00ff41" }}>WHAT YOU ARE BUYING</p>
+          <ChildCollapsibleLayer id={7} header={
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00cc00" }}>WHAT YOU ARE BUYING</p>
+          }>
           {(() => {
             // 5Y RETURN color
             const stockMult = currentPrice && blendedPrice ? blendedPrice / currentPrice : null;
@@ -385,18 +390,20 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </div>
             ));
           })()}
-        </div>
+          </ChildCollapsibleLayer>
 
-        {/* ── About the Business ──────────────────────────────────────────────── */}
-        {(() => {
+          {/* ── About the Business ──────────────────────────────────────────────── */}
+          <ChildCollapsibleLayer id={8} header={
+            <p className="text-xs font-bold tracking-widest" style={{ color: "#00cc00" }}>ABOUT THE BUSINESS</p>
+          }>
+          {(() => {
           const rawProduct = scoreEx != null ? scoreEx.product_segments : undefined;
           const rawGeo     = scoreEx != null ? scoreEx.geo_segments     : undefined;
           const productSegs: Segment[] = Array.isArray(rawProduct) ? rawProduct : [];
           const geoSegs: Segment[]     = Array.isArray(rawGeo)     ? rawGeo     : [];
           if (!stock?.description && !productSegs.length && !geoSegs.length) return null;
           return (
-            <div style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
-              <p className="text-xs font-bold tracking-widest px-5 pt-4 pb-0" style={{ color: "#00ff41" }}>ABOUT THE BUSINESS</p>
+            <>
 
               {/* Company Description */}
               {stock?.description && (
@@ -419,13 +426,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {geoSegs.length > 0 && (
                 <SegmentBreakdown title="GEOGRAPHIC BREAKDOWN" segs={geoSegs} />
               )}
-            </div>
+            </>
           );
-        })()}
-
+          })()}
           <p className="text-center text-xs py-4 tracking-wide" style={{ color: "rgba(0,255,65,0.2)", borderTop: "1px solid rgba(0,255,65,0.1)" }}>
             DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
           </p>
+          </ChildCollapsibleLayer>
           </CollapsibleLayer>
 
           {/* Layer 1: PPM */}
@@ -1631,13 +1638,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             fmt: (n: number | null) => string,
             inverse: boolean,
             metricType: "pe" | "fcf" | "div",
-            topDivider = false,
+            id: number,
           ) {
             const verdict = getVerdict(current, tableRows, inverse, metricType);
             return (
-              <div key={title} style={topDivider ? { borderTop: "1px solid rgba(0,255,65,0.1)" } : {}}>
-                <p className="text-xs font-bold tracking-widest px-5 pt-4 pb-0" style={{ color: "#00ff41" }}>{title}</p>
-
+              <ChildCollapsibleLayer key={title} id={id} header={
+                <p className="text-xs font-bold tracking-widest" style={{ color: "#00cc00" }}>{title}</p>
+              }>
                 <div className="px-5 py-5" style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
                   {/* Bar chart */}
                   {renderBarChart(groups, current, fmt)}
@@ -1671,7 +1678,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     </p>
                   )}
                 </div>
-              </div>
+              </ChildCollapsibleLayer>
             );
           }
 
@@ -1691,7 +1698,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_PE_NOW  },
                   { label: "S&P 500 5Y Avg",      them: SP500_PE_5Y   },
                 ],
-                fmtPe, false, "pe",
+                fmtPe, false, "pe", 9,
               )}
               {renderMetric(
                 "FCF YIELD ANALYSIS", fcfYield,
@@ -1707,7 +1714,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_FCF_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_FCF_5Y  },
                 ],
-                fmtYld, true, "fcf", true,
+                fmtYld, true, "fcf", 10,
               )}
               {renderMetric(
                 "DIVIDEND YIELD ANALYSIS", divYield,
@@ -1723,7 +1730,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_DIV_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_DIV_5Y  },
                 ],
-                fmtYld, true, "div", true,
+                fmtYld, true, "div", 11,
               )}
             </>
           );

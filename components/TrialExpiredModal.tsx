@@ -8,9 +8,6 @@ interface Props {
 }
 
 export default function TrialExpiredModal({ hasPhone, onExtended, onClose }: Props) {
-  const [showPhoneInput, setShowPhoneInput] = useState(false)
-  const [phone, setPhone] = useState('')
-  const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleGetMore() {
@@ -23,24 +20,8 @@ export default function TrialExpiredModal({ hasPhone, onExtended, onClose }: Pro
         else { setError(data.error ?? 'Could not extend trial') }
       } catch { setError('Network error') }
     } else {
-      setShowPhoneInput(true)
+      window.location.href = '/verify-phone'
     }
-  }
-
-  async function handleVerify() {
-    if (!phone.trim() || verifying) return
-    setVerifying(true)
-    setError(null)
-    try {
-      const r = await fetch('/api/trial/verify-phone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.trim() }),
-      })
-      const data = await r.json()
-      if (r.ok) { onExtended(data.trialExtensionStartedAt) }
-      else { setError(data.error ?? 'Verification failed') }
-    } catch { setError('Network error') } finally { setVerifying(false) }
   }
 
   return (
@@ -58,46 +39,19 @@ export default function TrialExpiredModal({ hasPhone, onExtended, onClose }: Pro
         </div>
 
         <div className="px-6 py-6 flex flex-col gap-3">
-          {showPhoneInput ? (
-            <>
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(0,255,65,0.55)' }}>
-                Enter your phone number to get 15 more minutes free.
-              </p>
-              <input
-                type="tel"
-                placeholder="+1 234 567 8900"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleVerify()}
-                autoFocus
-                className="w-full bg-black border rounded px-3 py-2.5 text-xs font-mono outline-none"
-                style={{ borderColor: 'rgba(0,255,65,0.25)', color: '#00ff41' }}
-              />
-              {error && <p className="text-[10px]" style={{ color: '#f87171' }}>{error}</p>}
-              <button
-                onClick={handleVerify}
-                disabled={verifying || !phone.trim()}
-                className="w-full py-3 rounded font-bold text-xs tracking-widest transition-opacity hover:opacity-90 disabled:opacity-40"
-                style={{ background: '#00ff41', color: '#000' }}
-              >
-                {verifying ? 'VERIFYING...' : 'VERIFY →'}
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(0,255,65,0.55)' }}>
-                Verify your phone number and get 15 more minutes free.
-              </p>
-              {error && <p className="text-[10px]" style={{ color: '#f87171' }}>{error}</p>}
-              <button
-                onClick={handleGetMore}
-                className="w-full py-3 rounded font-bold text-xs tracking-widest transition-opacity hover:opacity-90"
-                style={{ background: '#00ff41', color: '#000' }}
-              >
-                GET 15 MORE MINUTES FREE →
-              </button>
-            </>
-          )}
+          <>
+            <p className="text-xs leading-relaxed" style={{ color: 'rgba(0,255,65,0.55)' }}>
+              Verify your phone number and get 15 more minutes free.
+            </p>
+            {error && <p className="text-[10px]" style={{ color: '#f87171' }}>{error}</p>}
+            <button
+              onClick={handleGetMore}
+              className="w-full py-3 rounded font-bold text-xs tracking-widest transition-opacity hover:opacity-90"
+              style={{ background: '#00ff41', color: '#000' }}
+            >
+              GET 15 MORE MINUTES FREE →
+            </button>
+          </>
 
           <a
             href="/pricing"

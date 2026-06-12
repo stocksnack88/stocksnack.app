@@ -22,10 +22,6 @@ export default function TrialBanner() {
   const [hasPhone, setHasPhone] = useState(false)
   const [timeLeftMs, setTimeLeftMs] = useState(TRIAL_MS)
   const [showExpiredModal, setShowExpiredModal] = useState(false)
-  const [showPhonePopup, setShowPhonePopup] = useState(false)
-  const [phone, setPhone] = useState('')
-  const [verifying, setVerifying] = useState(false)
-  const [verifyError, setVerifyError] = useState<string | null>(null)
   const expireCalledRef = useRef(false)
 
   const handleExpiry = useCallback(() => {
@@ -40,7 +36,6 @@ export default function TrialBanner() {
     setTrialExtensionStartedAt(extensionAt)
     setPhase('extension')
     setShowExpiredModal(false)
-    setShowPhonePopup(false)
     router.refresh()
   }, [router])
 
@@ -104,22 +99,6 @@ export default function TrialBanner() {
     }
   }, [phase, trialStartedAt, trialExtensionStartedAt, handleExpiry])
 
-  async function verifyPhone() {
-    if (!phone.trim() || verifying) return
-    setVerifying(true)
-    setVerifyError(null)
-    try {
-      const r = await fetch('/api/trial/verify-phone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.trim() }),
-      })
-      const data = await r.json()
-      if (!r.ok) { setVerifyError(data.error ?? 'Verification failed'); return }
-      handleExtended(data.trialExtensionStartedAt)
-    } catch { setVerifyError('Network error') } finally { setVerifying(false) }
-  }
-
   async function extendDirect() {
     try {
       const r = await fetch('/api/trial/extend', { method: 'POST' })
@@ -160,50 +139,15 @@ export default function TrialBanner() {
 
       {/* Expired + modal dismissed: "GET 15 MORE MINUTES FREE →" banner */}
       {phase === 'expired' && !showExpiredModal && (
-        <>
-          {/* Phone popup above the banner */}
-          {showPhonePopup && (
-            <div
-              className="fixed bottom-14 left-4 right-4 md:left-auto md:right-4 md:w-[300px] z-[300] rounded-xl overflow-hidden shadow-lg shadow-black/60"
-              style={{ border: '1px solid rgba(0,255,65,0.25)', background: '#030f03', fontFamily: mono }}
-            >
-              <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(0,255,65,0.1)', background: 'rgba(0,255,65,0.04)' }}>
-                <p className="text-[10px] font-bold tracking-[0.2em]" style={{ color: 'rgba(0,255,65,0.4)' }}>PHONE VERIFICATION</p>
-              </div>
-              <div className="px-5 py-4 flex flex-col gap-3">
-                <input
-                  type="tel"
-                  placeholder="+1 234 567 8900"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && verifyPhone()}
-                  autoFocus
-                  className="w-full bg-black border rounded px-3 py-2 text-xs font-mono outline-none"
-                  style={{ borderColor: 'rgba(0,255,65,0.25)', color: '#00ff41' }}
-                />
-                {verifyError && <p className="text-[10px]" style={{ color: '#f87171' }}>{verifyError}</p>}
-                <button
-                  onClick={verifyPhone}
-                  disabled={verifying || !phone.trim()}
-                  className="w-full py-2.5 rounded font-bold text-xs tracking-widest transition-opacity hover:opacity-90 disabled:opacity-40"
-                  style={{ background: '#00ff41', color: '#000' }}
-                >
-                  {verifying ? 'VERIFYING...' : 'VERIFY →'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div
-            className="fixed bottom-0 left-0 right-0 z-[250] flex items-center justify-center px-4 py-3 cursor-pointer select-none"
-            style={{ background: 'rgba(0,8,0,0.97)', borderTop: '1px solid rgba(0,255,65,0.2)', backdropFilter: 'blur(8px)', fontFamily: mono }}
-            onClick={() => hasPhone ? extendDirect() : setShowPhonePopup(p => !p)}
-          >
-            <span className="text-sm font-bold tracking-widest" style={{ color: '#00ff41' }}>
-              GET 15 MORE MINUTES FREE →
-            </span>
-          </div>
-        </>
+        <div
+          className="fixed bottom-0 left-0 right-0 z-[250] flex items-center justify-center px-4 py-3 cursor-pointer select-none"
+          style={{ background: 'rgba(0,8,0,0.97)', borderTop: '1px solid rgba(0,255,65,0.2)', backdropFilter: 'blur(8px)', fontFamily: mono }}
+          onClick={() => hasPhone ? extendDirect() : router.push('/verify-phone')}
+        >
+          <span className="text-sm font-bold tracking-widest" style={{ color: '#00ff41' }}>
+            GET 15 MORE MINUTES FREE →
+          </span>
+        </div>
       )}
     </>
   )

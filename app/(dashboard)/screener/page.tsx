@@ -54,7 +54,7 @@ export default async function ScreenerPage({
     console.log('[screener] shouldStart will be:', !isPro && !trialUsed && trialStartedAt === null && !!session?.user?.id)
     isTrialActive =
       !isPro &&
-      profile?.trial_used === false &&
+      profile?.trial_used !== true &&
       trialStartedAt !== null &&
       Date.now() - new Date(trialStartedAt).getTime() < TRIAL_DURATION_MS;
   }

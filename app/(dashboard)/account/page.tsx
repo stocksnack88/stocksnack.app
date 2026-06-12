@@ -46,17 +46,21 @@ export default async function AccountPage() {
   let cancelAtPeriodEnd = false;
 
   if (isPro && profile?.stripe_customer_id) {
-    const subs = await stripe.subscriptions.list({
-      customer: profile.stripe_customer_id,
-      status: "active",
-      limit: 1,
-      expand: ["data.latest_invoice"],
-    });
-    if (subs.data.length > 0) {
-      const sub = subs.data[0];
-      cancelAtPeriodEnd = sub.cancel_at_period_end;
-      const inv = sub.latest_invoice as Stripe.Invoice | null;
-      periodEnd = inv?.period_end ?? null;
+    try {
+      const subs = await stripe.subscriptions.list({
+        customer: profile.stripe_customer_id,
+        status: "active",
+        limit: 1,
+        expand: ["data.latest_invoice"],
+      });
+      if (subs.data.length > 0) {
+        const sub = subs.data[0];
+        cancelAtPeriodEnd = sub.cancel_at_period_end;
+        const inv = sub.latest_invoice as Stripe.Invoice | null;
+        periodEnd = inv?.period_end ?? null;
+      }
+    } catch (err) {
+      console.error("[account] Stripe subscriptions.list failed:", err);
     }
   }
 

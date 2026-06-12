@@ -1404,7 +1404,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               LAYER 5 — VALUATION ANALYSIS
             </p>
           )}>
-          <div className="p-5 space-y-5">
           {(() => {
           // ── Data ──────────────────────────────────────────────────────────────
           const peRatio      = score?.pe_ratio          != null ? Number(score.pe_ratio)          : null;
@@ -1633,14 +1632,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             fmt: (n: number | null) => string,
             inverse: boolean,
             metricType: "pe" | "fcf" | "div",
+            topDivider = false,
           ) {
             const verdict = getVerdict(current, tableRows, inverse, metricType);
             return (
-              <section key={title} className="rounded overflow-hidden" style={card}>
-                {/* Card header */}
-                <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-                  <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>{title}</p>
-                </div>
+              <div key={title} style={topDivider ? { borderTop: "1px solid rgba(0,255,65,0.1)" } : {}}>
+                <p className="text-xs font-bold tracking-widest px-5 pt-4 pb-0" style={{ color: "#00ff41" }}>{title}</p>
 
                 <div className="px-5 py-5" style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
                   {/* Bar chart */}
@@ -1675,7 +1672,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                     </p>
                   )}
                 </div>
-              </section>
+              </div>
             );
           }
 
@@ -1711,7 +1708,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_FCF_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_FCF_5Y  },
                 ],
-                fmtYld, true, "fcf",
+                fmtYld, true, "fcf", true,
               )}
               {renderMetric(
                 "DIVIDEND YIELD ANALYSIS", divYield,
@@ -1727,12 +1724,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_DIV_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_DIV_5Y  },
                 ],
-                fmtYld, true, "div",
+                fmtYld, true, "div", true,
               )}
             </>
           );
         })()}
-          </div>
           </CollapsibleLayer>
         </LayerProvider>
       </div>

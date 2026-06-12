@@ -28,6 +28,9 @@ export default async function ScreenerPage({
   );
 
   const { data: { session } } = await supabase.auth.getSession();
+  // getSession() reads from cookie and can return stale data; getUser() validates server-side
+  const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+  const isGuest = !verifiedUser;
 
   let isPro = false;
   let isTrialActive = false;
@@ -206,7 +209,7 @@ export default async function ScreenerPage({
       </div>
 
       {/* Guest banner — fixed bottom, non-dismissible */}
-      {!session && (
+      {isGuest && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 md:left-auto md:right-4 md:translate-x-0 z-[100] w-[calc(100vw-2rem)] max-w-[320px]">
           <div className="bg-[#050505] border border-[#00ff41]/20 rounded-xl px-5 py-4 flex flex-col gap-3 shadow-lg shadow-black/60">
             <div className="flex flex-col gap-1">

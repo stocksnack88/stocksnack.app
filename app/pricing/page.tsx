@@ -19,21 +19,22 @@ export default async function PricingPage() {
       },
     }
   );
-  const { data: { session } } = await supabase.auth.getSession();
+  // getUser() validates the token server-side; getSession() can return stale cookie data
+  const { data: { user } } = await supabase.auth.getUser();
 
   let isPro = false;
-  if (session?.user?.id) {
+  if (user?.id) {
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
       .select("subscription_status")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single();
     isPro =
       profile?.subscription_status === "active" ||
       profile?.subscription_status === "trialing";
   }
 
-  const isLoggedIn = !!session;
+  const isLoggedIn = !!user;
 
   const rows: { label: string; free: string; freeColor: string; freeBold?: boolean; pro: string; proColor: string }[] = [
     { label: "Stocks access",           free: "5 random", freeColor: "rgba(255,255,255,0.3)",  pro: "S&P 500", proColor: "rgba(0,255,65,0.8)"  },
@@ -200,16 +201,14 @@ export default async function PricingPage() {
               <tr className="pricing-row" style={{ background: "#080808", borderTop: "0.5px solid rgba(0,255,65,0.12)", animation: "fadeInUp 300ms ease-out 600ms both" }}>
                 <td style={{ padding: "12px 8px" }} />
 
-                {/* FREE — CURRENT PLAN if logged in, trial link if not */}
+                {/* FREE — CURRENT PLAN if logged in free user, trial CTA if guest */}
                 <td style={{ padding: "8px 6px", textAlign: "center", borderLeft: bV }}>
                   {isLoggedIn ? (
                     <span style={ctaCurrentFree}>CURRENT PLAN</span>
                   ) : (
-                    <span style={{ display: "block", lineHeight: 0.85, margin: 0 }}>
-                      <a href="/signup" style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "rgba(0,255,65,0.4)", fontFamily: font, textDecoration: "none", lineHeight: 1.1 }}>
-                        5-min free trial →
-                      </a>
-                    </span>
+                    <a href="/signup" style={{ ...ctaBase, border: "0.5px solid rgba(0,255,65,0.35)", color: "rgba(0,255,65,0.7)" }}>
+                      START FREE TRIAL →
+                    </a>
                   )}
                 </td>
 

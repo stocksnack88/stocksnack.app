@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 
 export default function TrialStarter({ shouldStart }: { shouldStart: boolean }) {
   useEffect(() => {
-    console.log('[TrialStarter] mounted, shouldStart:', shouldStart)
+    console.log('[TrialStarter] mounted, shouldStart:', shouldStart, '| url:', window.location.href, '| pathname:', window.location.pathname)
     if (!shouldStart) return
     console.log('[TrialStarter] calling POST /api/trial/start')
     fetch('/api/trial/start', { method: 'POST' })

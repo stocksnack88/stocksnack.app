@@ -86,7 +86,6 @@ function SignalBadge({ signal }: { signal: string | null | undefined }) {
 }
 
 const mono = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" };
-const card = { border: "1px solid rgba(0,255,65,0.2)", background: "rgba(0,255,65,0.02)" };
 
 export default async function StockDetailPage({ params }: { params: { ticker: string } }) {
   const ticker = params.ticker.toUpperCase();

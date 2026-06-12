@@ -144,9 +144,12 @@ export default async function ScreenerPage({
     return { visible, locked };
   }
 
-  const { visible: visibleStocks } = effectivelyPro
+  const { visible: rawVisible } = effectivelyPro
     ? { visible: stocks }
     : getDailyFreeStocks(stocks, FREE_LIMIT);
+
+  // Randomize order on every page load (force-dynamic ensures a new shuffle per request)
+  const visibleStocks = [...rawVisible].sort(() => Math.random() - 0.5);
 
   const updatedAt = stocks[0]?.updated_at
     ? new Date(stocks[0].updated_at).toLocaleDateString("en-US", {

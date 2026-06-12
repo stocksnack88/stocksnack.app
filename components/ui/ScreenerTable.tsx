@@ -799,8 +799,8 @@ export default function ScreenerTable({
 
             {/* Main column header row — sticky */}
             <tr className="border-b border-[#00ff41]/60 bg-[#001200]">
-              <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">CAGR</th>
-              <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">RETURN</th>
+              <th className="px-1 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">CAGR</th>
+              <th className="px-1 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">RETURN</th>
               {showQuality && <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001200]">GROWTH</th>}
               {showQuality && <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001200]">HEALTH</th>}
               <th className="px-1 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">SIGNAL</th>

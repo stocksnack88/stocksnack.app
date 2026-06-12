@@ -1,5 +1,6 @@
 import Navbar from "@/components/ui/Navbar";
 import Footer from "@/components/ui/Footer";
+import TrialBanner from "@/components/TrialBanner";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,6 +8,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Navbar />
       <div className="flex-1 flex flex-col">{children}</div>
       <Footer />
+      <TrialBanner />
     </div>
   );
 }

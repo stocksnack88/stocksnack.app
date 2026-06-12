@@ -4,9 +4,10 @@ import { supabaseAdmin } from "@/lib/supabase";
 import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
 import NavHeightLogger from "@/components/ui/NavHeightLogger";
 import OnboardingModal from "@/components/ui/OnboardingModal";
+import TrialStarter from "@/components/TrialStarter";
 
 const FREE_LIMIT = 5;
-const TRIAL_DURATION_MS = 7 * 60 * 1000;
+const TRIAL_DURATION_MS = 5 * 60 * 1000;
 
 export default async function ScreenerPage({
   searchParams,
@@ -31,6 +32,7 @@ export default async function ScreenerPage({
   let isPro = false;
   let isTrialActive = false;
   let trialStartedAt: string | null = null;
+  let trialUsed = true;
   if (session?.user?.id) {
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
@@ -41,9 +43,15 @@ export default async function ScreenerPage({
       profile?.subscription_status === "active" ||
       profile?.subscription_status === "trialing";
     trialStartedAt = profile?.trial_started_at ?? null;
+    trialUsed = profile?.trial_used ?? true;
+    console.log('[screener] user.id:', session.user.id)
+    console.log('[screener] profile.trial_used (raw):', profile?.trial_used, '| trialUsed (computed):', trialUsed)
+    console.log('[screener] profile.trial_started_at (raw):', profile?.trial_started_at, '| trialStartedAt (computed):', trialStartedAt)
+    console.log('[screener] isPro:', isPro)
+    console.log('[screener] shouldStart will be:', !isPro && !trialUsed && trialStartedAt === null && !!session?.user?.id)
     isTrialActive =
       !isPro &&
-      profile?.trial_used === true &&
+      profile?.trial_used === false &&
       trialStartedAt !== null &&
       Date.now() - new Date(trialStartedAt).getTime() < TRIAL_DURATION_MS;
   }
@@ -150,6 +158,7 @@ export default async function ScreenerPage({
     <div className="bg-black text-[#00ff41]" style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}>
       <OnboardingModal />
       <NavHeightLogger />
+      <TrialStarter shouldStart={!isPro && !trialUsed && trialStartedAt === null && !!session?.user?.id} />
       {justUpgraded && (
         <div className="bg-[#00ff41]/10 border-b border-[#00ff41]/30 px-6 py-3 text-center">
           <p className="text-xs text-[#00ff41] font-bold tracking-widest">

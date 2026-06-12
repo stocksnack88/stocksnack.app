@@ -111,16 +111,24 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
     .limit(FREE_LIMIT);
   const freeTickers = new Set((topRows ?? []).map((r: { ticker: string }) => r.ticker));
 
+  const TRIAL_DURATION_MS = 5 * 60 * 1000;
   let isPro = false;
+  let isTrialActive = false;
   if (session?.user?.id) {
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
-      .select("subscription_status")
+      .select("subscription_status, trial_used, trial_started_at")
       .eq("id", session.user.id)
       .single();
     isPro =
       profile?.subscription_status === "active" ||
       profile?.subscription_status === "trialing";
+    const trialStartedAt = profile?.trial_started_at ?? null;
+    isTrialActive =
+      !isPro &&
+      profile?.trial_used === false &&
+      trialStartedAt !== null &&
+      Date.now() - new Date(trialStartedAt).getTime() < TRIAL_DURATION_MS;
   }
 
   const [stockRes, priceRes, scoreRes, fundRes] = await Promise.all([
@@ -140,7 +148,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   const price = priceRes.data;
   const score = scoreRes.data;
   const fundamentals = fundRes.data ?? [];
-  const canAccess = isPro || freeTickers.has(ticker);
+  const canAccess = isPro || isTrialActive || freeTickers.has(ticker);
 
   // ── Paywall ──────────────────────────────────────────────────────────────────
   if (!canAccess) {

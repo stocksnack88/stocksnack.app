@@ -7,7 +7,6 @@ import { supabaseAdmin } from "@/lib/supabase";
 import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
 import NavHeightLogger from "@/components/ui/NavHeightLogger";
 import OnboardingModal from "@/components/ui/OnboardingModal";
-import TrialStarter from "@/components/TrialStarter";
 
 const FREE_LIMIT = 5;
 const TRIAL_DURATION_MS = 5 * 60 * 1000;
@@ -167,7 +166,6 @@ export default async function ScreenerPage({
     <div className="bg-black text-[#00ff41]" style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}>
       <OnboardingModal />
       <NavHeightLogger />
-      <TrialStarter shouldStart={!isPro && !trialUsed && trialStartedAt === null && !!session?.user?.id} />
       {justUpgraded && (
         <div className="bg-[#00ff41]/10 border-b border-[#00ff41]/30 px-6 py-3 text-center">
           <p className="text-xs text-[#00ff41] font-bold tracking-widest">

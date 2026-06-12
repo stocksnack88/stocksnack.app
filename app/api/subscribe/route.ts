@@ -61,20 +61,17 @@ export async function GET(request: NextRequest) {
       .eq("id", userId);
   }
 
+  const plan = request.nextUrl.searchParams.get("plan");
+  const priceId =
+    plan === "annual"
+      ? "price_1ThWRb0pDgkC1le4heS9eWAd"
+      : "price_1ThWRB0pDgkC1le4JlCxAMol";
+
   const checkoutSession = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          product_data: { name: "StockSnack Pro" },
-          unit_amount: 2000, // $20.00
-          recurring: { interval: "month" },
-        },
-        quantity: 1,
-      },
-    ],
+    line_items: [{ price: priceId, quantity: 1 }],
+    allow_promotion_codes: true,
     success_url: `${origin}/screener?upgraded=1`,
     cancel_url: `${origin}/screener`,
     metadata: { supabase_user_id: userId },

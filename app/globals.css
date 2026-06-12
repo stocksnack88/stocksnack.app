@@ -60,8 +60,8 @@ body {
     to bottom,
     transparent 0%,
     transparent 40%,
-    rgba(0, 255, 65, 0.16) 45%,
-    rgba(0, 255, 65, 0.16) 55%,
+    rgba(0, 255, 65, 0.08) 45%,
+    rgba(0, 255, 65, 0.08) 55%,
     transparent 60%,
     transparent 100%
   );

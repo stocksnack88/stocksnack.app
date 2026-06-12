@@ -204,6 +204,28 @@ export default async function ScreenerPage({
           </p>
         </div>
       </div>
+
+      {/* Guest banner — fixed bottom, non-dismissible */}
+      {!session && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 md:left-auto md:right-4 md:translate-x-0 z-[100] w-[calc(100vw-2rem)] max-w-[320px]">
+          <div className="bg-[#050505] border border-[#00ff41]/20 rounded-xl px-5 py-4 flex flex-col gap-3 shadow-lg shadow-black/60">
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-mono font-bold text-[#00ff41] tracking-[0.2em]">
+                YOUR 5-MINUTE FREE TRIAL IS WAITING
+              </p>
+              <p className="text-xs font-mono text-[#00ff41]/50 leading-relaxed">
+                See all 500 stocks free. No credit card needed.
+              </p>
+            </div>
+            <a
+              href="/signup"
+              className="bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest px-4 py-2 rounded hover:bg-[#00dd38] transition-colors text-center"
+            >
+              SIGN UP FREE →
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

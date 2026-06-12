@@ -26,24 +26,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ isPro: false, trialUsed: true, trialStartedAt: null });
   }
 
-  const { data: profile, error: profileError } = await supabaseAdmin
+  const { data: profile } = await supabaseAdmin
     .from("user_profiles")
-    .select("subscription_status, trial_used, trial_started_at")
+    .select("subscription_status, trial_used, trial_started_at, trial_extension_started_at, phone_number")
     .eq("id", user.id)
     .single();
 
-  console.log('[/api/trial/status] user.id:', user.id)
-  console.log('[/api/trial/status] profile:', JSON.stringify(profile))
-  console.log('[/api/trial/status] profileError:', profileError?.message ?? null)
-
   const status = profile?.subscription_status ?? "free";
   const isPro = status === "active" || status === "trialing";
-  const payload = {
+
+  return NextResponse.json({
     isPro,
     trialUsed: profile?.trial_used ?? true,
     trialStartedAt: profile?.trial_started_at ?? null,
-  }
-  console.log('[/api/trial/status] returning:', JSON.stringify(payload))
-
-  return NextResponse.json(payload);
+    trialExtensionStartedAt: profile?.trial_extension_started_at ?? null,
+    hasPhone: !!profile?.phone_number,
+  });
 }

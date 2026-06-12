@@ -1,0 +1,3 @@
+ALTER TABLE user_profiles
+  ADD COLUMN IF NOT EXISTS phone_number TEXT DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS trial_extension_started_at TIMESTAMPTZ DEFAULT NULL;

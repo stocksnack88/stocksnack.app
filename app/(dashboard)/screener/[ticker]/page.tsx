@@ -260,36 +260,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </div>
         </div>
 
-        {/* Price projection */}
-        <div className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-            <p className="text-[11px] font-bold tracking-widest whitespace-nowrap" style={{ color: "#00ff41" }}>{ticker} Price In 5 Years (Projected)</p>
-          </div>
-          <div className="flex items-center gap-4 px-5 py-4">
-            <div className="flex-1 text-center">
-              <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>CURRENT PRICE</p>
-              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-                {fmtDollar(currentPrice)}
-              </p>
-            </div>
-            <div className="flex flex-col items-center justify-center shrink-0 gap-0.5">
-              <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
-                {score?.ppm_cagr != null ? `CAGR (5Y) ${fmtCagr(score.ppm_cagr)}` : ""}
-              </p>
-              <p className="text-2xl font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>→</p>
-              <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
-                {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x` : ""}
-              </p>
-            </div>
-            <div className="flex-1 text-center">
-              <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>PROJECTED (5Y)</p>
-              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-                {fmtDollar(blendedPrice)}
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* ── Overview + Layers 1–5 ───────────────────────────────────────────── */}
         <LayerProvider count={6}>
           <div className="flex justify-end">
@@ -302,13 +272,38 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               OVERVIEW
             </p>
           )}>
-          <div className="p-5 space-y-5">
+
+          {/* Price projection */}
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-bold tracking-widest mb-3" style={{ color: "#00ff41" }}>{ticker} Price In 5 Years (Projected)</p>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 text-center">
+                <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>CURRENT PRICE</p>
+                <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
+                  {fmtDollar(currentPrice)}
+                </p>
+              </div>
+              <div className="flex flex-col items-center justify-center shrink-0 gap-0.5">
+                <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
+                  {score?.ppm_cagr != null ? `CAGR (5Y) ${fmtCagr(score.ppm_cagr)}` : ""}
+                </p>
+                <p className="text-2xl font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>→</p>
+                <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
+                  {currentPrice && blendedPrice ? `${(blendedPrice / currentPrice).toFixed(1)}x` : ""}
+                </p>
+              </div>
+              <div className="flex-1 text-center">
+                <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>PROJECTED (5Y)</p>
+                <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
+                  {fmtDollar(blendedPrice)}
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* ── Scorecard ────────────────────────────────────────────────────── */}
-          <div className="rounded overflow-hidden" style={card}>
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>WHAT YOU ARE BUYING</p>
-          </div>
+          <div style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
+            <p className="text-xs font-bold tracking-widest px-5 pt-4 pb-0" style={{ color: "#00ff41" }}>WHAT YOU ARE BUYING</p>
           {(() => {
             // 5Y RETURN color
             const stockMult = currentPrice && blendedPrice ? blendedPrice / currentPrice : null;
@@ -401,10 +396,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           const geoSegs: Segment[]     = Array.isArray(rawGeo)     ? rawGeo     : [];
           if (!stock?.description && !productSegs.length && !geoSegs.length) return null;
           return (
-            <section className="rounded overflow-hidden" style={card}>
-              <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)", background: "#001a00" }}>
-                <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>ABOUT THE BUSINESS</p>
-              </div>
+            <div style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
+              <p className="text-xs font-bold tracking-widest px-5 pt-4 pb-0" style={{ color: "#00ff41" }}>ABOUT THE BUSINESS</p>
 
               {/* Company Description */}
               {stock?.description && (
@@ -427,14 +420,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {geoSegs.length > 0 && (
                 <SegmentBreakdown title="GEOGRAPHIC BREAKDOWN" segs={geoSegs} />
               )}
-            </section>
+            </div>
           );
         })()}
 
-          <p className="text-center text-xs pb-4 tracking-wide" style={{ color: "rgba(0,255,65,0.2)" }}>
+          <p className="text-center text-xs py-4 tracking-wide" style={{ color: "rgba(0,255,65,0.2)", borderTop: "1px solid rgba(0,255,65,0.1)" }}>
             DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
           </p>
-          </div>
           </CollapsibleLayer>
 
           {/* Layer 1: PPM */}

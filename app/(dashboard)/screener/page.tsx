@@ -216,7 +216,9 @@ export default async function ScreenerPage({
         </div>
       </div>
 
-      {/* Guest banner — fixed bottom, non-dismissible */}
+      {/* GUEST BANNER — show only when not logged in (isGuest requires both
+          getUser() and getSession() to agree there is no authenticated user).
+          Never shows to logged-in users under any condition. */}
       {isGuest && (
         <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-[320px] z-[300]">
           <div className="bg-[#050505] border border-[#00ff41]/20 rounded-xl px-5 py-4 flex flex-col gap-3 shadow-lg shadow-black/60">

@@ -47,16 +47,21 @@ export default function TrialBanner() {
         if (!data || data.isPro) return
         setHasPhone(!!data.hasPhone)
 
+        // Extension already used — show countdown or done
         if (data.trialExtensionStartedAt) {
           setTrialExtensionStartedAt(data.trialExtensionStartedAt)
           const elapsed = Date.now() - new Date(data.trialExtensionStartedAt).getTime()
           setPhase(elapsed >= EXTENSION_MS ? 'done' : 'extension')
           return
         }
-        if (data.trialUsed) {
+        // Trial expired, no extension yet — show extension banner.
+        // Requires trialStartedAt to be set: guests get trialUsed=true but
+        // trialStartedAt=null, so this guard prevents showing to guests.
+        if (data.trialUsed && data.trialStartedAt) {
           setPhase('expired')
           return
         }
+        // Trial in progress — show countdown
         if (data.trialStartedAt) {
           setTrialStartedAt(data.trialStartedAt)
           const elapsed = Date.now() - new Date(data.trialStartedAt).getTime()
@@ -137,7 +142,9 @@ export default function TrialBanner() {
         </div>
       )}
 
-      {/* Expired + modal dismissed: "GET 15 MORE MINUTES FREE →" banner */}
+      {/* EXTENSION BANNER — logged-in, trial_used=true, no extension yet.
+          phase='expired' is only set when trialStartedAt is set (real user),
+          so guests can never reach this state. */}
       {phase === 'expired' && !showExpiredModal && (
         <div
           className="fixed bottom-0 left-0 right-0 z-[250] flex items-center justify-center px-4 py-3 cursor-pointer select-none"

@@ -358,9 +358,14 @@ export default function ScreenerTable({
 
 
   useEffect(() => {
-    if (isPro) return;
-    if (trialStartedAt) return; // suppress during active trial
-    if (trialUsed && !trialExtensionStartedAt) return; // suppress when extension banner is showing
+    // UPSELL TOAST — show only when: logged-in, not pro, trial fully consumed,
+    // extension was taken and has expired (server sets trialStartedAt=null when
+    // isTrialActive=false, which includes after extension expires).
+    if (isPro) return;                                    // never show to pro users
+    if (!trialUsed) return;                               // never show before trial is used
+    if (trialStartedAt) return;                           // never show during active trial or active extension
+    if (trialUsed && !trialExtensionStartedAt) return;    // never show when extension banner is showing
+    // Reaches here: trial used, extension taken, extension expired → show upsell
     let timer: ReturnType<typeof setTimeout>;
     function startTimer() {
       timer = setTimeout(() => setShowUpsellModal(true), 60000);

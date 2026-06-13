@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase";
+import { sendProEmail } from "@/lib/emails/pro";
 
 // Map Stripe subscription statuses to our subscription_status column
 function mapStatus(stripeStatus: Stripe.Subscription.Status): string {
@@ -74,12 +75,28 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        // Prefer the metadata user ID stored at session creation
         const userId = session.metadata?.supabase_user_id;
         if (userId) {
           await updateProfileByUserId(userId, "active");
         } else if (session.customer) {
           await updateProfileByCustomerId(session.customer as string, "active");
+        }
+        const email = session.customer_details?.email ?? null;
+        if (email) {
+          sendProEmail(email).catch((err) =>
+            console.error("[webhook] pro email failed:", err)
+          );
+        }
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const email = invoice.customer_email ?? null;
+        if (email) {
+          sendProEmail(email).catch((err) =>
+            console.error("[webhook] pro email failed:", err)
+          );
         }
         break;
       }

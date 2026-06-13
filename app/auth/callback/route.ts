@@ -51,12 +51,24 @@ export async function GET(request: NextRequest) {
   console.log("[auth/callback] getUser:", user?.id ?? null, "error:", userError?.message ?? null);
 
   if (user) {
-    // Start trial on first sign-in (idempotent — skips if trial_used is already true)
-    await supabaseAdmin
+    // Fetch profile to check trial state
+    const { data: profile } = await supabaseAdmin
       .from("user_profiles")
-      .update({ trial_used: true, trial_started_at: new Date().toISOString() })
+      .select("trial_started_at")
       .eq("id", user.id)
-      .eq("trial_used", false);
+      .single();
+
+    // Start trial whenever trial_started_at is null (covers Google OAuth users
+    // with no profile row yet, and any user who hasn't had their trial started)
+    if (!profile?.trial_started_at) {
+      await supabaseAdmin
+        .from("user_profiles")
+        .upsert(
+          { id: user.id, email: user.email, trial_used: true, trial_started_at: new Date().toISOString() },
+          { onConflict: "id" }
+        );
+      console.log("[auth/callback] trial started for user:", user.id);
+    }
 
     // Send welcome email for new users (Google OAuth bypasses signup page)
     // created_at within 60 s means this is a brand-new account

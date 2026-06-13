@@ -334,14 +334,11 @@ export default function ScreenerTable({
 
   useEffect(() => {
     try {
+      // Filters always start empty on fresh page load — only restore search text
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const saved = JSON.parse(raw);
       if (typeof saved.searchText === "string") setSearchQuery(saved.searchText);
-      if (Array.isArray(saved.filterRows) && saved.filterRows.length > 0) {
-        setFilters(saved.filterRows);
-        setNextId(Math.max(...saved.filterRows.map((f: FilterRow) => f.id)) + 1);
-      }
     } catch {
       // corrupted storage — start fresh
     }

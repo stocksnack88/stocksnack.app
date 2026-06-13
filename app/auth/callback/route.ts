@@ -7,7 +7,10 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/screener";
 
+  console.log("[auth/callback] code present:", !!code, "next:", next, "origin:", origin);
+
   if (!code) {
+    console.error("[auth/callback] no code in request");
     return NextResponse.redirect(
       new URL("/login?error=missing_code", origin)
     );
@@ -38,18 +41,36 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    console.error("Auth callback error:", error.message);
+    console.error("[auth/callback] exchangeCodeForSession error:", error.message, error);
     return redirectFailure;
   }
 
-  // Start 5-min Pro preview on first email confirmation (idempotent — skips if trial_used is already true)
-  const { data: { user } } = await supabase.auth.getUser();
+  console.log("[auth/callback] session exchange succeeded");
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  console.log("[auth/callback] getUser:", user?.id ?? null, "error:", userError?.message ?? null);
+
   if (user) {
+    // Start trial on first sign-in (idempotent — skips if trial_used is already true)
     await supabaseAdmin
       .from("user_profiles")
       .update({ trial_used: true, trial_started_at: new Date().toISOString() })
       .eq("id", user.id)
       .eq("trial_used", false);
+
+    // Send welcome email for new users (Google OAuth bypasses signup page)
+    // created_at within 60 s means this is a brand-new account
+    const createdAt = user.created_at ? new Date(user.created_at).getTime() : 0;
+    const isNewUser = Date.now() - createdAt < 60_000;
+    console.log("[auth/callback] isNewUser:", isNewUser, "created_at:", user.created_at);
+
+    if (isNewUser && user.email) {
+      fetch(`${origin}/api/send-welcome`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email }),
+      }).catch((err) => console.error("[auth/callback] send-welcome failed:", err));
+    }
   }
 
   return redirectSuccess;

@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       const upsertPayload = {
         id: user.id,
         email: user.email,
-        trial_used: true,
+        trial_used: false,
         trial_started_at: new Date().toISOString(),
       };
       console.log("[auth/callback] upserting payload:", JSON.stringify(upsertPayload));
@@ -75,7 +75,6 @@ export async function GET(request: NextRequest) {
         .from("user_profiles")
         .upsert(upsertPayload, { onConflict: "id" });
       console.log("[auth/callback] upsert error:", upsertError?.message ?? null);
-      console.log("[auth/callback] trial_used written as TRUE — NOTE: true=expired in this system");
     } else {
       console.log("[auth/callback] trial_started_at already set, skipping upsert:", profile.trial_started_at);
     }

@@ -11,6 +11,7 @@ export async function sendProEmail(toEmail: string): Promise<void> {
     <tr>
       <td align="center">
         <table width="560" cellpadding="0" cellspacing="0" style="background-color:#000000;border:1px solid #00ff41;border-radius:8px;padding:48px 40px;">
+          <tr><td style="padding-bottom:24px;"><img src="https://stocksnack.app/icon.png" width="48" height="48" alt="StockSnack" style="display:block;border-radius:8px;" /></td></tr>
           <tr><td style="padding-bottom:40px;"><p style="color:#00ff41;font-size:13px;letter-spacing:4px;margin:0;">STOCKSNACK</p></td></tr>
           <tr><td style="padding-bottom:16px;"><p style="color:#00ff41;font-size:22px;font-weight:bold;margin:0;">You're now Pro.</p></td></tr>
           <tr><td style="padding-bottom:32px;"><p style="color:#00aa30;font-size:13px;margin:0;line-height:1.7;">Full access to all 500 S&P 500 stocks, filters, scoring layers, and valuation analysis. Go find your next investment.</p></td></tr>

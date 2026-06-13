@@ -51,24 +51,37 @@ export async function GET(request: NextRequest) {
   console.log("[auth/callback] getUser:", user?.id ?? null, "error:", userError?.message ?? null);
 
   if (user) {
-    // Fetch profile to check trial state
-    const { data: profile } = await supabaseAdmin
+    // Fetch full profile state before any writes
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("user_profiles")
-      .select("trial_started_at")
+      .select("trial_used, trial_started_at, trial_extension_started_at, subscription_status")
       .eq("id", user.id)
       .single();
+
+    console.log("[auth/callback] profile fetch error:", profileError?.message ?? null);
+    console.log("[auth/callback] profile BEFORE upsert:", JSON.stringify(profile));
 
     // Start trial whenever trial_started_at is null (covers Google OAuth users
     // with no profile row yet, and any user who hasn't had their trial started)
     if (!profile?.trial_started_at) {
-      await supabaseAdmin
+      const upsertPayload = {
+        id: user.id,
+        email: user.email,
+        trial_used: true,
+        trial_started_at: new Date().toISOString(),
+      };
+      console.log("[auth/callback] upserting payload:", JSON.stringify(upsertPayload));
+      const { error: upsertError } = await supabaseAdmin
         .from("user_profiles")
-        .upsert(
-          { id: user.id, email: user.email, trial_used: true, trial_started_at: new Date().toISOString() },
-          { onConflict: "id" }
-        );
-      console.log("[auth/callback] trial started for user:", user.id);
+        .upsert(upsertPayload, { onConflict: "id" });
+      console.log("[auth/callback] upsert error:", upsertError?.message ?? null);
+      console.log("[auth/callback] trial_used written as TRUE — NOTE: true=expired in this system");
+    } else {
+      console.log("[auth/callback] trial_started_at already set, skipping upsert:", profile.trial_started_at);
     }
+
+    // No call to /api/trial/expire here — expire is only called client-side by TrialManager
+    // when the countdown hits 0 mid-session
 
     // Send welcome email for new users (Google OAuth bypasses signup page)
     // created_at within 60 s means this is a brand-new account

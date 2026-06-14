@@ -118,7 +118,11 @@ export function CollapsibleLayer({
           </svg>
         </div>
       </div>
-      {showBody && <>{children}</>}
+      <div style={{ display: 'grid', gridTemplateRows: showBody ? '1fr' : '0fr', transition: 'grid-template-rows 300ms ease-in-out' }}>
+        <div style={{ overflow: 'hidden', minHeight: 0, paddingBottom: '8px' }}>
+          {children}
+        </div>
+      </div>
     </section>
   )
 }
@@ -136,7 +140,7 @@ export function ChildCollapsibleLayer({
   const open = opens[id] ?? false
 
   return (
-    <div style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
+    <div style={{ margin: '8px 8px 0', border: '1px solid rgba(0,255,65,0.12)', borderRadius: '2px', overflow: 'hidden' }}>
       <div
         className="px-5 py-4 flex items-start justify-between cursor-pointer select-none"
         style={{ background: "#001a00", borderBottom: open ? "1px solid rgba(0,255,65,0.1)" : "none" }}
@@ -152,7 +156,11 @@ export function ChildCollapsibleLayer({
           </svg>
         </div>
       </div>
-      {open && <>{children}</>}
+      <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 300ms ease-in-out' }}>
+        <div style={{ overflow: 'hidden', minHeight: 0 }}>
+          {children}
+        </div>
+      </div>
     </div>
   )
 }

@@ -60,7 +60,7 @@ export default async function ScreenerPage({
   let isPro = false;
   let isTrialActive = false;
   let trialStartedAt: string | null = null;
-  let trialUsed = true;
+  let trialUsed = false;
   let trialExtensionStartedAt: string | null = null;
 
   if (user) {
@@ -113,6 +113,8 @@ export default async function ScreenerPage({
         timeZone: "UTC",
       })
     : null;
+
+  console.log('[screener] stocks.length:', stocks.length, 'visibleStocks.length:', visibleStocks.length, 'effectivelyPro:', effectivelyPro)
 
   if (error) {
     return (

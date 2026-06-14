@@ -319,37 +319,40 @@ function DetailPanel({ detail, rows }: { detail: CheckDetail; rows: FundRow[] })
         {detail.description}
       </p>
 
-      {/* Table: years as columns, metrics as rows */}
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th className="text-[9px] font-mono text-left pr-2" style={{ color: "rgba(0,255,65,0.3)", paddingBottom: 4 }} />
-              {rows.map(r => (
-                <th key={r.fiscal_year} className="text-[9px] font-mono text-right" style={{ color: "rgba(0,255,65,0.3)", paddingBottom: 4, paddingLeft: 6 }}>
-                  FY{String(r.fiscal_year).slice(2)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {detail.fields.map(field => (
-              <tr key={field.key as string}>
-                <td className="text-[9px] font-mono font-bold tracking-wider pr-2 whitespace-nowrap" style={{ color: "rgba(0,255,65,0.5)", paddingBottom: 3 }}>
-                  {field.label}
-                </td>
-                {rows.map(r => {
-                  const v = getVal(r, field);
-                  return (
-                    <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, field.hib, field.neutral), paddingBottom: 3, paddingLeft: 6 }}>
-                      {fmtVal(v, field.fmt)}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Per-field blocks: label above, then year columns */}
+      <div className="space-y-3">
+        {detail.fields.map(field => (
+          <div key={field.key as string}>
+            <p className="text-[9px] font-mono font-bold tracking-wider mb-1" style={{ color: "rgba(0,255,65,0.5)" }}>
+              {field.label}
+            </p>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    {rows.map(r => (
+                      <th key={r.fiscal_year} className="text-[9px] font-mono text-right" style={{ color: "rgba(0,255,65,0.3)", paddingBottom: 4, paddingLeft: 6 }}>
+                        FY{String(r.fiscal_year).slice(2)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {rows.map(r => {
+                      const v = getVal(r, field);
+                      return (
+                        <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, field.hib, field.neutral), paddingBottom: 3, paddingLeft: 6 }}>
+                          {fmtVal(v, field.fmt)}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Sparkline + verdict */}

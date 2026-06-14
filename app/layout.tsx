@@ -16,8 +16,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'StockSnack — Which S&P 500 stock should you buy?',
-  description: 'StockSnack scores all 500 S&P 500 stocks using 30 financial metrics and gives you a clear BUY, HOLD or SELL verdict. Start your free trial — no credit card needed.',
+  title: 'StockSnack — What\'s the best stock in S&P 500?',
+  description: 'StockSnack scores all 500 S&P 500 stocks using 30 financial metrics based on Buffett-style fundamentals. Free to try.',
   openGraph: {
     title: "What's the best stock in S&P 500?",
     description: 'Sign up to get the answer! StockSnack ranks all 500 S&P 500 stocks with BUY/HOLD/SELL verdicts backed by 30 financial metrics.',

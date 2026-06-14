@@ -139,7 +139,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
     supabaseAdmin.from("stock_prices").select("*").eq("ticker", ticker).single(),
     supabaseAdmin.from("stock_scores").select("*").eq("ticker", ticker).single(),
     supabaseAdmin.from("stock_fundamentals")
-      .select("fiscal_year,revenue,ebitda,free_cash_flow,gross_margin,operating_income,net_income,eps,total_assets,total_debt,total_equity,cash_and_equivalents,operating_cash_flow,capex,dividends_paid,buybacks,net_margin,roe,debt_to_equity,interest_coverage,market_cap_at_year")
+      .select("fiscal_year,revenue,ebitda,free_cash_flow,gross_margin,operating_income,net_income,eps,total_assets,total_debt,total_equity,cash_and_equivalents,operating_cash_flow,capex,dividends_paid,buybacks,net_margin,roe,debt_to_equity,interest_coverage,market_cap_at_year,sga,rd_expense,tax_rate,sbc,shares_outstanding,intangibles,preferred_stock")
       .eq("ticker", ticker)
       .order("fiscal_year", { ascending: true })
       .limit(5),

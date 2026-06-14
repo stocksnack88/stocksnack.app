@@ -89,6 +89,14 @@ def _build_fundamentals(ticker: str, data: dict) -> list[dict]:
             "interest_coverage":    interest_coverage,
             "ev_to_ebitda":         safe_float(m.get("evToEBITDA"))            or None,
             "market_cap_at_year":   hist_mktcap.get(year)                      or None,
+            # Extended columns for health check detail panels
+            "sga":                  safe_float(inc.get("sellingGeneralAndAdministrativeExpenses")) or None,
+            "rd_expense":           safe_float(inc.get("researchAndDevelopmentExpenses"))          or None,
+            "tax_rate":             pct(inc.get("incomeTaxExpense"), inc.get("incomeBeforeTax")),
+            "sbc":                  safe_float(cf.get("stockBasedCompensation"))                   or None,
+            "shares_outstanding":   safe_float(bal.get("weightedAverageShsOutDil"))                or None,
+            "intangibles":          safe_float(bal.get("intangibleAssets")) or safe_float(bal.get("goodwillAndIntangibleAssets")) or None,
+            "preferred_stock":      safe_float(bal.get("preferredStock"))                          or None,
             "updated_at":           _now(),
         })
     return rows

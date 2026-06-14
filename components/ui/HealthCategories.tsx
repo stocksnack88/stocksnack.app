@@ -34,6 +34,13 @@ export type FundRow = {
   dividends_paid: number | null;
   net_income: number | null;
   market_cap_at_year: number | null;
+  sga: number | null;
+  rd_expense: number | null;
+  tax_rate: number | null;
+  sbc: number | null;
+  shares_outstanding: number | null;
+  intangibles: number | null;
+  preferred_stock: number | null;
 };
 
 // ── Metric detail map ────────────────────────────────────────────────────────
@@ -41,9 +48,10 @@ export type FundRow = {
 type MetricField = {
   key: keyof FundRow;
   label: string;
-  fmt: "bn" | "pct" | "x" | "dollar";
+  fmt: "bn" | "pct" | "x" | "dollar" | "count";
   hib: boolean;   // higher is better
   abs?: boolean;  // show absolute value (for stored-negative outflows)
+  neutral?: boolean; // no red/green coloring — value is neither good nor bad in isolation
 };
 
 type CheckDetail = {
@@ -62,6 +70,10 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
   ["debt/equity", {
     fields: [{ key: "debt_to_equity", label: "DEBT / EQUITY", fmt: "x", hib: false }],
     description: "Total debt divided by shareholders' equity — measures financial leverage; lower means less risk.",
+  }],
+  ["preferred stock", {
+    fields: [{ key: "preferred_stock", label: "PREFERRED STOCK", fmt: "bn", hib: false }],
+    description: "Value of preferred shares outstanding — preferred holders get paid before common shareholders in dividends and liquidation.",
   }],
   ["retained earnings", {
     fields: [{ key: "total_equity", label: "TOTAL EQUITY", fmt: "bn", hib: true }],
@@ -86,9 +98,21 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
     fields: [{ key: "gross_margin", label: "GROSS MARGIN", fmt: "pct", hib: true }],
     description: "Revenue minus cost of goods sold as a percentage — reflects pricing power and production cost efficiency.",
   }],
+  ["sg&a", {
+    fields: [{ key: "sga", label: "SG&A EXPENSE", fmt: "bn", hib: false }],
+    description: "Selling, general, and administrative expenses — overhead costs that eat into gross profit on the way to operating income.",
+  }],
+  ["r&d", {
+    fields: [{ key: "rd_expense", label: "R&D EXPENSE", fmt: "bn", hib: false }],
+    description: "Research and development spending — reduces current earnings but may fuel future growth; the check flags excessive R&D relative to gross profit.",
+  }],
   ["interest", {
     fields: [{ key: "interest_coverage", label: "INTEREST COVERAGE", fmt: "x", hib: true }],
     description: "Operating income divided by interest expense — how many times the company can cover its debt payments from earnings.",
+  }],
+  ["tax rate", {
+    fields: [{ key: "tax_rate", label: "EFFECTIVE TAX RATE", fmt: "pct", hib: false }],
+    description: "Income tax expense divided by pre-tax income — the check flags rates outside the 15–25% normal range as potential accounting anomalies.",
   }],
   ["net margin", {
     fields: [{ key: "net_margin", label: "NET MARGIN", fmt: "pct", hib: true }],
@@ -97,6 +121,10 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
   ["eps growth", {
     fields: [{ key: "eps", label: "EARNINGS PER SHARE", fmt: "dollar", hib: true }],
     description: "Net income divided by shares outstanding — the profit attributable to each share, which should grow over time.",
+  }],
+  ["sbc", {
+    fields: [{ key: "sbc", label: "STOCK-BASED COMP", fmt: "bn", hib: false }],
+    description: "Non-cash compensation paid as equity — dilutes shareholders and inflates reported earnings vs real cash profit.",
   }],
   ["ocf", {
     fields: [{ key: "operating_cash_flow", label: "OPERATING CASH FLOW", fmt: "bn", hib: true }],
@@ -118,9 +146,17 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
     ],
     description: "Whether dividends and buybacks combined are covered by free cash flow — returns exceeding FCF may not be sustainable.",
   }],
+  ["dilution", {
+    fields: [{ key: "shares_outstanding", label: "SHARES OUTSTANDING", fmt: "count", hib: false, neutral: true }],
+    description: "Diluted share count — a rising count means new shares are being issued, which dilutes each existing shareholder's stake.",
+  }],
   ["consistent earnings", {
     fields: [{ key: "net_income", label: "NET INCOME", fmt: "bn", hib: true }],
     description: "Net profit after all expenses and taxes — should be positive and ideally growing each year.",
+  }],
+  ["intangibles", {
+    fields: [{ key: "intangibles", label: "INTANGIBLES + GOODWILL", fmt: "bn", hib: false }],
+    description: "Goodwill and intangible assets — often reflects acquisition premiums; high intangibles relative to total assets can impair if the business deteriorates.",
   }],
   ["debt payoff", {
     fields: [
@@ -160,6 +196,12 @@ function fmtVal(v: number | null, fmt: MetricField["fmt"]): string {
     const sign = v < 0 ? "-" : "";
     return `${sign}$${Math.abs(v).toFixed(2)}`;
   }
+  if (fmt === "count") {
+    const abs = Math.abs(v);
+    if (abs >= 1e9) return `${(abs / 1e9).toFixed(2)}bn`;
+    if (abs >= 1e6) return `${Math.round(abs / 1e6)}m`;
+    return `${abs.toFixed(0)}`;
+  }
   // bn
   const abs = Math.abs(v);
   const sign = v < 0 ? "-" : "";
@@ -170,8 +212,9 @@ function fmtVal(v: number | null, fmt: MetricField["fmt"]): string {
   return `${sign}$${abs.toFixed(0)}`;
 }
 
-function valColor(v: number | null, hib: boolean): string {
+function valColor(v: number | null, hib: boolean, neutral?: boolean): string {
   if (v == null) return "rgba(0,255,65,0.3)";
+  if (neutral) return "rgba(0,255,65,0.6)";
   if (hib) return v >= 0 ? "#00ff41" : "#ef4444";
   return v <= 0 ? "#00ff41" : "#ef4444";
 }
@@ -293,7 +336,7 @@ function DetailPanel({ detail, rows }: { detail: CheckDetail; rows: FundRow[] })
                 {rows.map(r => {
                   const v = getVal(r, field);
                   return (
-                    <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, field.hib), paddingBottom: 3, paddingLeft: 6 }}>
+                    <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, field.hib, field.neutral), paddingBottom: 3, paddingLeft: 6 }}>
                       {fmtVal(v, field.fmt)}
                     </td>
                   );

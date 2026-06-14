@@ -110,7 +110,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   // Daily free tickers — same date-seeded algorithm as the screener list
   const { data: allTickerRows } = await supabaseAdmin
     .from("stock_scores")
-    .select("ticker, signal");
+    .select("ticker, signal")
+    .order("final_score", { ascending: false });
   const freeTickers = getDailyFreeTickers(
     (allTickerRows ?? []).map((r: { ticker: string; signal: string | null }) => ({
       ticker: r.ticker,
@@ -158,7 +159,6 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   const price = priceRes.data;
   const score = scoreRes.data;
   const fundamentals = fundRes.data ?? [];
-  console.log('[ticker] ticker:', ticker, 'freeTickers:', Array.from(freeTickers), 'freeTickers.has(ticker):', freeTickers.has(ticker), 'isPro:', isPro, 'isTrialActive:', isTrialActive)
   const canAccess = isPro || isTrialActive || freeTickers.has(ticker);
 
   // ── Paywall ──────────────────────────────────────────────────────────────────

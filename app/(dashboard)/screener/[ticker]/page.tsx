@@ -10,6 +10,7 @@ import HealthCategories, { type FundRow as HealthFundRow } from "@/components/ui
 import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 import HazardTooltip from "@/components/ui/HazardTooltip";
 import ShareButton from "@/components/ui/ShareButton";
+import BlockShareButton from "@/components/ui/BlockShareButton";
 import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
 import { getDailyFreeTickers } from "@/lib/free-stocks";
 
@@ -285,13 +286,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </div>
 
           {/* Overview */}
-          <CollapsibleSectionHeader id={0} label="OVERVIEW">
+          <CollapsibleSectionHeader id={0} label="OVERVIEW" shareButton={<BlockShareButton captureIds={['capture-6', 'capture-7']} mode="stitch" fileName={`${ticker}-overview`} />}>
 
           {/* Price projection */}
           <ChildCollapsibleLayer id={6} header={
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>PRICE PROJECTION</p>
-          }>
-          <div className="px-5 py-4">
+          } shareButton={<BlockShareButton captureIds={['capture-6']} mode="single" fileName={`${ticker}-price-projection`} />}>
+          <div className="px-5 py-4" id="capture-6">
             <p className="text-[11px] font-bold tracking-widest mb-3" style={{ color: "#00ff41" }}>{ticker} Price In 5 Years (Projected)</p>
             <div className="flex items-center gap-4">
               <div className="flex-1 text-center">
@@ -322,7 +323,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           {/* ── Scorecard ────────────────────────────────────────────────────── */}
           <ChildCollapsibleLayer id={7} header={
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>WHAT YOU ARE BUYING</p>
-          }>
+          } shareButton={<BlockShareButton captureIds={['capture-7']} mode="single" fileName={`${ticker}-scorecard`} />}>
+          <div id="capture-7">
           {(() => {
             // 5Y RETURN color
             const stockMult = currentPrice && blendedPrice ? blendedPrice / currentPrice : null;
@@ -405,12 +407,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </div>
             ));
           })()}
+          </div>
           </ChildCollapsibleLayer>
 
           {/* ── About the Business ──────────────────────────────────────────────── */}
           <ChildCollapsibleLayer id={8} header={
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>ABOUT THE BUSINESS</p>
-          }>
+          } shareButton={<BlockShareButton captureIds={['capture-8-product', 'capture-8-geo']} mode="multi" fileName={`${ticker}-segments`} />}>
           {(() => {
           const rawProduct = scoreEx != null ? scoreEx.product_segments : undefined;
           const rawGeo     = scoreEx != null ? scoreEx.geo_segments     : undefined;
@@ -430,16 +433,20 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
               {/* Product Revenue */}
               {productSegs.length > 0 && (
-                <SegmentBreakdown
-                  title="PRODUCT BREAKDOWN"
-                  segs={productSegs}
-                  borderedBottom={geoSegs.length > 0}
-                />
+                <div id="capture-8-product">
+                  <SegmentBreakdown
+                    title="PRODUCT BREAKDOWN"
+                    segs={productSegs}
+                    borderedBottom={geoSegs.length > 0}
+                  />
+                </div>
               )}
 
               {/* Geographic Revenue */}
               {geoSegs.length > 0 && (
-                <SegmentBreakdown title="GEOGRAPHIC BREAKDOWN" segs={geoSegs} />
+                <div id="capture-8-geo">
+                  <SegmentBreakdown title="GEOGRAPHIC BREAKDOWN" segs={geoSegs} />
+                </div>
               )}
             </>
           );
@@ -451,7 +458,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </CollapsibleSectionHeader>
 
           {/* Market Comparison */}
-          <CollapsibleSectionHeader id={1} label="MARKET COMPARISON">
+          <CollapsibleSectionHeader id={1} label="MARKET COMPARISON" shareButton={<BlockShareButton captureIds={['capture-9', 'capture-10', 'capture-11']} mode="multi" fileName={`${ticker}-market`} />}>
           {(() => {
           // ── Data ──────────────────────────────────────────────────────────────
           const peRatio      = score?.pe_ratio          != null ? Number(score.pe_ratio)          : null;
@@ -681,13 +688,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             inverse: boolean,
             metricType: "pe" | "fcf" | "div",
             id: number,
+            captureId: string,
           ) {
             const verdict = getVerdict(current, tableRows, inverse, metricType);
             return (
               <ChildCollapsibleLayer key={title} id={id} header={
                 <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>{title}</p>
-              }>
-                <div className="px-5 py-5" style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
+              } shareButton={<BlockShareButton captureIds={[captureId]} mode="single" fileName={`${ticker}-${captureId}`} />}>
+                <div id={captureId} className="px-5 py-5" style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
                   {/* Bar chart */}
                   {renderBarChart(groups, current, fmt)}
 
@@ -740,7 +748,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_PE_NOW  },
                   { label: "S&P 500 5Y Avg",      them: SP500_PE_5Y   },
                 ],
-                fmtPe, false, "pe", 9,
+                fmtPe, false, "pe", 9, "capture-9",
               )}
               {renderMetric(
                 "FCF YIELD ANALYSIS", fcfYield,
@@ -756,7 +764,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_FCF_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_FCF_5Y  },
                 ],
-                fmtYld, true, "fcf", 10,
+                fmtYld, true, "fcf", 10, "capture-10",
               )}
               {renderMetric(
                 "DIVIDEND YIELD ANALYSIS", divYield,
@@ -772,7 +780,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_DIV_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_DIV_5Y  },
                 ],
-                fmtYld, true, "div", 11,
+                fmtYld, true, "div", 11, "capture-11",
               )}
             </>
           );
@@ -789,8 +797,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 3 independent methods blended into a single 5-year price target
               </p>
             </>
-          )}>
-
+          )} shareButton={<BlockShareButton captureIds={['capture-2']} mode="single" fileName={`${ticker}-layer1`} />}>
+          <div id="capture-2">
           {/* Compact summary row */}
           <p className="text-center text-[9px] font-mono tracking-widest py-2.5" style={{ color: "rgba(0,255,65,0.45)", borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
             {score?.ppm_cagr != null ? `~${(Number(score.ppm_cagr) * 100).toFixed(1)}% PER YEAR` : "—"}
@@ -1214,7 +1222,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </div>
             );
           })()}
-
+          </div>
         </CollapsibleLayer>
 
           {/* Layer 2: Growth */}
@@ -1227,7 +1235,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 Historical financials and growth trajectory
               </p>
             </>
-          )}>
+          )} shareButton={<BlockShareButton captureIds={['capture-3']} mode="single" fileName={`${ticker}-layer2`} />}>
+          <div id="capture-3">
           {/* Bar charts — 5-year actuals */}
           {(() => {
             type FundRow = { fiscal_year: number; revenue: number | null; ebitda: number | null; free_cash_flow: number | null };
@@ -1641,6 +1650,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </>
             );
           })()}
+          </div>
         </CollapsibleLayer>
 
           {/* Layer 3: Health */}
@@ -1648,8 +1658,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 3 — FINANCIAL HEALTH
             </p>
-          )}>
-          <div className="px-5 pt-4 pb-3">
+          )} shareButton={<BlockShareButton captureIds={['capture-4']} mode="single" fileName={`${ticker}-layer3`} />}>
+          <div className="px-5 pt-4 pb-3" id="capture-4">
             <div className="flex items-center rounded-lg p-4 mb-3" style={{ border: "1px solid rgba(0,255,65,0.2)" }}>
               <div className="flex-1 flex flex-col items-center">
                 <p className="text-4xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
@@ -1681,8 +1691,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 4 — FINAL SCORE
             </p>
-          )}>
-          <div className="px-5 py-6 space-y-3">
+          )} shareButton={<BlockShareButton captureIds={['capture-5']} mode="single" fileName={`${ticker}-layer4`} />}>
+          <div className="px-5 py-6 space-y-3" id="capture-5">
             {/* ROW 1–3 — Column: bordered label box → weight → score */}
             <div className="grid grid-cols-3 gap-2">
               {[

@@ -83,10 +83,12 @@ const card: React.CSSProperties = { border: "1px solid rgba(0,255,65,0.2)", back
 export function CollapsibleLayer({
   id,
   header,
+  shareButton,
   children,
 }: {
   id: number
   header: React.ReactNode
+  shareButton?: React.ReactNode
   children: React.ReactNode
 }) {
   const { opens, toggle } = useLayerCtx()
@@ -103,13 +105,18 @@ export function CollapsibleLayer({
         onClick={() => toggle(id)}
       >
         <div className="flex-1 min-w-0">{header}</div>
-        <div className="ml-3 mt-0.5 flex-shrink-0" style={{ color: "rgba(0,255,65,0.4)" }}>
-          <svg
-            width="12" height="12" viewBox="0 0 12 12" fill="none"
-            style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
-          >
-            <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className="flex items-center gap-2 ml-3 mt-0.5 flex-shrink-0">
+          {open && shareButton && (
+            <div onClick={e => e.stopPropagation()}>{shareButton}</div>
+          )}
+          <div style={{ color: "rgba(0,255,65,0.4)" }}>
+            <svg
+              width="12" height="12" viewBox="0 0 12 12" fill="none"
+              style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+            >
+              <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 300ms ease-in-out' }}>
@@ -124,10 +131,12 @@ export function CollapsibleLayer({
 export function CollapsibleSectionHeader({
   id,
   label,
+  shareButton,
   children,
 }: {
   id: number
   label: string
+  shareButton?: React.ReactNode
   children: React.ReactNode
 }) {
   const { opens, toggle } = useLayerCtx()
@@ -140,13 +149,18 @@ export function CollapsibleSectionHeader({
         onClick={() => toggle(id)}
       >
         <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>{label}</p>
-        <div style={{ color: "rgba(0,255,65,0.4)" }}>
-          <svg
-            width="12" height="12" viewBox="0 0 12 12" fill="none"
-            style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
-          >
-            <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className="flex items-center gap-2">
+          {open && shareButton && (
+            <div onClick={e => e.stopPropagation()}>{shareButton}</div>
+          )}
+          <div style={{ color: "rgba(0,255,65,0.4)" }}>
+            <svg
+              width="12" height="12" viewBox="0 0 12 12" fill="none"
+              style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+            >
+              <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 300ms ease-in-out' }}>
@@ -163,10 +177,12 @@ export function CollapsibleSectionHeader({
 export function ChildCollapsibleLayer({
   id,
   header,
+  shareButton,
   children,
 }: {
   id: number
   header: React.ReactNode
+  shareButton?: React.ReactNode
   children: React.ReactNode
 }) {
   const { opens, toggle } = useLayerCtx()
@@ -180,13 +196,18 @@ export function ChildCollapsibleLayer({
         onClick={() => toggle(id)}
       >
         <div className="flex-1 min-w-0">{header}</div>
-        <div className="ml-3 mt-0.5 flex-shrink-0" style={{ color: "rgba(0,255,65,0.4)" }}>
-          <svg
-            width="12" height="12" viewBox="0 0 12 12" fill="none"
-            style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
-          >
-            <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className="flex items-center gap-2 ml-3 mt-0.5 flex-shrink-0">
+          {open && shareButton && (
+            <div onClick={e => e.stopPropagation()}>{shareButton}</div>
+          )}
+          <div style={{ color: "rgba(0,255,65,0.4)" }}>
+            <svg
+              width="12" height="12" viewBox="0 0 12 12" fill="none"
+              style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+            >
+              <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 300ms ease-in-out' }}>

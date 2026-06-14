@@ -56,8 +56,10 @@ function buildCaption(
   }
   lines.push('')
   lines.push('Analysed by StockSnack')
-  lines.push('stocksnack.app')
-  lines.push('PROMO CODE: SNACKBUDDY50 for 50% off Pro')
+  lines.push('')
+  lines.push('Try it free → stocksnack.app')
+  lines.push('')
+  lines.push('Use code SNACKBUDDY50 for 50% off Pro')
   return lines.join('\n')
 }
 

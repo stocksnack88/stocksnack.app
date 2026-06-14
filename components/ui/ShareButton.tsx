@@ -30,7 +30,9 @@ function buildShareText(p: Props): string {
     `Final Score: ${final_}\n` +
     `\n` +
     `Analysed by StockSnack\n` +
-    `stocksnack.app\n` +
+    `\n` +
+    `Try it free → stocksnack.app\n` +
+    `\n` +
     `Use code SNACKBUDDY50 for 50% off Pro`
   )
 }

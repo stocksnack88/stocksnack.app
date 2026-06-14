@@ -7,6 +7,7 @@ import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
 import ScreenerTableErrorBoundary from "@/components/ui/ScreenerTableErrorBoundary";
 import NavHeightLogger from "@/components/ui/NavHeightLogger";
 import OnboardingModal from "@/components/ui/OnboardingModal";
+import { getDailyFreeStocks } from "@/lib/free-stocks";
 
 const FREE_LIMIT = 5;
 const TRIAL_DURATION_MS = 5 * 60 * 1000;
@@ -98,43 +99,6 @@ export default async function ScreenerPage({
     has_anomaly: r.has_anomaly ?? null,
     anomaly_reasons: r.anomaly_reasons ?? null,
   }));
-
-  // Daily random 5 for free users — seed based on UTC date so it rotates at midnight
-  function getDailyFreeStocks(allStocks: ScreenerRow[], limit: number): { visible: ScreenerRow[], locked: ScreenerRow[] } {
-    const today = new Date();
-    const seed = today.getUTCFullYear() * 10000 + (today.getUTCMonth() + 1) * 100 + today.getUTCDate();
-
-    let s = seed;
-    function seededRandom() {
-      s = (s * 1664525 + 1013904223) & 0xffffffff;
-      return Math.abs(s) / 0xffffffff;
-    }
-
-    function seededShuffle<T>(arr: T[]): T[] {
-      const a = [...arr];
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(seededRandom() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    }
-
-    const goodStocks = allStocks.filter(s => s.signal === 'BUY+' || s.signal === 'BUY');
-    const restStocks = allStocks.filter(s => s.signal !== 'BUY+' && s.signal !== 'BUY');
-
-    const shuffledGood = seededShuffle(goodStocks);
-    const shuffledRest = seededShuffle(restStocks);
-
-    const selected = [
-      ...shuffledGood.slice(0, 2),
-      ...shuffledRest.slice(0, limit - 2)
-    ];
-
-    const freeSet = new Set(selected.map(s => s.ticker));
-    const visible = allStocks.filter(s => freeSet.has(s.ticker));
-    const locked = allStocks.filter(s => !freeSet.has(s.ticker));
-    return { visible, locked };
-  }
 
   const { visible: rawVisible } = effectivelyPro
     ? { visible: stocks }

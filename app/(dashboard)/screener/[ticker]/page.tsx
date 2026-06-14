@@ -11,6 +11,7 @@ import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 import HazardTooltip from "@/components/ui/HazardTooltip";
 import ShareButton from "@/components/ui/ShareButton";
 import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
+import { getDailyFreeTickers } from "@/lib/free-stocks";
 
 const FREE_LIMIT = 5;
 
@@ -105,13 +106,17 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   );
   const { data: { session } } = await supabase.auth.getSession();
 
-  // Top FREE_LIMIT tickers by score → accessible to free users
-  const { data: topRows } = await supabaseAdmin
+  // Daily free tickers — same date-seeded algorithm as the screener list
+  const { data: allTickerRows } = await supabaseAdmin
     .from("stock_scores")
-    .select("ticker")
-    .order("final_score", { ascending: false })
-    .limit(FREE_LIMIT);
-  const freeTickers = new Set((topRows ?? []).map((r: { ticker: string }) => r.ticker));
+    .select("ticker, signal");
+  const freeTickers = getDailyFreeTickers(
+    (allTickerRows ?? []).map((r: { ticker: string; signal: string | null }) => ({
+      ticker: r.ticker,
+      signal: r.signal,
+    })),
+    FREE_LIMIT,
+  );
 
   const TRIAL_DURATION_MS = 5 * 60 * 1000;
   const EXTENSION_DURATION_MS = 15 * 60 * 1000;

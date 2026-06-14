@@ -220,6 +220,7 @@ type Props = {
   captureIds: string[]
   mode: 'single' | 'stitch' | 'multi'
   fileName?: string
+  blockTitle?: string
   ticker?: string
   companyName?: string | null
   signal?: string | null
@@ -230,6 +231,7 @@ type Props = {
 export default function BlockShareButton({
   captureIds,
   fileName = 'stocksnack',
+  blockTitle,
   ticker,
   companyName,
   signal,
@@ -263,6 +265,35 @@ export default function BlockShareButton({
       // Content wrapper — what html2canvas will screenshot
       const contentWrap = document.createElement('div')
       contentWrap.style.cssText = 'padding:20px;background:#000000;'
+
+      // Header strip — mirrors footer style
+      const header = document.createElement('div')
+      header.style.cssText = [
+        'display:flex',
+        'align-items:center',
+        'justify-content:space-between',
+        'margin-bottom:16px',
+        'padding:10px 0',
+        'background:#001a00',
+        'border-bottom:1px solid rgba(0,255,65,0.2)',
+        "font-family:'Courier New',Courier,monospace",
+        'font-size:11px',
+        'font-weight:bold',
+        'color:#00ff88',
+        'letter-spacing:0.12em',
+      ].join(';')
+      const hLeft = document.createElement('span')
+      hLeft.textContent = 'STOCKSNACK'
+      const hCenter = document.createElement('span')
+      hCenter.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);'
+      hCenter.textContent = blockTitle || ''
+      const hRight = document.createElement('span')
+      hRight.textContent = [ticker, companyName].filter(Boolean).join(' — ')
+      header.style.position = 'relative'
+      header.appendChild(hLeft)
+      if (blockTitle) header.appendChild(hCenter)
+      header.appendChild(hRight)
+      contentWrap.appendChild(header)
 
       // Clone each source element into the render div, stacked vertically
       for (let i = 0; i < sourceEls.length; i++) {

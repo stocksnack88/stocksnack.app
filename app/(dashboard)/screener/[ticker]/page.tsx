@@ -9,6 +9,7 @@ import DescriptionToggle from "@/components/ui/DescriptionToggle";
 import HealthCategories, { type FundRow as HealthFundRow } from "@/components/ui/HealthCategories";
 import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 import HazardTooltip from "@/components/ui/HazardTooltip";
+import ShareButton from "@/components/ui/ShareButton";
 import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
 
 const FREE_LIMIT = 5;
@@ -263,7 +264,18 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
         {/* ── Overview + Layers 1–5 ───────────────────────────────────────────── */}
         <LayerProvider count={12} briefExpand={{ startMs: 400, durationMs: 800 }} defaultOpenIds={[5]} childMap={{ 0: [6, 7, 8], 1: [9, 10, 11] }}>
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-2">
+            <ShareButton
+              ticker={ticker}
+              companyName={stock?.name ?? null}
+              signal={score?.signal ?? null}
+              projectedReturn={blendedPrice != null && currentPrice != null && currentPrice > 0 ? blendedPrice / currentPrice : null}
+              cagr={score?.ppm_cagr != null ? Number(score.ppm_cagr) : null}
+              growthScore={score?.growth_score != null ? Number(score.growth_score) : null}
+              healthPasses={score?.health_passes ?? null}
+              scoredTotal={scoredTotal}
+              finalScore={score?.final_score != null ? Number(score.final_score) : null}
+            />
             <ExpandCollapseButton />
           </div>
 

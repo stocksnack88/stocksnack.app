@@ -76,3 +76,5 @@ WeightedAverageNumberOfDilutedSharesOutstanding,shares_outstanding,1,2026-05-17,
 WeightedAverageNumberOfSharesOutstandingBasic,shares_outstanding,2,2026-05-17,basic weighted average, less preferred than diluted but widely available.
 CommonStockSharesOutstanding,shares_outstanding,3,2026-05-17,point in time snapshot, optional in XBRL, some companies don't file this (e.g. META).
 CommonStockSharesIssued,shares_outstanding,4,2026-05-17,last resort, includes treasury shares.
+AssetsCurrent,current_assets,1,2026-06-15,confirmed AAPL — balance sheet current assets
+LiabilitiesCurrent,current_liabilities,1,2026-06-15,confirmed AAPL — balance sheet current liabilities

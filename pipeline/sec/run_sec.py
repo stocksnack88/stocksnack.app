@@ -287,6 +287,7 @@ _BALANCE_FIELDS = {
     "cashAndCashEquivalents", "totalDebt", "totalStockholdersEquity",
     "totalAssets", "totalLiabilities", "retainedEarnings",
     "preferredStock", "goodwillAndIntangibleAssets", "weightedAverageShsOutDil",
+    "currentAssets", "currentLiabilities",
 }
 
 _CASHFLOW_FIELDS = {

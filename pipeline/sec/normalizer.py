@@ -50,6 +50,8 @@ _FIELD_MAP: list[tuple[str, str]] = [
     ("preferred_stock",           "preferredStock"),
     ("goodwill_and_intangibles",  "goodwillAndIntangibleAssets"),
     ("shares_outstanding",        "weightedAverageShsOutDil"),
+    ("current_assets",            "currentAssets"),
+    ("current_liabilities",       "currentLiabilities"),
 ]
 
 # SEC stores these as positive outflows; FMP expects negative

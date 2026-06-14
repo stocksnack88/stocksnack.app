@@ -12,7 +12,20 @@ async function captureElement(id: string): Promise<HTMLCanvasElement | null> {
     backgroundColor: '#000000',
     scale: SCALE,
     useCORS: true,
+    allowTaint: true,
+    foreignObjectRendering: false,
     logging: false,
+    onclone: (_clonedDoc: Document, clonedEl: HTMLElement) => {
+      const styles = Array.from(document.styleSheets)
+        .flatMap(sheet => {
+          try { return Array.from(sheet.cssRules).map(r => r.cssText) }
+          catch { return [] }
+        })
+        .join('\n')
+      const style = clonedEl.ownerDocument.createElement('style')
+      style.textContent = styles
+      clonedEl.ownerDocument.head.appendChild(style)
+    },
   })
 }
 
@@ -31,7 +44,7 @@ function addBranding(src: HTMLCanvasElement): HTMLCanvasElement {
   ctx.font = `bold ${11 * SCALE}px "Courier New", monospace`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText('stocksnack.app  ·  SNACKBUDDY50', src.width / 2, src.height + brandH / 2)
+  ctx.fillText('stocksnack.app  ·  PROMO CODE: SNACKBUDDY50', src.width / 2, src.height + brandH / 2)
   return out
 }
 
@@ -58,21 +71,181 @@ function toBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   )
 }
 
-function downloadCanvas(canvas: HTMLCanvasElement, name: string) {
-  const a = document.createElement('a')
-  a.href = canvas.toDataURL('image/png')
-  a.download = name
-  a.click()
+type ModalImage = { dataUrl: string; blob: Blob; name: string }
+
+function buildCaption(
+  ticker?: string,
+  companyName?: string | null,
+  signal?: string | null,
+  projectedReturn?: number | null,
+  cagr?: number | null,
+): string {
+  const lines: string[] = []
+  if (ticker || companyName) {
+    lines.push([ticker, companyName].filter(Boolean).join(' — '))
+  }
+  if (signal) lines.push(`Signal: ${signal}`)
+  if (projectedReturn != null || cagr != null) {
+    const ret = projectedReturn != null ? `${projectedReturn.toFixed(1)}x` : null
+    const cagrStr = cagr != null ? `${(cagr * 100).toFixed(1)}% CAGR` : null
+    const parts = [ret, cagrStr].filter(Boolean).join(' (')
+    lines.push(`5Y Projected Return: ${parts}${cagrStr ? ')' : ''}`)
+  }
+  lines.push('')
+  lines.push('Analysed by StockSnack')
+  lines.push('stocksnack.app')
+  lines.push('PROMO CODE: SNACKBUDDY50 for 50% off Pro')
+  return lines.join('\n')
+}
+
+function ShareModal({
+  images,
+  defaultCaption,
+  onClose,
+}: {
+  images: ModalImage[]
+  defaultCaption: string
+  onClose: () => void
+}) {
+  const [caption, setCaption] = useState(defaultCaption)
+  const first = images[0]
+
+  const encodedCaption = encodeURIComponent(caption)
+
+  async function handleDownload() {
+    for (let i = 0; i < images.length; i++) {
+      const a = document.createElement('a')
+      a.href = images[i].dataUrl
+      a.download = images[i].name
+      a.click()
+      if (i < images.length - 1) await new Promise(r => setTimeout(r, 300))
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-sm rounded-lg overflow-hidden flex flex-col"
+        style={{ background: '#050505', border: '1px solid rgba(0,255,65,0.25)', maxHeight: '90vh' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(0,255,65,0.1)' }}>
+          <p className="font-mono text-[11px] font-bold tracking-widest" style={{ color: 'rgba(0,255,65,0.7)' }}>SHARE IMAGE</p>
+          <button
+            onClick={onClose}
+            className="font-mono text-[11px] tracking-wider"
+            style={{ color: 'rgba(0,255,65,0.4)' }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1">
+          {/* Preview */}
+          <div className="px-4 pt-4 pb-3">
+            <img
+              src={first.dataUrl}
+              alt="Preview"
+              className="w-full rounded"
+              style={{ border: '1px solid rgba(0,255,65,0.1)', maxHeight: 220, objectFit: 'contain', background: '#000' }}
+            />
+            {images.length > 1 && (
+              <p className="mt-1.5 font-mono text-[9px] text-center" style={{ color: 'rgba(0,255,65,0.3)' }}>
+                +{images.length - 1} MORE IMAGE{images.length > 2 ? 'S' : ''}
+              </p>
+            )}
+          </div>
+
+          {/* Caption */}
+          <div className="px-4 pb-3">
+            <p className="font-mono text-[9px] tracking-widest mb-1.5" style={{ color: 'rgba(0,255,65,0.4)' }}>CAPTION (EDITABLE)</p>
+            <textarea
+              value={caption}
+              onChange={e => setCaption(e.target.value)}
+              rows={7}
+              className="w-full rounded px-3 py-2 font-mono text-[11px] leading-relaxed resize-none"
+              style={{
+                background: 'rgba(0,255,65,0.04)',
+                border: '1px solid rgba(0,255,65,0.15)',
+                color: 'rgba(0,255,65,0.8)',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+            <a
+              href={`https://wa.me/?text=${encodedCaption}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest text-center"
+              style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366', border: '1px solid rgba(37,211,102,0.3)' }}
+            >
+              WHATSAPP
+            </a>
+            <a
+              href={`https://t.me/share/url?url=stocksnack.app&text=${encodedCaption}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest text-center"
+              style={{ background: 'rgba(0,136,204,0.12)', color: '#0088cc', border: '1px solid rgba(0,136,204,0.3)' }}
+            >
+              TELEGRAM
+            </a>
+            <a
+              href={`https://twitter.com/intent/tweet?text=${encodedCaption}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest text-center"
+              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.15)' }}
+            >
+              TWITTER / X
+            </a>
+            <button
+              onClick={handleDownload}
+              className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest"
+              style={{ background: 'rgba(0,255,65,0.08)', color: 'rgba(0,255,65,0.8)', border: '1px solid rgba(0,255,65,0.25)' }}
+            >
+              DOWNLOAD
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 type Props = {
   captureIds: string[]
   mode: 'single' | 'stitch' | 'multi'
   fileName?: string
+  ticker?: string
+  companyName?: string | null
+  signal?: string | null
+  projectedReturn?: number | null
+  cagr?: number | null
 }
 
-export default function BlockShareButton({ captureIds, mode, fileName = 'stocksnack' }: Props) {
+export default function BlockShareButton({
+  captureIds,
+  mode,
+  fileName = 'stocksnack',
+  ticker,
+  companyName,
+  signal,
+  projectedReturn,
+  cagr,
+}: Props) {
   const [status, setStatus] = useState<'idle' | 'busy'>('idle')
+  const [modal, setModal] = useState<ModalImage[] | null>(null)
+
+  const defaultCaption = buildCaption(ticker, companyName, signal, projectedReturn, cagr)
 
   async function handleShare(e: React.MouseEvent) {
     e.stopPropagation()
@@ -85,40 +258,22 @@ export default function BlockShareButton({ captureIds, mode, fileName = 'stocksn
 
       if (mode === 'multi') {
         const branded = canvases.map(addBranding)
-        const files = await Promise.all(
+        const items: ModalImage[] = await Promise.all(
           branded.map(async (c, i) => {
             const blob = await toBlob(c)
-            return new File([blob], `${fileName}-${i + 1}.png`, { type: 'image/png' })
+            return { dataUrl: c.toDataURL('image/png'), blob, name: `${fileName}-${i + 1}.png` }
           })
         )
-        if (typeof navigator !== 'undefined' && navigator.share) {
-          try {
-            if (navigator.canShare?.({ files })) {
-              await navigator.share({ files, title: 'StockSnack Analysis' })
-              return
-            }
-          } catch { /* fall through */ }
-        }
-        for (let i = 0; i < branded.length; i++) {
-          downloadCanvas(branded[i], files[i].name)
-          if (i < branded.length - 1) await new Promise(r => setTimeout(r, 300))
-        }
+        setModal(items)
       } else {
         const merged = mode === 'stitch' && canvases.length > 1
           ? await stitchVertical(canvases)
           : canvases[0]
         const branded = addBranding(merged)
         const blob = await toBlob(branded)
-        const file = new File([blob], `${fileName}.png`, { type: 'image/png' })
-        if (typeof navigator !== 'undefined' && navigator.share) {
-          try {
-            if (navigator.canShare?.({ files: [file] })) {
-              await navigator.share({ files: [file], title: 'StockSnack Analysis' })
-              return
-            }
-          } catch { /* fall through */ }
-        }
-        downloadCanvas(branded, `${fileName}.png`)
+        const dataUrl = branded.toDataURL('image/png')
+        const name = `${fileName}.png`
+        setModal([{ dataUrl, blob, name }])
       }
     } catch { /* silent */ } finally {
       setStatus('idle')
@@ -126,13 +281,22 @@ export default function BlockShareButton({ captureIds, mode, fileName = 'stocksn
   }
 
   return (
-    <button
-      onClick={handleShare}
-      disabled={status === 'busy'}
-      className="font-mono text-[10px] tracking-wider transition-colors"
-      style={{ color: status === 'busy' ? 'rgba(0,255,65,0.15)' : 'rgba(0,255,65,0.35)' }}
-    >
-      {status === 'busy' ? '···' : 'SHARE'}
-    </button>
+    <>
+      <button
+        onClick={handleShare}
+        disabled={status === 'busy'}
+        className="font-mono text-[10px] tracking-wider transition-colors"
+        style={{ color: status === 'busy' ? 'rgba(0,255,65,0.15)' : 'rgba(0,255,65,0.35)' }}
+      >
+        {status === 'busy' ? '···' : 'SHARE'}
+      </button>
+      {modal && (
+        <ShareModal
+          images={modal}
+          defaultCaption={defaultCaption}
+          onClose={() => setModal(null)}
+        />
+      )}
+    </>
   )
 }

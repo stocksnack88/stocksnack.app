@@ -14,6 +14,311 @@ export type HealthCat = {
   checks: HealthCheck[];
 };
 
+export type FundRow = {
+  fiscal_year: number;
+  cash_and_equivalents: number | null;
+  total_debt: number | null;
+  debt_to_equity: number | null;
+  total_equity: number | null;
+  buybacks: number | null;
+  roe: number | null;
+  operating_income: number | null;
+  total_assets: number | null;
+  gross_margin: number | null;
+  interest_coverage: number | null;
+  net_margin: number | null;
+  eps: number | null;
+  operating_cash_flow: number | null;
+  free_cash_flow: number | null;
+  capex: number | null;
+  dividends_paid: number | null;
+  net_income: number | null;
+  market_cap_at_year: number | null;
+};
+
+// ── Metric detail map ────────────────────────────────────────────────────────
+
+type MetricField = {
+  key: keyof FundRow;
+  label: string;
+  fmt: "bn" | "pct" | "x" | "dollar";
+  hib: boolean;   // higher is better
+  abs?: boolean;  // show absolute value (for stored-negative outflows)
+};
+
+type CheckDetail = {
+  fields: MetricField[];
+  description: string;
+};
+
+const METRIC_DETAIL: [string, CheckDetail][] = [
+  ["cash/debt", {
+    fields: [
+      { key: "cash_and_equivalents", label: "CASH", fmt: "bn", hib: true },
+      { key: "total_debt",           label: "TOTAL DEBT", fmt: "bn", hib: false },
+    ],
+    description: "Compares cash on hand to total debt — more cash than debt signals the company can meet obligations without stress.",
+  }],
+  ["debt/equity", {
+    fields: [{ key: "debt_to_equity", label: "DEBT / EQUITY", fmt: "x", hib: false }],
+    description: "Total debt divided by shareholders' equity — measures financial leverage; lower means less risk.",
+  }],
+  ["retained earnings", {
+    fields: [{ key: "total_equity", label: "TOTAL EQUITY", fmt: "bn", hib: true }],
+    description: "Total shareholders' equity grows when a company retains profits year after year instead of paying them all out.",
+  }],
+  ["active buybacks", {
+    fields: [{ key: "buybacks", label: "BUYBACKS", fmt: "bn", hib: true, abs: true }],
+    description: "Cash spent repurchasing shares — reduces share count and increases each remaining shareholder's ownership.",
+  }],
+  ["roe", {
+    fields: [{ key: "roe", label: "RETURN ON EQUITY", fmt: "pct", hib: true }],
+    description: "Net income divided by shareholders' equity — how efficiently the company turns invested capital into profit.",
+  }],
+  ["rota", {
+    fields: [
+      { key: "operating_income", label: "OPERATING INCOME", fmt: "bn", hib: true },
+      { key: "total_assets",     label: "TOTAL ASSETS",     fmt: "bn", hib: true },
+    ],
+    description: "Operating income divided by total assets — how effectively the company generates profit from everything it owns.",
+  }],
+  ["gross margin", {
+    fields: [{ key: "gross_margin", label: "GROSS MARGIN", fmt: "pct", hib: true }],
+    description: "Revenue minus cost of goods sold as a percentage — reflects pricing power and production cost efficiency.",
+  }],
+  ["interest", {
+    fields: [{ key: "interest_coverage", label: "INTEREST COVERAGE", fmt: "x", hib: true }],
+    description: "Operating income divided by interest expense — how many times the company can cover its debt payments from earnings.",
+  }],
+  ["net margin", {
+    fields: [{ key: "net_margin", label: "NET MARGIN", fmt: "pct", hib: true }],
+    description: "Net income as a percentage of revenue — how many cents of profit the company keeps from every dollar of sales.",
+  }],
+  ["eps growth", {
+    fields: [{ key: "eps", label: "EARNINGS PER SHARE", fmt: "dollar", hib: true }],
+    description: "Net income divided by shares outstanding — the profit attributable to each share, which should grow over time.",
+  }],
+  ["ocf", {
+    fields: [{ key: "operating_cash_flow", label: "OPERATING CASH FLOW", fmt: "bn", hib: true }],
+    description: "Cash generated from core business operations — the real cash engine before investment and financing.",
+  }],
+  ["fcf growth", {
+    fields: [{ key: "free_cash_flow", label: "FREE CASH FLOW", fmt: "bn", hib: true }],
+    description: "Operating cash flow minus capital expenditure — the cash the business generates after maintaining its asset base.",
+  }],
+  ["capex", {
+    fields: [{ key: "capex", label: "CAPITAL EXPENDITURE", fmt: "bn", hib: false, abs: true }],
+    description: "Cash spent on property, plant, and equipment — high capex relative to cash flow signals a capital-intensive business.",
+  }],
+  ["payout ratio", {
+    fields: [
+      { key: "free_cash_flow",  label: "FREE CASH FLOW",  fmt: "bn", hib: true },
+      { key: "dividends_paid",  label: "DIVIDENDS PAID",  fmt: "bn", hib: false, abs: true },
+      { key: "buybacks",        label: "BUYBACKS",        fmt: "bn", hib: false, abs: true },
+    ],
+    description: "Whether dividends and buybacks combined are covered by free cash flow — returns exceeding FCF may not be sustainable.",
+  }],
+  ["consistent earnings", {
+    fields: [{ key: "net_income", label: "NET INCOME", fmt: "bn", hib: true }],
+    description: "Net profit after all expenses and taxes — should be positive and ideally growing each year.",
+  }],
+  ["debt payoff", {
+    fields: [
+      { key: "total_debt",  label: "TOTAL DEBT",  fmt: "bn", hib: false },
+      { key: "net_income",  label: "NET INCOME",  fmt: "bn", hib: true },
+    ],
+    description: "How long it would take to pay off all debt using net income alone — under 4 years of earnings is considered healthy.",
+  }],
+  ["retained test", {
+    fields: [
+      { key: "total_equity",      label: "TOTAL EQUITY", fmt: "bn", hib: true },
+      { key: "market_cap_at_year", label: "MARKET CAP",  fmt: "bn", hib: true },
+    ],
+    description: "Tests whether retained earnings have grown market value — market cap growth should exceed the amount retained.",
+  }],
+];
+
+function findDetail(name: string): CheckDetail | null {
+  const lower = name.toLowerCase();
+  const entry = METRIC_DETAIL.find(([k]) => lower.includes(k));
+  return entry ? entry[1] : null;
+}
+
+// ── Formatting helpers ───────────────────────────────────────────────────────
+
+function getVal(row: FundRow, field: MetricField): number | null {
+  const v = row[field.key] as number | null;
+  if (v == null) return null;
+  return field.abs ? Math.abs(v) : v;
+}
+
+function fmtVal(v: number | null, fmt: MetricField["fmt"]): string {
+  if (v == null) return "—";
+  if (fmt === "pct") return `${(v * 100).toFixed(1)}%`;
+  if (fmt === "x") return `${v.toFixed(1)}x`;
+  if (fmt === "dollar") {
+    const sign = v < 0 ? "-" : "";
+    return `${sign}$${Math.abs(v).toFixed(2)}`;
+  }
+  // bn
+  const abs = Math.abs(v);
+  const sign = v < 0 ? "-" : "";
+  if (abs >= 1e12) return `${sign}$${(abs / 1e12).toFixed(1)}T`;
+  if (abs >= 100e9) return `${sign}$${Math.round(abs / 1e9)}bn`;
+  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(1)}bn`;
+  if (abs >= 1e6) return `${sign}$${Math.round(abs / 1e6)}m`;
+  return `${sign}$${abs.toFixed(0)}`;
+}
+
+function valColor(v: number | null, hib: boolean): string {
+  if (v == null) return "rgba(0,255,65,0.3)";
+  if (hib) return v >= 0 ? "#00ff41" : "#ef4444";
+  return v <= 0 ? "#00ff41" : "#ef4444";
+}
+
+function sentenceCase(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+// ── Sparkline ────────────────────────────────────────────────────────────────
+
+function Sparkline({ rows, field }: { rows: FundRow[]; field: MetricField }) {
+  const vals = rows.map(r => getVal(r, field));
+  const nums = vals.filter((v): v is number => v != null);
+  if (nums.length < 2) return null;
+
+  const W = 80, H = 28;
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  const range = max - min || 1;
+
+  const points = vals
+    .map((v, i) => {
+      if (v == null) return null;
+      const x = (i / (vals.length - 1)) * W;
+      const y = H - ((v - min) / range) * (H - 4) - 2;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .filter(Boolean)
+    .join(" ");
+
+  if (!points) return null;
+
+  const first = nums[0];
+  const last = nums[nums.length - 1];
+  const color = (field.hib ? last >= first : last <= first) ? "#00ff41" : "#ef4444";
+
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: "block", flexShrink: 0 }}>
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeOpacity="0.85"
+      />
+    </svg>
+  );
+}
+
+// ── Verdict ──────────────────────────────────────────────────────────────────
+
+function genVerdict(field: MetricField, rows: FundRow[]): string {
+  const pairs = rows
+    .map(r => { const v = getVal(r, field); return v != null ? { v, y: r.fiscal_year } : null; })
+    .filter(Boolean) as { v: number; y: number }[];
+  if (pairs.length < 2) return "";
+
+  const first = pairs[0];
+  const last = pairs[pairs.length - 1];
+  const pct = first.v !== 0 ? Math.round(Math.abs((last.v - first.v) / Math.abs(first.v)) * 100) : 0;
+
+  const prev = pairs[pairs.length - 2];
+  if (prev.v <= 0 && last.v > 0)
+    return `${sentenceCase(field.label)} turned positive in ${last.y} — a significant improvement.`;
+  if (prev.v >= 0 && last.v < 0)
+    return `${sentenceCase(field.label)} turned negative in ${last.y} — a trend worth monitoring.`;
+
+  const improved = field.hib ? last.v > first.v : last.v < first.v;
+  if (improved) {
+    if (pct > 80) return `${sentenceCase(field.label)} has grown strongly since ${first.y} — positive trend.`;
+    if (pct > 30) return `Up ${pct}% since ${first.y} — consistent improvement.`;
+    if (pct === 0) return `Roughly flat since ${first.y} — no material change.`;
+    return `Modestly improved since ${first.y} — moving in the right direction.`;
+  } else {
+    if (pct > 80) return `${sentenceCase(field.label)} has deteriorated significantly since ${first.y} — notable concern.`;
+    if (pct > 30) return `Down ${pct}% since ${first.y} — declining trend to watch.`;
+    if (pct === 0) return `Roughly flat since ${first.y} — no material change.`;
+    return `Slightly worse since ${first.y} — monitor for continued deterioration.`;
+  }
+}
+
+// ── Detail panel ─────────────────────────────────────────────────────────────
+
+function DetailPanel({ detail, rows }: { detail: CheckDetail; rows: FundRow[] }) {
+  const primary = detail.fields[0];
+  const verdict = genVerdict(primary, rows);
+
+  return (
+    <div
+      className="mx-0 mt-1 mb-2 rounded px-3 py-3 space-y-3"
+      style={{ background: "rgba(0,255,65,0.03)", border: "1px solid rgba(0,255,65,0.12)" }}
+    >
+      {/* Description */}
+      <p className="text-[10px] italic leading-relaxed" style={{ color: "rgba(0,255,65,0.45)" }}>
+        {detail.description}
+      </p>
+
+      {/* Table: years as columns, metrics as rows */}
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th className="text-[9px] font-mono text-left pr-2" style={{ color: "rgba(0,255,65,0.3)", paddingBottom: 4 }} />
+              {rows.map(r => (
+                <th key={r.fiscal_year} className="text-[9px] font-mono text-right" style={{ color: "rgba(0,255,65,0.3)", paddingBottom: 4, paddingLeft: 6 }}>
+                  FY{String(r.fiscal_year).slice(2)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {detail.fields.map(field => (
+              <tr key={field.key as string}>
+                <td className="text-[9px] font-mono font-bold tracking-wider pr-2 whitespace-nowrap" style={{ color: "rgba(0,255,65,0.5)", paddingBottom: 3 }}>
+                  {field.label}
+                </td>
+                {rows.map(r => {
+                  const v = getVal(r, field);
+                  return (
+                    <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, field.hib), paddingBottom: 3, paddingLeft: 6 }}>
+                      {fmtVal(v, field.fmt)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Sparkline + verdict */}
+      <div className="flex items-center gap-3">
+        <Sparkline rows={rows} field={primary} />
+        {verdict && (
+          <p className="text-[10px] leading-relaxed flex-1" style={{ color: "rgba(0,255,65,0.5)" }}>
+            {verdict}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Existing explanation map (unchanged) ─────────────────────────────────────
+
 const HEALTH_EXPLANATIONS: { key: string; pass: string; fail: string }[] = [
   { key: "cash/debt",           pass: "Holds more cash than debt — financially secure",                          fail: "Debt exceeds cash — vulnerable in a downturn" },
   { key: "debt/equity",         pass: "Low borrowing vs assets — low financial risk",                            fail: "Heavy borrowing vs assets — higher financial risk" },
@@ -47,12 +352,15 @@ function getCheckExplanation(name: string, pass: boolean): string {
   return entry ? (pass ? entry.pass : entry.fail) : "";
 }
 
+// ── Main component ───────────────────────────────────────────────────────────
+
 type CatLevel = { data: boolean; why: boolean };
 
-export default function HealthCategories({ cats }: { cats: HealthCat[] }) {
+export default function HealthCategories({ cats, fundamentals }: { cats: HealthCat[]; fundamentals?: FundRow[] }) {
   const [catState, setCatState] = useState<Record<string, CatLevel>>(() =>
     Object.fromEntries(cats.map((c) => [c.label, { data: true, why: false }]))
   );
+  const [openRows, setOpenRows] = useState<Set<string>>(new Set());
 
   const toggleData = (label: string) =>
     setCatState((prev) => {
@@ -64,6 +372,13 @@ export default function HealthCategories({ cats }: { cats: HealthCat[] }) {
     setCatState((prev) => {
       const cur = prev[label] ?? { data: true, why: false };
       return { ...prev, [label]: { data: true, why: !cur.why } };
+    });
+
+  const toggleRow = (key: string) =>
+    setOpenRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
     });
 
   return (
@@ -113,7 +428,7 @@ export default function HealthCategories({ cats }: { cats: HealthCat[] }) {
 
             {/* Metric rows — visible when DATA is open */}
             {dataOpen && (
-              <div className="px-5 pb-4 space-y-2">
+              <div className="px-5 pb-4 space-y-1">
                 {cat.checks.length === 0 ? (
                   <p className="text-xs" style={{ color: "rgba(0,255,65,0.25)" }}>No data</p>
                 ) : (
@@ -122,13 +437,17 @@ export default function HealthCategories({ cats }: { cats: HealthCat[] }) {
                     const explanation = notScored
                       ? "Not applicable for banks — excluded from health score"
                       : getCheckExplanation(check.name, check.pass);
+                    const detail = !notScored && fundamentals?.length ? findDetail(check.name) : null;
+                    const rowKey = `${catIdx}-${i}`;
+                    const isOpen = openRows.has(rowKey);
+
                     return (
-                      <div key={i} className="space-y-0.5">
-                        <div className="flex items-center justify-between gap-3">
+                      <div key={i}>
+                        <div className="flex items-center justify-between gap-3 py-0.5">
                           <span className="text-xs flex-1 min-w-0 leading-relaxed" style={{ color: "rgba(0,255,65,0.65)" }}>
                             {check.name}
                           </span>
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <span className="text-xs font-mono" style={{ color: "rgba(0,255,65,0.25)" }}>
                               {notScored ? "—" : `${check.years_passed}/5 yrs`}
                             </span>
@@ -153,8 +472,20 @@ export default function HealthCategories({ cats }: { cats: HealthCat[] }) {
                                 {check.pass ? "PASS" : "FAIL"}
                               </span>
                             )}
+                            {detail && (
+                              <button
+                                className="text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors"
+                                style={isOpen
+                                  ? { borderColor: "rgba(0,255,65,0.7)", color: "rgba(0,255,65,0.9)" }
+                                  : { borderColor: "rgba(0,255,65,0.25)", color: "rgba(0,255,65,0.35)" }}
+                                onClick={() => toggleRow(rowKey)}
+                              >
+                                {isOpen ? "▴" : "▾"}
+                              </button>
+                            )}
                           </div>
                         </div>
+
                         {/* WHY level — explanation text */}
                         {whyOpen && explanation && (
                           <p
@@ -167,6 +498,15 @@ export default function HealthCategories({ cats }: { cats: HealthCat[] }) {
                           >
                             {explanation}
                           </p>
+                        )}
+
+                        {/* Detail panel — smooth slide */}
+                        {detail && (
+                          <div style={{ display: "grid", gridTemplateRows: isOpen ? "1fr" : "0fr", transition: "grid-template-rows 200ms ease-in-out" }}>
+                            <div style={{ overflow: "hidden", minHeight: 0 }}>
+                              <DetailPanel detail={detail} rows={fundamentals!} />
+                            </div>
+                          </div>
                         )}
                       </div>
                     );

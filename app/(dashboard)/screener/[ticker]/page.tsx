@@ -6,7 +6,7 @@ import Link from "next/link";
 import BackButton from "@/components/ui/BackButton";
 import UpgradeButton from "@/components/ui/UpgradeButton";
 import DescriptionToggle from "@/components/ui/DescriptionToggle";
-import HealthCategories from "@/components/ui/HealthCategories";
+import HealthCategories, { type FundRow as HealthFundRow } from "@/components/ui/HealthCategories";
 import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 import HazardTooltip from "@/components/ui/HazardTooltip";
 import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
@@ -139,7 +139,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
     supabaseAdmin.from("stock_prices").select("*").eq("ticker", ticker).single(),
     supabaseAdmin.from("stock_scores").select("*").eq("ticker", ticker).single(),
     supabaseAdmin.from("stock_fundamentals")
-      .select("fiscal_year,revenue,ebitda,free_cash_flow")
+      .select("fiscal_year,revenue,ebitda,free_cash_flow,gross_margin,operating_income,net_income,eps,total_assets,total_debt,total_equity,cash_and_equivalents,operating_cash_flow,capex,dividends_paid,buybacks,net_margin,roe,debt_to_equity,interest_coverage,market_cap_at_year")
       .eq("ticker", ticker)
       .order("fiscal_year", { ascending: true })
       .limit(5),
@@ -1656,7 +1656,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               <div className="h-full rounded-full" style={{ width: `${score?.health_score ?? 0}%`, background: healthColor(score?.health_score), opacity: 0.8 }} />
             </div>
           </div>
-          <HealthCategories cats={healthCats} />
+          <HealthCategories cats={healthCats} fundamentals={fundamentals as HealthFundRow[]} />
         </CollapsibleLayer>
 
           {/* Layer 4: Final */}

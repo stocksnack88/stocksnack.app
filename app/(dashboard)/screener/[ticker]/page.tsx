@@ -8,7 +8,7 @@ import DescriptionToggle from "@/components/ui/DescriptionToggle";
 import HealthCategories from "@/components/ui/HealthCategories";
 import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 import HazardTooltip from "@/components/ui/HazardTooltip";
-import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
+import { LayerProvider, CollapsibleLayer, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
 
 const FREE_LIMIT = 5;
 
@@ -270,16 +270,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </div>
 
         {/* ── Overview + Layers 1–5 ───────────────────────────────────────────── */}
-        <LayerProvider count={12} animCount={6} childMap={{ 0: [6,7,8], 1: [9,10,11] }}>
+        <LayerProvider count={12}>
           <div className="flex justify-end">
             <ExpandCollapseButton />
           </div>
 
-          {/* Overview */}
-          <CollapsibleSectionHeader id={0} label="OVERVIEW">
-
           {/* Price projection */}
-          <ChildCollapsibleLayer id={6} header={
+          <ChildCollapsibleLayer id={6} animOrder={0} header={
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>PRICE PROJECTION</p>
           }>
           <div className="px-5 py-4">
@@ -311,7 +308,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </ChildCollapsibleLayer>
 
           {/* ── Scorecard ────────────────────────────────────────────────────── */}
-          <ChildCollapsibleLayer id={7} header={
+          <ChildCollapsibleLayer id={7} animOrder={1} header={
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>WHAT YOU ARE BUYING</p>
           }>
           {(() => {
@@ -399,7 +396,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </ChildCollapsibleLayer>
 
           {/* ── About the Business ──────────────────────────────────────────────── */}
-          <ChildCollapsibleLayer id={8} header={
+          <ChildCollapsibleLayer id={8} animOrder={2} header={
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>ABOUT THE BUSINESS</p>
           }>
           {(() => {
@@ -439,10 +436,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
           </p>
           </ChildCollapsibleLayer>
-          </CollapsibleSectionHeader>
 
           {/* Market Comparison */}
-          <CollapsibleSectionHeader id={1} label="MARKET COMPARISON">
           {(() => {
           // ── Data ──────────────────────────────────────────────────────────────
           const peRatio      = score?.pe_ratio          != null ? Number(score.pe_ratio)          : null;
@@ -672,10 +667,11 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             inverse: boolean,
             metricType: "pe" | "fcf" | "div",
             id: number,
+            animOrder: number,
           ) {
             const verdict = getVerdict(current, tableRows, inverse, metricType);
             return (
-              <ChildCollapsibleLayer key={title} id={id} header={
+              <ChildCollapsibleLayer key={title} id={id} animOrder={animOrder} header={
                 <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>{title}</p>
               }>
                 <div className="px-5 py-5" style={{ fontFamily: "var(--font-geist-mono),'Courier New',monospace" }}>
@@ -731,7 +727,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_PE_NOW  },
                   { label: "S&P 500 5Y Avg",      them: SP500_PE_5Y   },
                 ],
-                fmtPe, false, "pe", 9,
+                fmtPe, false, "pe", 9, 3,
               )}
               {renderMetric(
                 "FCF YIELD ANALYSIS", fcfYield,
@@ -747,7 +743,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_FCF_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_FCF_5Y  },
                 ],
-                fmtYld, true, "fcf", 10,
+                fmtYld, true, "fcf", 10, 4,
               )}
               {renderMetric(
                 "DIVIDEND YIELD ANALYSIS", divYield,
@@ -763,15 +759,14 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                   { label: "S&P 500 Now",         them: SP500_DIV_NOW },
                   { label: "S&P 500 5Y Avg",      them: SP500_DIV_5Y  },
                 ],
-                fmtYld, true, "div", 11,
+                fmtYld, true, "div", 11, 5,
               )}
             </>
           );
         })()}
-          </CollapsibleSectionHeader>
 
           {/* Layer 1: PPM */}
-          <CollapsibleLayer id={2} header={(
+          <CollapsibleLayer id={2} animOrder={6} header={(
             <>
               <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
                 LAYER 1 — HOW WE PROJECT THE PRICE
@@ -1209,7 +1204,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </CollapsibleLayer>
 
           {/* Layer 2: Growth */}
-          <CollapsibleLayer id={3} header={(
+          <CollapsibleLayer id={3} animOrder={7} header={(
             <>
               <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
                 LAYER 2 — GROWTH QUALITY
@@ -1635,7 +1630,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </CollapsibleLayer>
 
           {/* Layer 3: Health */}
-          <CollapsibleLayer id={4} header={(
+          <CollapsibleLayer id={4} animOrder={8} header={(
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 3 — FINANCIAL HEALTH
             </p>
@@ -1668,7 +1663,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </CollapsibleLayer>
 
           {/* Layer 4: Final */}
-          <CollapsibleLayer id={5} header={(
+          <CollapsibleLayer id={5} animOrder={9} header={(
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 4 — FINAL SCORE
             </p>

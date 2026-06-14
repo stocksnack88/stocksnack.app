@@ -89,7 +89,7 @@ export function CollapsibleLayer({
   return (
     <section
       className="rounded overflow-hidden"
-      style={card}
+      style={{ ...card, animation: 'fadeInUp 400ms ease-out both' }}
     >
       <div
         className="px-5 py-4 flex items-start justify-between cursor-pointer select-none"
@@ -128,7 +128,7 @@ export function CollapsibleSectionHeader({
   const open = opens[id] ?? false
 
   return (
-    <div>
+    <div style={{ animation: 'fadeInUp 400ms ease-out both' }}>
       <div
         className="flex items-center justify-between cursor-pointer select-none py-2"
         onClick={() => toggle(id)}
@@ -167,7 +167,7 @@ export function ChildCollapsibleLayer({
   const open = opens[id] ?? false
 
   return (
-    <section className="rounded overflow-hidden" style={card}>
+    <section className="rounded overflow-hidden" style={{ ...card, animation: 'fadeInUp 400ms ease-out both' }}>
       <div
         className="px-5 py-4 flex items-start justify-between cursor-pointer select-none"
         style={{ background: "#001a00", borderBottom: open ? "1px solid rgba(0,255,65,0.1)" : "none" }}

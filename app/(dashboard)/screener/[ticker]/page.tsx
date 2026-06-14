@@ -270,7 +270,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </div>
 
         {/* ── Overview + Layers 1–5 ───────────────────────────────────────────── */}
-        <LayerProvider count={12} briefExpand={{ startMs: 1850, durationMs: 1000 }}>
+        <LayerProvider count={12} briefExpand={{ startMs: 400, durationMs: 800 }}>
           <div className="flex justify-end">
             <ExpandCollapseButton />
           </div>

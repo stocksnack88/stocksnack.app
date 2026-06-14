@@ -8,7 +8,7 @@ import DescriptionToggle from "@/components/ui/DescriptionToggle";
 import HealthCategories from "@/components/ui/HealthCategories";
 import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 import HazardTooltip from "@/components/ui/HazardTooltip";
-import { LayerProvider, CollapsibleLayer, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
+import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
 
 const FREE_LIMIT = 5;
 
@@ -270,10 +270,13 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </div>
 
         {/* ── Overview + Layers 1–5 ───────────────────────────────────────────── */}
-        <LayerProvider count={12}>
+        <LayerProvider count={12} briefExpand={{ startMs: 1850, durationMs: 1000 }}>
           <div className="flex justify-end">
             <ExpandCollapseButton />
           </div>
+
+          {/* Overview */}
+          <CollapsibleSectionHeader id={0} label="OVERVIEW">
 
           {/* Price projection */}
           <ChildCollapsibleLayer id={6} animOrder={0} header={
@@ -436,8 +439,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
           </p>
           </ChildCollapsibleLayer>
+          </CollapsibleSectionHeader>
 
           {/* Market Comparison */}
+          <CollapsibleSectionHeader id={1} label="MARKET COMPARISON">
           {(() => {
           // ── Data ──────────────────────────────────────────────────────────────
           const peRatio      = score?.pe_ratio          != null ? Number(score.pe_ratio)          : null;
@@ -764,6 +769,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             </>
           );
         })()}
+          </CollapsibleSectionHeader>
 
           {/* Layer 1: PPM */}
           <CollapsibleLayer id={2} animOrder={6} header={(

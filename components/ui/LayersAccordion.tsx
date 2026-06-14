@@ -1,5 +1,5 @@
 'use client'
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 
 type Ctx = {
   opens: boolean[]
@@ -18,13 +18,28 @@ function useLayerCtx() {
 export function LayerProvider({
   count,
   childMap,
+  briefExpand,
   children,
 }: {
   count: number
   childMap?: Record<number, number[]>
+  briefExpand?: { startMs: number; durationMs: number }
   children: React.ReactNode
 }) {
   const [opens, setOpens] = useState<boolean[]>(Array(count).fill(false))
+
+  useEffect(() => {
+    if (!briefExpand) return
+    const t1 = setTimeout(
+      () => setOpens(prev => Array(prev.length).fill(true)),
+      briefExpand.startMs,
+    )
+    const t2 = setTimeout(
+      () => setOpens(prev => Array(prev.length).fill(false)),
+      briefExpand.startMs + briefExpand.durationMs,
+    )
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = (i: number) => setOpens(prev => {
     const wasOpen = prev[i]

@@ -19,14 +19,20 @@ export function LayerProvider({
   count,
   childMap,
   briefExpand,
+  defaultOpenIds,
   children,
 }: {
   count: number
   childMap?: Record<number, number[]>
   briefExpand?: { startMs: number; durationMs: number }
+  defaultOpenIds?: number[]
   children: React.ReactNode
 }) {
-  const [opens, setOpens] = useState<boolean[]>(Array(count).fill(false))
+  const [opens, setOpens] = useState<boolean[]>(() => {
+    const arr = Array(count).fill(false)
+    defaultOpenIds?.forEach(id => { arr[id] = true })
+    return arr
+  })
 
   useEffect(() => {
     if (!briefExpand) return
@@ -35,7 +41,7 @@ export function LayerProvider({
       briefExpand.startMs,
     )
     const t2 = setTimeout(
-      () => setOpens(prev => Array(prev.length).fill(false)),
+      () => setOpens(prev => prev.map((_, i) => defaultOpenIds?.includes(i) ?? false)),
       briefExpand.startMs + briefExpand.durationMs,
     )
     return () => { clearTimeout(t1); clearTimeout(t2) }
@@ -44,8 +50,8 @@ export function LayerProvider({
   const toggle = (i: number) => setOpens(prev => {
     const wasOpen = prev[i]
     const next = prev.map((v, j): boolean => (j === i ? !v : v))
-    if (!wasOpen && childMap?.[i]) {
-      for (const cid of childMap[i]) next[cid] = true
+    if (childMap?.[i]) {
+      for (const cid of childMap[i]) next[cid] = !wasOpen
     }
     return next
   })

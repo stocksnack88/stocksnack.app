@@ -2,11 +2,9 @@
 import { useState } from 'react'
 
 const SCALE = 2
-const BRAND_H_PX = 28
 
-async function captureElement(id: string): Promise<HTMLCanvasElement | null> {
-  const el = document.getElementById(id)
-  if (!el) return null
+// Screenshots a DOM element with full style injection
+async function captureDiv(el: HTMLElement): Promise<HTMLCanvasElement> {
   const { default: html2canvas } = await import('html2canvas')
   return html2canvas(el, {
     backgroundColor: '#000000',
@@ -27,42 +25,6 @@ async function captureElement(id: string): Promise<HTMLCanvasElement | null> {
       clonedEl.ownerDocument.head.appendChild(style)
     },
   })
-}
-
-function addBranding(src: HTMLCanvasElement): HTMLCanvasElement {
-  const brandH = BRAND_H_PX * SCALE
-  const out = document.createElement('canvas')
-  out.width = src.width
-  out.height = src.height + brandH
-  const ctx = out.getContext('2d')!
-  ctx.drawImage(src, 0, 0)
-  ctx.fillStyle = '#001a00'
-  ctx.fillRect(0, src.height, src.width, brandH)
-  ctx.fillStyle = 'rgba(0,255,65,0.2)'
-  ctx.fillRect(0, src.height, src.width, SCALE)
-  ctx.fillStyle = 'rgba(0,255,65,0.6)'
-  ctx.font = `bold ${11 * SCALE}px "Courier New", monospace`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('stocksnack.app  ·  PROMO CODE: SNACKBUDDY50', src.width / 2, src.height + brandH / 2)
-  return out
-}
-
-async function stitchVertical(canvases: HTMLCanvasElement[]): Promise<HTMLCanvasElement> {
-  const w = Math.max(...canvases.map(c => c.width))
-  const h = canvases.reduce((a, c) => a + c.height, 0)
-  const out = document.createElement('canvas')
-  out.width = w
-  out.height = h
-  const ctx = out.getContext('2d')!
-  ctx.fillStyle = '#000000'
-  ctx.fillRect(0, 0, w, h)
-  let y = 0
-  for (const c of canvases) {
-    ctx.drawImage(c, 0, y)
-    y += c.height
-  }
-  return out
 }
 
 function toBlob(canvas: HTMLCanvasElement): Promise<Blob> {
@@ -121,7 +83,6 @@ function ShareModal({
         }
       } catch { /* fall through to download + url */ }
     }
-    // Fallback: download image then open platform URL
     for (let i = 0; i < images.length; i++) {
       const a = document.createElement('a')
       a.href = images[i].dataUrl
@@ -153,7 +114,7 @@ function ShareModal({
         style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
         onClick={onClose}
       />
-      {/* Modal — always centered in viewport regardless of scroll position */}
+      {/* Modal — always centered in viewport */}
       <div
         className="fixed z-[10000] rounded-lg"
         style={{
@@ -180,7 +141,7 @@ function ShareModal({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="flex items-center justify-center w-7 h-7 rounded font-mono text-sm font-bold leading-none transition-colors"
+            className="flex items-center justify-center w-7 h-7 rounded font-mono text-sm font-bold leading-none"
             style={{ color: '#00ff41', background: 'rgba(0,255,65,0.12)', border: '1px solid rgba(0,255,65,0.35)' }}
           >
             ✕
@@ -195,11 +156,6 @@ function ShareModal({
             className="w-full rounded"
             style={{ border: '1px solid rgba(0,255,65,0.1)', maxHeight: 220, objectFit: 'contain', background: '#000' }}
           />
-          {images.length > 1 && (
-            <p className="mt-1.5 font-mono text-[9px] text-center" style={{ color: 'rgba(0,255,65,0.3)' }}>
-              +{images.length - 1} MORE IMAGE{images.length > 2 ? 'S' : ''}
-            </p>
-          )}
         </div>
 
         {/* Caption */}
@@ -272,7 +228,6 @@ type Props = {
 
 export default function BlockShareButton({
   captureIds,
-  mode,
   fileName = 'stocksnack',
   ticker,
   companyName,
@@ -290,29 +245,71 @@ export default function BlockShareButton({
     if (status === 'busy') return
     setStatus('busy')
     try {
-      const canvases = (await Promise.all(captureIds.map(captureElement)))
-        .filter((c): c is HTMLCanvasElement => c !== null)
-      if (!canvases.length) return
+      // Collect source elements
+      const sourceEls = captureIds
+        .map(id => document.getElementById(id))
+        .filter((el): el is HTMLElement => el !== null)
+      if (!sourceEls.length) return
 
-      if (mode === 'multi') {
-        const branded = canvases.map(addBranding)
-        const items: ModalImage[] = await Promise.all(
-          branded.map(async (c, i) => {
-            const blob = await toBlob(c)
-            return { dataUrl: c.toDataURL('image/png'), blob, name: `${fileName}-${i + 1}.png` }
-          })
-        )
-        setModal(items)
-      } else {
-        const merged = mode === 'stitch' && canvases.length > 1
-          ? await stitchVertical(canvases)
-          : canvases[0]
-        const branded = addBranding(merged)
-        const blob = await toBlob(branded)
-        const dataUrl = branded.toDataURL('image/png')
-        const name = `${fileName}.png`
-        setModal([{ dataUrl, blob, name }])
+      // Build a full-screen render overlay with cloned block content
+      const overlay = document.createElement('div')
+      overlay.style.cssText = [
+        'position:fixed', 'inset:0', 'z-index:9998',
+        'background:#000000', 'overflow:hidden',
+        "font-family:'Courier New',Courier,monospace",
+      ].join(';')
+
+      // Content wrapper — what html2canvas will screenshot
+      const contentWrap = document.createElement('div')
+      contentWrap.style.cssText = 'padding:20px;background:#000000;'
+
+      // Clone each source element into the render div, stacked vertically
+      for (let i = 0; i < sourceEls.length; i++) {
+        const clone = sourceEls[i].cloneNode(true) as HTMLElement
+        clone.style.width = '100%'
+        clone.style.maxWidth = '100%'
+        clone.style.boxSizing = 'border-box'
+        contentWrap.appendChild(clone)
+        if (i < sourceEls.length - 1) {
+          const sep = document.createElement('div')
+          sep.style.cssText = 'height:1px;background:rgba(0,255,65,0.1);margin:12px 0;'
+          contentWrap.appendChild(sep)
+        }
       }
+
+      // Branding strip as a real DOM element so it's part of the canvas
+      const brand = document.createElement('div')
+      brand.style.cssText = [
+        'margin-top:16px',
+        'padding:10px 0',
+        'background:#001a00',
+        'border-top:1px solid rgba(0,255,65,0.2)',
+        'text-align:center',
+        "font-family:'Courier New',Courier,monospace",
+        'font-size:11px',
+        'font-weight:bold',
+        'color:rgba(0,255,65,0.6)',
+        'letter-spacing:0.12em',
+      ].join(';')
+      brand.textContent = 'stocksnack.app  ·  PROMO CODE: SNACKBUDDY50'
+      contentWrap.appendChild(brand)
+
+      overlay.appendChild(contentWrap)
+      document.body.appendChild(overlay)
+
+      // Wait two frames for the browser to lay out and paint the cloned content
+      await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+
+      // Screenshot the content wrapper (not the overlay, so we get tight bounds)
+      const canvas = await captureDiv(contentWrap)
+
+      // Remove overlay immediately after capture
+      document.body.removeChild(overlay)
+
+      const blob = await toBlob(canvas)
+      const dataUrl = canvas.toDataURL('image/png')
+      setModal([{ dataUrl, blob, name: `${fileName}.png` }])
+
     } catch { /* silent */ } finally {
       setStatus('idle')
     }

@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const SCALE = 2
 
@@ -302,15 +303,17 @@ export default function BlockShareButton({
 
       // Screenshot the content wrapper (not the overlay, so we get tight bounds)
       const canvas = await captureDiv(contentWrap)
+      console.log('[BlockShareButton] capture complete — canvas size:', canvas.width, 'x', canvas.height)
 
       // Remove overlay immediately after capture
       document.body.removeChild(overlay)
 
       const blob = await toBlob(canvas)
       const dataUrl = canvas.toDataURL('image/png')
+      console.log('[BlockShareButton] setModal called — showing share modal')
       setModal([{ dataUrl, blob, name: `${fileName}.png` }])
 
-    } catch { /* silent */ } finally {
+    } catch (err) { console.error('[BlockShareButton] capture error:', err) } finally {
       setStatus('idle')
     }
   }
@@ -325,12 +328,13 @@ export default function BlockShareButton({
       >
         {status === 'busy' ? '···' : 'SHARE'}
       </button>
-      {modal && (
+      {modal && typeof document !== 'undefined' && createPortal(
         <ShareModal
           images={modal}
           defaultCaption={defaultCaption}
           onClose={() => setModal(null)}
-        />
+        />,
+        document.body,
       )}
     </>
   )

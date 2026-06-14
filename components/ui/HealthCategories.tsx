@@ -50,9 +50,10 @@ type MetricField = {
   key: keyof FundRow;
   label: string;
   fmt: "bn" | "pct" | "x" | "dollar" | "count";
-  hib: boolean;   // higher is better
-  abs?: boolean;  // show absolute value (for stored-negative outflows)
-  neutral?: boolean; // no red/green coloring — value is neither good nor bad in isolation
+  hib: boolean;            // higher is better (used for individual value coloring)
+  lowerIsBetter: boolean;  // decreasing trend is healthy (used for sparkline + verdict)
+  abs?: boolean;           // show absolute value (for stored-negative outflows)
+  neutral?: boolean;       // no red/green coloring — value is neither good nor bad in isolation
 };
 
 type CheckDetail = {
@@ -63,118 +64,118 @@ type CheckDetail = {
 const METRIC_DETAIL: [string, CheckDetail][] = [
   ["cash/debt", {
     fields: [
-      { key: "cash_and_equivalents", label: "CASH", fmt: "bn", hib: true },
-      { key: "total_debt",           label: "TOTAL DEBT", fmt: "bn", hib: false },
+      { key: "cash_and_equivalents", label: "CASH",       fmt: "bn", hib: true,  lowerIsBetter: false },
+      { key: "total_debt",           label: "TOTAL DEBT", fmt: "bn", hib: false, lowerIsBetter: true },
     ],
     description: "Compares cash on hand to total debt — more cash than debt signals the company can meet obligations without stress.",
   }],
   ["debt/equity", {
-    fields: [{ key: "debt_to_equity", label: "DEBT / EQUITY", fmt: "x", hib: false }],
+    fields: [{ key: "debt_to_equity", label: "DEBT / EQUITY", fmt: "x", hib: false, lowerIsBetter: true }],
     description: "Total debt divided by shareholders' equity — measures financial leverage; lower means less risk.",
   }],
   ["preferred stock", {
-    fields: [{ key: "preferred_stock", label: "PREFERRED STOCK", fmt: "bn", hib: false }],
+    fields: [{ key: "preferred_stock", label: "PREFERRED STOCK", fmt: "bn", hib: false, lowerIsBetter: true }],
     description: "Value of preferred shares outstanding — preferred holders get paid before common shareholders in dividends and liquidation.",
   }],
   ["retained earnings", {
-    fields: [{ key: "total_equity", label: "TOTAL EQUITY", fmt: "bn", hib: true }],
+    fields: [{ key: "total_equity", label: "TOTAL EQUITY", fmt: "bn", hib: true, lowerIsBetter: false }],
     description: "Total shareholders' equity grows when a company retains profits year after year instead of paying them all out.",
   }],
   ["active buybacks", {
-    fields: [{ key: "buybacks", label: "BUYBACKS", fmt: "bn", hib: true, abs: true }],
+    fields: [{ key: "buybacks", label: "BUYBACKS", fmt: "bn", hib: true, lowerIsBetter: false, abs: true }],
     description: "Cash spent repurchasing shares — reduces share count and increases each remaining shareholder's ownership.",
   }],
   ["roe", {
-    fields: [{ key: "roe", label: "RETURN ON EQUITY", fmt: "pct", hib: true }],
+    fields: [{ key: "roe", label: "RETURN ON EQUITY", fmt: "pct", hib: true, lowerIsBetter: false }],
     description: "Net income divided by shareholders' equity — how efficiently the company turns invested capital into profit.",
   }],
   ["rota", {
     fields: [
-      { key: "operating_income", label: "OPERATING INCOME", fmt: "bn", hib: true },
-      { key: "total_assets",     label: "TOTAL ASSETS",     fmt: "bn", hib: true },
+      { key: "operating_income", label: "OPERATING INCOME", fmt: "bn", hib: true, lowerIsBetter: false },
+      { key: "total_assets",     label: "TOTAL ASSETS",     fmt: "bn", hib: true, lowerIsBetter: false },
     ],
     description: "Operating income divided by total assets — how effectively the company generates profit from everything it owns.",
   }],
   ["gross margin", {
-    fields: [{ key: "gross_margin", label: "GROSS MARGIN", fmt: "pct", hib: true }],
+    fields: [{ key: "gross_margin", label: "GROSS MARGIN", fmt: "pct", hib: true, lowerIsBetter: false }],
     description: "Revenue minus cost of goods sold as a percentage — reflects pricing power and production cost efficiency.",
   }],
   ["sg&a", {
-    fields: [{ key: "sga", label: "SG&A EXPENSE", fmt: "bn", hib: false }],
+    fields: [{ key: "sga", label: "SG&A EXPENSE", fmt: "bn", hib: false, lowerIsBetter: true }],
     description: "Selling, general, and administrative expenses — overhead costs that eat into gross profit on the way to operating income.",
   }],
   ["r&d", {
-    fields: [{ key: "rd_expense", label: "R&D EXPENSE", fmt: "bn", hib: false }],
+    fields: [{ key: "rd_expense", label: "R&D EXPENSE", fmt: "bn", hib: false, lowerIsBetter: false }],
     description: "Research and development spending — reduces current earnings but may fuel future growth; the check flags excessive R&D relative to gross profit.",
   }],
   ["interest", {
-    fields: [{ key: "interest_coverage", label: "INTEREST COVERAGE", fmt: "x", hib: true }],
+    fields: [{ key: "interest_coverage", label: "INTEREST COVERAGE", fmt: "x", hib: true, lowerIsBetter: false }],
     description: "Operating income divided by interest expense — how many times the company can cover its debt payments from earnings.",
   }],
   ["tax rate", {
-    fields: [{ key: "tax_rate", label: "EFFECTIVE TAX RATE", fmt: "pct", hib: false }],
+    fields: [{ key: "tax_rate", label: "EFFECTIVE TAX RATE", fmt: "pct", hib: false, lowerIsBetter: true }],
     description: "Income tax expense divided by pre-tax income — the check flags rates outside the 15–25% normal range as potential accounting anomalies.",
   }],
   ["net margin", {
-    fields: [{ key: "net_margin", label: "NET MARGIN", fmt: "pct", hib: true }],
+    fields: [{ key: "net_margin", label: "NET MARGIN", fmt: "pct", hib: true, lowerIsBetter: false }],
     description: "Net income as a percentage of revenue — how many cents of profit the company keeps from every dollar of sales.",
   }],
   ["eps growth", {
-    fields: [{ key: "eps", label: "EARNINGS PER SHARE", fmt: "dollar", hib: true }],
+    fields: [{ key: "eps", label: "EARNINGS PER SHARE", fmt: "dollar", hib: true, lowerIsBetter: false }],
     description: "Net income divided by shares outstanding — the profit attributable to each share, which should grow over time.",
   }],
   ["sbc", {
-    fields: [{ key: "sbc", label: "STOCK-BASED COMP", fmt: "bn", hib: false }],
+    fields: [{ key: "sbc", label: "STOCK-BASED COMP", fmt: "bn", hib: false, lowerIsBetter: true }],
     description: "Non-cash compensation paid as equity — dilutes shareholders and inflates reported earnings vs real cash profit.",
   }],
   ["ocf", {
-    fields: [{ key: "operating_cash_flow", label: "OPERATING CASH FLOW", fmt: "bn", hib: true }],
+    fields: [{ key: "operating_cash_flow", label: "OPERATING CASH FLOW", fmt: "bn", hib: true, lowerIsBetter: false }],
     description: "Cash generated from core business operations — the real cash engine before investment and financing.",
   }],
   ["fcf growth", {
-    fields: [{ key: "free_cash_flow", label: "FREE CASH FLOW", fmt: "bn", hib: true }],
+    fields: [{ key: "free_cash_flow", label: "FREE CASH FLOW", fmt: "bn", hib: true, lowerIsBetter: false }],
     description: "Operating cash flow minus capital expenditure — the cash the business generates after maintaining its asset base.",
   }],
   ["capex", {
-    fields: [{ key: "capex", label: "CAPITAL EXPENDITURE", fmt: "bn", hib: false, abs: true }],
+    fields: [{ key: "capex", label: "CAPITAL EXPENDITURE", fmt: "bn", hib: false, lowerIsBetter: false, abs: true }],
     description: "Cash spent on property, plant, and equipment — high capex relative to cash flow signals a capital-intensive business.",
   }],
   ["payout ratio", {
     fields: [
-      { key: "free_cash_flow",  label: "FREE CASH FLOW",  fmt: "bn", hib: true },
-      { key: "dividends_paid",  label: "DIVIDENDS PAID",  fmt: "bn", hib: false, abs: true },
-      { key: "buybacks",        label: "BUYBACKS",        fmt: "bn", hib: false, abs: true },
+      { key: "free_cash_flow", label: "FREE CASH FLOW", fmt: "bn", hib: true,  lowerIsBetter: false },
+      { key: "dividends_paid", label: "DIVIDENDS PAID", fmt: "bn", hib: false, lowerIsBetter: false, abs: true },
+      { key: "buybacks",       label: "BUYBACKS",       fmt: "bn", hib: false, lowerIsBetter: false, abs: true },
     ],
     description: "Whether dividends and buybacks combined are covered by free cash flow — returns exceeding FCF may not be sustainable.",
   }],
   ["dilution", {
-    fields: [{ key: "shares_outstanding", label: "SHARES OUTSTANDING", fmt: "count", hib: false, neutral: true }],
+    fields: [{ key: "shares_outstanding", label: "SHARES OUTSTANDING", fmt: "count", hib: false, lowerIsBetter: true, neutral: true }],
     description: "Diluted share count — a rising count means new shares are being issued, which dilutes each existing shareholder's stake.",
   }],
   ["consistent earnings", {
-    fields: [{ key: "net_income", label: "NET INCOME", fmt: "bn", hib: true }],
+    fields: [{ key: "net_income", label: "NET INCOME", fmt: "bn", hib: true, lowerIsBetter: false }],
     description: "Net profit after all expenses and taxes — should be positive and ideally growing each year.",
   }],
   ["intangibles", {
-    fields: [{ key: "intangibles", label: "INTANGIBLES + GOODWILL", fmt: "bn", hib: false }],
+    fields: [{ key: "intangibles", label: "INTANGIBLES + GOODWILL", fmt: "bn", hib: false, lowerIsBetter: true }],
     description: "Goodwill and intangible assets — often reflects acquisition premiums; high intangibles relative to total assets can impair if the business deteriorates.",
   }],
   ["debt payoff", {
     fields: [
-      { key: "total_debt",  label: "TOTAL DEBT",  fmt: "bn", hib: false },
-      { key: "net_income",  label: "NET INCOME",  fmt: "bn", hib: true },
+      { key: "total_debt", label: "TOTAL DEBT", fmt: "bn", hib: false, lowerIsBetter: true },
+      { key: "net_income", label: "NET INCOME", fmt: "bn", hib: true,  lowerIsBetter: false },
     ],
     description: "How long it would take to pay off all debt using net income alone — under 4 years of earnings is considered healthy.",
   }],
   ["retained test", {
     fields: [
-      { key: "total_equity",      label: "TOTAL EQUITY", fmt: "bn", hib: true },
-      { key: "market_cap_at_year", label: "MARKET CAP",  fmt: "bn", hib: true },
+      { key: "total_equity",       label: "TOTAL EQUITY", fmt: "bn", hib: true, lowerIsBetter: false },
+      { key: "market_cap_at_year", label: "MARKET CAP",   fmt: "bn", hib: true, lowerIsBetter: false },
     ],
     description: "Tests whether retained earnings have grown market value — market cap growth should exceed the amount retained.",
   }],
   ["roic", {
-    fields: [{ key: "roic", label: "ROIC", fmt: "pct", hib: true }],
+    fields: [{ key: "roic", label: "ROIC", fmt: "pct", hib: true, lowerIsBetter: false }],
     description: "Operating income after tax divided by invested capital (equity + debt − cash) — measures how efficiently the company generates returns on all capital employed.",
   }],
 ];
@@ -254,7 +255,7 @@ function Sparkline({ rows, field }: { rows: FundRow[]; field: MetricField }) {
 
   const first = nums[0];
   const last = nums[nums.length - 1];
-  const color = (field.hib ? last >= first : last <= first) ? "#00ff41" : "#ef4444";
+  const color = (field.lowerIsBetter ? last <= first : last >= first) ? "#00ff41" : "#ef4444";
 
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: "block", flexShrink: 0 }}>
@@ -289,7 +290,7 @@ function genVerdict(field: MetricField, rows: FundRow[]): string {
   if (prev.v >= 0 && last.v < 0)
     return `${sentenceCase(field.label)} turned negative in ${last.y} — a trend worth monitoring.`;
 
-  const improved = field.hib ? last.v > first.v : last.v < first.v;
+  const improved = field.lowerIsBetter ? last.v < first.v : last.v > first.v;
   if (improved) {
     if (pct > 80) return `${sentenceCase(field.label)} has grown strongly since ${first.y} — positive trend.`;
     if (pct > 30) return `Up ${pct}% since ${first.y} — consistent improvement.`;

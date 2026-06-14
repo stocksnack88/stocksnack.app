@@ -132,7 +132,7 @@ export default function TrialManager({ initialTrialStatus }: { initialTrialStatu
       {/* STATE 2 / STATE 4: countdown banner */}
       {(phase === 'trial' || phase === 'extension') && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-center gap-4 px-4 py-3"
+          className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-center gap-4 px-6 py-3"
           style={{ background: 'rgba(0,8,0,0.95)', borderTop: '1px solid rgba(0,255,65,0.2)', backdropFilter: 'blur(8px)', fontFamily: mono }}
         >
           <span className="text-xs tracking-widest" style={{ color: 'rgba(0,255,65,0.45)' }}>
@@ -154,7 +154,7 @@ export default function TrialManager({ initialTrialStatus }: { initialTrialStatu
       {/* STATE 3: trial used, extension not yet taken */}
       {phase === 'expired' && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-[250] flex items-center justify-center px-4 py-3 cursor-pointer select-none"
+          className="fixed bottom-0 left-0 right-0 z-[250] flex items-center justify-center px-6 py-3 cursor-pointer select-none"
           style={{ background: 'rgba(0,8,0,0.97)', borderTop: '1px solid rgba(0,255,65,0.2)', backdropFilter: 'blur(8px)', fontFamily: mono }}
           onClick={() => { window.location.href = '/verify-phone' }}
         >

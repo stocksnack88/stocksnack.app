@@ -1,9 +1,8 @@
-export const revalidate = 0
 export const dynamic = 'force-dynamic'
 
-import { createServerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { unstable_cache } from 'next/cache'
 import { supabaseAdmin } from "@/lib/supabase";
+import { getCachedUser, getCachedUserProfile } from "@/lib/server-auth";
 import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
 import ScreenerTableErrorBoundary from "@/components/ui/ScreenerTableErrorBoundary";
 import NavHeightLogger from "@/components/ui/NavHeightLogger";
@@ -13,51 +12,67 @@ const FREE_LIMIT = 5;
 const TRIAL_DURATION_MS = 5 * 60 * 1000;
 const EXTENSION_DURATION_MS = 15 * 60 * 1000;
 
+// Stock data is updated weekly — cache for 60 s to avoid hitting DB on every request
+const getStockData = unstable_cache(
+  async () => {
+    const [{ data: rows, error }, { data: priceRows }] = await Promise.all([
+      supabaseAdmin
+        .from("stock_scores")
+        .select(`
+          ticker,
+          ppm_cagr,
+          ppm_blended_price,
+          growth_score,
+          health_passes,
+          final_score,
+          signal,
+          updated_at,
+          has_anomaly,
+          anomaly_reasons,
+          stocks ( name )
+        `)
+        .order("final_score", { ascending: false }),
+      supabaseAdmin.from("stock_prices").select("ticker, current_price"),
+    ]);
+    return { rows: rows ?? [], error: error ?? null, priceRows: priceRows ?? [] };
+  },
+  ['screener-stock-data'],
+  { revalidate: 60 }
+);
+
 export default async function ScreenerPage({
   searchParams,
 }: {
   searchParams: { upgraded?: string };
 }) {
   const justUpgraded = searchParams.upgraded === "1";
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll() {},
-      },
-    }
-  );
 
-  const { data: { session } } = await supabase.auth.getSession();
-  // getSession() reads from cookie and can return stale data; getUser() validates server-side
-  const { data: { user: verifiedUser } } = await supabase.auth.getUser();
-  const isGuest = !verifiedUser && !session?.user;
-  console.log('[screener] verifiedUser:', verifiedUser?.id ?? null)
-  console.log('[screener] session?.user:', session?.user?.id ?? null)
-  console.log('[screener] isGuest:', isGuest)
+  // Auth and stock data run concurrently — stock data doesn't depend on who the user is
+  const [user, { rows, error, priceRows }] = await Promise.all([
+    getCachedUser(),
+    getStockData(),
+  ]);
+
+  const isGuest = !user;
+  console.log('[screener] user:', user?.id ?? null, 'isGuest:', isGuest);
 
   let isPro = false;
   let isTrialActive = false;
   let trialStartedAt: string | null = null;
   let trialUsed = true;
   let trialExtensionStartedAt: string | null = null;
-  if (session?.user?.id) {
-    const { data: profile } = await supabaseAdmin
-      .from("user_profiles")
-      .select("subscription_status, trial_used, trial_started_at, trial_extension_started_at")
-      .eq("id", session.user.id)
-      .single();
+
+  if (user) {
+    // Profile is already cached from layout — no extra DB hit
+    const profile = await getCachedUserProfile(user.id);
     isPro =
       profile?.subscription_status === "active" ||
       profile?.subscription_status === "trialing";
     trialStartedAt = profile?.trial_started_at ?? null;
     trialUsed = profile?.trial_used ?? true;
     trialExtensionStartedAt = profile?.trial_extension_started_at ?? null;
-    console.log('[screener] trial_used:', profile?.trial_used ?? null)
-    console.log('[screener] trial_extension_started_at:', trialExtensionStartedAt)
+    console.log('[screener] trial_used:', profile?.trial_used ?? null);
+    console.log('[screener] trial_extension_started_at:', trialExtensionStartedAt);
     const trialElapsed = trialStartedAt ? Date.now() - new Date(trialStartedAt).getTime() : Infinity;
     const extensionElapsed = trialExtensionStartedAt ? Date.now() - new Date(trialExtensionStartedAt).getTime() : Infinity;
     isTrialActive =
@@ -66,31 +81,11 @@ export default async function ScreenerPage({
   }
   const effectivelyPro = isPro || isTrialActive;
 
-  const [{ data: rows, error }, { data: priceRows }] = await Promise.all([
-    supabaseAdmin
-      .from("stock_scores")
-      .select(`
-        ticker,
-        ppm_cagr,
-        ppm_blended_price,
-        growth_score,
-        health_passes,
-        final_score,
-        signal,
-        updated_at,
-        has_anomaly,
-        anomaly_reasons,
-        stocks ( name )
-      `)
-      .order("final_score", { ascending: false }),
-    supabaseAdmin.from("stock_prices").select("ticker, current_price"),
-  ]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const priceMap = new Map((priceRows).map((p: any) => [p.ticker, p.current_price as number]));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const priceMap = new Map((priceRows ?? []).map((p: any) => [p.ticker, p.current_price as number]));
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const stocks: ScreenerRow[] = (rows ?? []).map((r: any) => ({
+  const stocks: ScreenerRow[] = (rows).map((r: any) => ({
     ticker: r.ticker,
     name: r.stocks?.name ?? null,
     ppm_cagr: r.ppm_cagr,
@@ -109,7 +104,6 @@ export default async function ScreenerPage({
     const today = new Date();
     const seed = today.getUTCFullYear() * 10000 + (today.getUTCMonth() + 1) * 100 + today.getUTCDate();
 
-    // Seeded random number generator
     let s = seed;
     function seededRandom() {
       s = (s * 1664525 + 1013904223) & 0xffffffff;
@@ -125,11 +119,9 @@ export default async function ScreenerPage({
       return a;
     }
 
-    // Bucket by signal
     const goodStocks = allStocks.filter(s => s.signal === 'BUY+' || s.signal === 'BUY');
     const restStocks = allStocks.filter(s => s.signal !== 'BUY+' && s.signal !== 'BUY');
 
-    // Pick 2 guaranteed from good, 3 random from rest
     const shuffledGood = seededShuffle(goodStocks);
     const shuffledRest = seededShuffle(restStocks);
 
@@ -207,7 +199,7 @@ export default async function ScreenerPage({
           <ScreenerTableErrorBoundary>
             <ScreenerTable
               visibleStocks={visibleStocks}
-              hasSession={!!session}
+              hasSession={!!user}
               isPro={isPro}
               trialStartedAt={isTrialActive ? trialStartedAt : null}
               trialUsed={trialUsed}
@@ -220,9 +212,6 @@ export default async function ScreenerPage({
         </div>
       </div>
 
-      {/* GUEST BANNER — show only when not logged in (isGuest requires both
-          getUser() and getSession() to agree there is no authenticated user).
-          Never shows to logged-in users under any condition. */}
       {isGuest && (
         <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-[320px] z-[50]">
           <div className="bg-[#050505] border border-[#00ff41]/20 rounded-xl px-5 py-4 flex flex-col gap-3 shadow-lg shadow-black/60">

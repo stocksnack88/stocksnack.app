@@ -1,32 +1,14 @@
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/auth-helpers-nextjs";
-import { supabaseAdmin } from "@/lib/supabase";
+import { getCachedUser, getCachedUserProfile } from '@/lib/server-auth'
 import Link from "next/link";
 
 export default async function Navbar() {
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll() {},
-      },
-    }
-  );
+  const user = await getCachedUser()
 
-  const { data: { user } } = await supabase.auth.getUser();
-
-  let isPro = false;
+  let isPro = false
   if (user) {
-    const { data: profile } = await supabaseAdmin
-      .from("user_profiles")
-      .select("subscription_status")
-      .eq("id", user.id)
-      .single();
-    const status = profile?.subscription_status ?? "free";
-    isPro = status === "active" || status === "trialing";
+    const profile = await getCachedUserProfile(user.id)
+    const status = profile?.subscription_status ?? 'free'
+    isPro = status === 'active' || status === 'trialing'
   }
 
   return (

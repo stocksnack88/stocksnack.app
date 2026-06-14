@@ -13,7 +13,15 @@ function fmtTime(ms: number) {
   return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
 }
 
-export default function TrialManager() {
+export type InitialTrialStatus = {
+  isPro: boolean
+  trialUsed: boolean | null
+  trialStartedAt: string | null
+  trialExtensionStartedAt: string | null
+  hasPhone: boolean
+} | null  // null = guest, skip trial entirely
+
+export default function TrialManager({ initialTrialStatus }: { initialTrialStatus?: InitialTrialStatus }) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [timeLeftMs, setTimeLeftMs] = useState(0)
   const [hasPhone, setHasPhone] = useState(false)
@@ -31,12 +39,19 @@ export default function TrialManager() {
     fetch('/api/trial/expire', { method: 'POST' }).catch(() => {})
   }, [])
 
-  // Single fetch on mount — determines state, starts trial if never started
+  // Single status resolution on mount — uses server-provided props when available,
+  // falls back to /api/trial/status fetch for pages without server-side props
   useEffect(() => {
-    fetch('/api/trial/status')
-      .then(r => r.ok ? r.json() : null)
+    // null = guest explicitly — no trial UI, skip entirely
+    if (initialTrialStatus === null) return
+
+    const getStatus = initialTrialStatus !== undefined
+      ? Promise.resolve(initialTrialStatus)
+      : fetch('/api/trial/status').then(r => r.ok ? r.json() : null)
+
+    getStatus
       .then(async (data) => {
-        if (!data || data.isPro) return  // STATE 6: pro or unauthenticated guest (returns isPro=false but trialUsed=true,trialStartedAt=null)
+        if (!data || data.isPro) return  // STATE 6: pro or unauthenticated guest
 
         setHasPhone(!!data.hasPhone)
         const { trialUsed, trialStartedAt, trialExtensionStartedAt } = data
@@ -87,7 +102,7 @@ export default function TrialManager() {
         }
       })
       .catch(() => {})
-  }, [expire])
+  }, [expire, initialTrialStatus])
 
   // Countdown tick — runs for 'trial' and 'extension' phases
   useEffect(() => {

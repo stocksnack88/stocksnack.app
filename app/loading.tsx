@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 const WORD = 'STOCKSNACK'
 const CHAR_MS = 80
 
-export default function DashboardLoading() {
+export default function RootLoading() {
   const [displayed, setDisplayed] = useState('')
   const [cursor, setCursor] = useState(true)
 

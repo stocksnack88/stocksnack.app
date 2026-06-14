@@ -38,6 +38,8 @@ PaymentsToAcquireProductiveAssets,capital_expenditure,5,2026-05-25,general fallb
 PaymentsForFlightEquipment,capital_expenditure,6,2026-05-25,airline-specific — DAL primary capex tag
 PaymentsToExploreAndDevelopOilAndGasProperties,capital_expenditure,7,2026-05-25,E&P-specific — APA primary capex tag
 PaymentsToAcquireOtherPropertyPlantAndEquipment,capital_expenditure,8,2026-05-25,pharma/industrials fallback — fixes LLY/IP/EA/ADP
+PaymentsForSoftware,capital_expenditure,9,2026-06-15,tech/platform fallback — asset-light companies (e.g. ABNB) that capitalise software spend
+PaymentsToAcquireInternalUseSoftware,capital_expenditure,10,2026-06-15,internal-use software capitalisation — alternative tag for same concept as PaymentsForSoftware
 AllocatedShareBasedCompensationExpense,stock_based_compensation,1,2026-05-16,confirmed AAPL
 ShareBasedCompensation,stock_based_compensation,2,2026-05-16,
 PaymentsOfDividends,dividends_paid,1,2026-05-16,confirmed AAPL

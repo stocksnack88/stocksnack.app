@@ -22,6 +22,7 @@ export type FundRow = {
   total_equity: number | null;
   buybacks: number | null;
   roe: number | null;
+  roic: number | null;
   operating_income: number | null;
   total_assets: number | null;
   gross_margin: number | null;
@@ -171,6 +172,10 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       { key: "market_cap_at_year", label: "MARKET CAP",  fmt: "bn", hib: true },
     ],
     description: "Tests whether retained earnings have grown market value — market cap growth should exceed the amount retained.",
+  }],
+  ["roic", {
+    fields: [{ key: "roic", label: "ROIC", fmt: "pct", hib: true }],
+    description: "Operating income after tax divided by invested capital (equity + debt − cash) — measures how efficiently the company generates returns on all capital employed.",
   }],
 ];
 

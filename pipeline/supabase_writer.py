@@ -57,8 +57,24 @@ def _build_fundamentals(ticker: str, data: dict) -> list[dict]:
             return round(n / d, 6) if d else None
 
         # debtToEquity and interestCoverage computed from raw fields (not in stable key-metrics)
-        debt_to_equity = round(total_debt / total_eq, 6) if (total_debt and total_eq) else None
+        debt_to_equity    = round(total_debt / total_eq, 6) if (total_debt and total_eq) else None
         interest_coverage = round(op_income / abs(int_exp), 6) if (op_income and int_exp and abs(int_exp) > 0) else None
+
+        # Ratios computed from raw fields — used when the metrics API returns nothing (SEC path)
+        _ni       = safe_float(inc.get("netIncome"))
+        _eq       = safe_float(bal.get("totalEquity")) or safe_float(bal.get("totalStockholdersEquity"))
+        _oi       = safe_float(inc.get("operatingIncome"))
+        _cash     = safe_float(bal.get("cashAndCashEquivalents")) or safe_float(bal.get("cashAndShortTermInvestments"))
+        _debt     = safe_float(bal.get("totalDebt"))
+        _tax      = pct(inc.get("incomeTaxExpense"), inc.get("incomeBeforeTax"))
+        _tax_fac  = 1 - (_tax if _tax is not None else 0.21)
+        _invested = _eq + _debt - _cash
+
+        roe_computed  = round(_ni / _eq, 6)                             if _eq                                  else None
+        roic_computed = round(_oi * _tax_fac / _invested, 6)           if (_oi and _invested and _invested > 0) else None
+        _cur_assets   = safe_float(bal.get("currentAssets"))
+        _cur_liab     = safe_float(bal.get("currentLiabilities"))
+        cr_computed   = round(_cur_assets / _cur_liab, 6)              if _cur_liab                             else None
 
         rows.append({
             "ticker":               ticker,
@@ -82,10 +98,10 @@ def _build_fundamentals(ticker: str, data: dict) -> list[dict]:
             "gross_margin":         pct(inc.get("grossProfit"),    revenue),
             "operating_margin":     pct(inc.get("operatingIncome"), revenue),
             "net_margin":           pct(net_income,                 revenue),
-            "roe":                  safe_float(m.get("returnOnEquity"))        or None,
-            "roic":                 safe_float(m.get("returnOnInvestedCapital")) or None,
+            "roe":                  safe_float(m.get("returnOnEquity"))          or roe_computed,
+            "roic":                 safe_float(m.get("returnOnInvestedCapital")) or roic_computed,
             "debt_to_equity":       debt_to_equity,
-            "current_ratio":        safe_float(m.get("currentRatio"))          or None,
+            "current_ratio":        safe_float(m.get("currentRatio"))            or cr_computed,
             "interest_coverage":    interest_coverage,
             "ev_to_ebitda":         safe_float(m.get("evToEBITDA"))            or None,
             "market_cap_at_year":   hist_mktcap.get(year)                      or None,

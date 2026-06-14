@@ -109,8 +109,31 @@ function ShareModal({
 }) {
   const [caption, setCaption] = useState(defaultCaption)
   const first = images[0]
-
   const encodedCaption = encodeURIComponent(caption)
+
+  async function shareWithFiles(platform: 'whatsapp' | 'telegram') {
+    const files = images.map(img => new File([img.blob], img.name, { type: 'image/png' }))
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        if (navigator.canShare?.({ files })) {
+          await navigator.share({ files, text: caption, title: 'StockSnack Analysis' })
+          return
+        }
+      } catch { /* fall through to download + url */ }
+    }
+    // Fallback: download image then open platform URL
+    for (let i = 0; i < images.length; i++) {
+      const a = document.createElement('a')
+      a.href = images[i].dataUrl
+      a.download = images[i].name
+      a.click()
+      if (i < images.length - 1) await new Promise(r => setTimeout(r, 300))
+    }
+    const url = platform === 'whatsapp'
+      ? `https://wa.me/?text=${encodedCaption}`
+      : `https://t.me/share/url?url=stocksnack.app&text=${encodedCaption}`
+    window.open(url, '_blank')
+  }
 
   async function handleDownload() {
     for (let i = 0; i < images.length; i++) {
@@ -123,101 +146,116 @@ function ShareModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
-      onClick={onClose}
-    >
+    <>
+      {/* Backdrop */}
       <div
-        className="relative w-full max-w-sm rounded-lg overflow-hidden flex flex-col"
-        style={{ background: '#050505', border: '1px solid rgba(0,255,65,0.25)', maxHeight: '90vh' }}
+        className="fixed inset-0 z-[9999]"
+        style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+        onClick={onClose}
+      />
+      {/* Modal — always centered in viewport regardless of scroll position */}
+      <div
+        className="fixed z-[10000] rounded-lg"
+        style={{
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 'calc(100% - 2rem)',
+          maxWidth: '24rem',
+          maxHeight: '80vh',
+          overflowY: 'auto',
+          background: '#050505',
+          border: '1px solid rgba(0,255,65,0.25)',
+        }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid rgba(0,255,65,0.1)' }}>
-          <p className="font-mono text-[11px] font-bold tracking-widest" style={{ color: 'rgba(0,255,65,0.7)' }}>SHARE IMAGE</p>
+        {/* Header — sticky so close button stays visible while scrolling */}
+        <div
+          className="sticky top-0 flex items-center justify-between px-4 py-3"
+          style={{ background: '#050505', borderBottom: '1px solid rgba(0,255,65,0.1)', zIndex: 1 }}
+        >
+          <p className="font-mono text-[11px] font-bold tracking-widest" style={{ color: 'rgba(0,255,65,0.7)' }}>
+            SHARE IMAGE
+          </p>
           <button
             onClick={onClose}
-            className="font-mono text-[11px] tracking-wider"
-            style={{ color: 'rgba(0,255,65,0.4)' }}
+            aria-label="Close"
+            className="flex items-center justify-center w-7 h-7 rounded font-mono text-sm font-bold leading-none transition-colors"
+            style={{ color: '#00ff41', background: 'rgba(0,255,65,0.12)', border: '1px solid rgba(0,255,65,0.35)' }}
           >
             ✕
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1">
-          {/* Preview */}
-          <div className="px-4 pt-4 pb-3">
-            <img
-              src={first.dataUrl}
-              alt="Preview"
-              className="w-full rounded"
-              style={{ border: '1px solid rgba(0,255,65,0.1)', maxHeight: 220, objectFit: 'contain', background: '#000' }}
-            />
-            {images.length > 1 && (
-              <p className="mt-1.5 font-mono text-[9px] text-center" style={{ color: 'rgba(0,255,65,0.3)' }}>
-                +{images.length - 1} MORE IMAGE{images.length > 2 ? 'S' : ''}
-              </p>
-            )}
-          </div>
+        {/* Preview */}
+        <div className="px-4 pt-4 pb-3">
+          <img
+            src={first.dataUrl}
+            alt="Preview"
+            className="w-full rounded"
+            style={{ border: '1px solid rgba(0,255,65,0.1)', maxHeight: 220, objectFit: 'contain', background: '#000' }}
+          />
+          {images.length > 1 && (
+            <p className="mt-1.5 font-mono text-[9px] text-center" style={{ color: 'rgba(0,255,65,0.3)' }}>
+              +{images.length - 1} MORE IMAGE{images.length > 2 ? 'S' : ''}
+            </p>
+          )}
+        </div>
 
-          {/* Caption */}
-          <div className="px-4 pb-3">
-            <p className="font-mono text-[9px] tracking-widest mb-1.5" style={{ color: 'rgba(0,255,65,0.4)' }}>CAPTION (EDITABLE)</p>
-            <textarea
-              value={caption}
-              onChange={e => setCaption(e.target.value)}
-              rows={7}
-              className="w-full rounded px-3 py-2 font-mono text-[11px] leading-relaxed resize-none"
-              style={{
-                background: 'rgba(0,255,65,0.04)',
-                border: '1px solid rgba(0,255,65,0.15)',
-                color: 'rgba(0,255,65,0.8)',
-                outline: 'none',
-              }}
-            />
-          </div>
+        {/* Caption */}
+        <div className="px-4 pb-3">
+          <p className="font-mono text-[9px] tracking-widest mb-1.5" style={{ color: 'rgba(0,255,65,0.4)' }}>
+            CAPTION (EDITABLE)
+          </p>
+          <textarea
+            value={caption}
+            onChange={e => setCaption(e.target.value)}
+            rows={7}
+            className="w-full rounded px-3 py-2 font-mono text-[11px] leading-relaxed resize-none"
+            style={{
+              background: 'rgba(0,255,65,0.04)',
+              border: '1px solid rgba(0,255,65,0.15)',
+              color: 'rgba(0,255,65,0.8)',
+              outline: 'none',
+            }}
+          />
+        </div>
 
-          {/* Buttons */}
-          <div className="grid grid-cols-2 gap-2 px-4 pb-4">
-            <a
-              href={`https://wa.me/?text=${encodedCaption}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest text-center"
-              style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366', border: '1px solid rgba(37,211,102,0.3)' }}
-            >
-              WHATSAPP
-            </a>
-            <a
-              href={`https://t.me/share/url?url=stocksnack.app&text=${encodedCaption}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest text-center"
-              style={{ background: 'rgba(0,136,204,0.12)', color: '#0088cc', border: '1px solid rgba(0,136,204,0.3)' }}
-            >
-              TELEGRAM
-            </a>
-            <a
-              href={`https://twitter.com/intent/tweet?text=${encodedCaption}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest text-center"
-              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.15)' }}
-            >
-              TWITTER / X
-            </a>
-            <button
-              onClick={handleDownload}
-              className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest"
-              style={{ background: 'rgba(0,255,65,0.08)', color: 'rgba(0,255,65,0.8)', border: '1px solid rgba(0,255,65,0.25)' }}
-            >
-              DOWNLOAD
-            </button>
-          </div>
+        {/* Share buttons */}
+        <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+          <button
+            onClick={() => shareWithFiles('whatsapp')}
+            className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest"
+            style={{ background: 'rgba(37,211,102,0.12)', color: '#25d366', border: '1px solid rgba(37,211,102,0.3)' }}
+          >
+            WHATSAPP
+          </button>
+          <button
+            onClick={() => shareWithFiles('telegram')}
+            className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest"
+            style={{ background: 'rgba(0,136,204,0.12)', color: '#0088cc', border: '1px solid rgba(0,136,204,0.3)' }}
+          >
+            TELEGRAM
+          </button>
+          <a
+            href={`https://twitter.com/intent/tweet?text=${encodedCaption}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest text-center"
+            style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.15)' }}
+          >
+            TWITTER / X
+          </a>
+          <button
+            onClick={handleDownload}
+            className="rounded py-2.5 font-mono text-[10px] font-bold tracking-widest"
+            style={{ background: 'rgba(0,255,65,0.08)', color: 'rgba(0,255,65,0.8)', border: '1px solid rgba(0,255,65,0.25)' }}
+          >
+            DOWNLOAD
+          </button>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 

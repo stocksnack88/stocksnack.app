@@ -74,19 +74,12 @@ export function ExpandCollapseButton() {
 
 const card: React.CSSProperties = { border: "1px solid rgba(0,255,65,0.2)", background: "rgba(0,255,65,0.02)" }
 
-function entranceStyle(animOrder?: number): React.CSSProperties {
-  if (animOrder === undefined) return {}
-  return { animation: `fadeInUp 500ms ease-out ${animOrder * 150}ms both` }
-}
-
 export function CollapsibleLayer({
   id,
-  animOrder,
   header,
   children,
 }: {
   id: number
-  animOrder?: number
   header: React.ReactNode
   children: React.ReactNode
 }) {
@@ -96,7 +89,7 @@ export function CollapsibleLayer({
   return (
     <section
       className="rounded overflow-hidden"
-      style={{ ...card, ...entranceStyle(animOrder) }}
+      style={card}
     >
       <div
         className="px-5 py-4 flex items-start justify-between cursor-pointer select-none"
@@ -124,12 +117,10 @@ export function CollapsibleLayer({
 
 export function CollapsibleSectionHeader({
   id,
-  animOrder,
   label,
   children,
 }: {
   id: number
-  animOrder?: number
   label: string
   children: React.ReactNode
 }) {
@@ -137,7 +128,7 @@ export function CollapsibleSectionHeader({
   const open = opens[id] ?? false
 
   return (
-    <div style={entranceStyle(animOrder)}>
+    <div>
       <div
         className="flex items-center justify-between cursor-pointer select-none py-2"
         onClick={() => toggle(id)}
@@ -165,12 +156,10 @@ export function CollapsibleSectionHeader({
 
 export function ChildCollapsibleLayer({
   id,
-  animOrder,
   header,
   children,
 }: {
   id: number
-  animOrder?: number
   header: React.ReactNode
   children: React.ReactNode
 }) {
@@ -178,7 +167,7 @@ export function ChildCollapsibleLayer({
   const open = opens[id] ?? false
 
   return (
-    <section className="rounded overflow-hidden" style={{ ...card, ...entranceStyle(animOrder) }}>
+    <section className="rounded overflow-hidden" style={card}>
       <div
         className="px-5 py-4 flex items-start justify-between cursor-pointer select-none"
         style={{ background: "#001a00", borderBottom: open ? "1px solid rgba(0,255,65,0.1)" : "none" }}

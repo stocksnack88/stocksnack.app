@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
+import BackButton from "@/components/ui/BackButton";
 import UpgradeButton from "@/components/ui/UpgradeButton";
 import DescriptionToggle from "@/components/ui/DescriptionToggle";
 import HealthCategories from "@/components/ui/HealthCategories";
@@ -157,10 +158,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
     return (
       <div className="bg-black" style={mono}>
         <div className="border-b px-6 py-3" style={{ borderColor: "rgba(0,255,65,0.1)" }}>
-          <Link href="/screener" className="text-xs tracking-widest transition-colors"
-            style={{ color: "rgba(0,255,65,0.5)" }}>
-            ← SCREENER
-          </Link>
+          <BackButton />
         </div>
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
           <p className="text-5xl mb-6" style={{ color: "rgba(0,255,65,0.15)" }}>⊘</p>
@@ -235,13 +233,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
     <div className="bg-black" style={mono}>
       {/* Breadcrumb */}
       <div className="border-b px-6 py-3" style={{ borderColor: "rgba(0,255,65,0.1)" }}>
-        <Link
-          href="/screener"
-          className="text-xs tracking-widest transition-colors"
-          style={{ color: "rgba(0,255,65,0.5)" }}
-        >
-          ← SCREENER
-        </Link>
+        <BackButton />
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">

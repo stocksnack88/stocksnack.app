@@ -309,6 +309,7 @@ export default function ScreenerTable({
   }
 
   const router = useRouter();
+  const [clickedTicker, setClickedTicker] = useState<string | null>(null);
 
   const showSummaries = detailLevel >= 1;
   const showQuality   = detailLevel >= 2;
@@ -746,9 +747,11 @@ export default function ScreenerTable({
             {processedStocks.map((stock, i) => (
               <React.Fragment key={stock.ticker}>
                 <tr
-                  onClick={() => { playTickerClick(); router.push(`/screener/${stock.ticker}`); }}
-                  className={`screener-row cursor-pointer border-t border-[#00ff41]/10 transition-colors hover:bg-[#00ff41]/5 ${
-                    i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""
+                  onClick={() => { playTickerClick(); setClickedTicker(stock.ticker); router.push(`/screener/${stock.ticker}`); }}
+                  className={`screener-row cursor-pointer border-t border-[#00ff41]/10 transition-colors ${
+                    clickedTicker === stock.ticker
+                      ? 'bg-[#00ff41]/20'
+                      : `hover:bg-[#00ff41]/5 ${i % 2 === 1 ? "bg-[#00ff41]/[0.02]" : ""}`
                   }`}
                   style={{ animation: `fadeInUp 200ms ease-out ${Math.min(i, 25) * 30}ms both` }}
                 >

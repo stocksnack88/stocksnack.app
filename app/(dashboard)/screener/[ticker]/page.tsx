@@ -158,6 +158,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   const price = priceRes.data;
   const score = scoreRes.data;
   const fundamentals = fundRes.data ?? [];
+  console.log('[ticker] ticker:', ticker, 'freeTickers:', Array.from(freeTickers), 'freeTickers.has(ticker):', freeTickers.has(ticker), 'isPro:', isPro, 'isTrialActive:', isTrialActive)
   const canAccess = isPro || isTrialActive || freeTickers.has(ticker);
 
   // ── Paywall ──────────────────────────────────────────────────────────────────

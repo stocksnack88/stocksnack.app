@@ -127,6 +127,46 @@ export function CollapsibleLayer({
   )
 }
 
+export function CollapsibleSectionHeader({
+  id,
+  label,
+  children,
+}: {
+  id: number
+  label: string
+  children: React.ReactNode
+}) {
+  const { opens, isEntering, toggle, stopEntering } = useLayerCtx()
+  const open = opens[id] ?? false
+  const showBody = open || isEntering
+
+  return (
+    <div style={{ animation: `fadeInUp 500ms ease-out ${id * 200}ms both` }}>
+      <div
+        className="flex items-center justify-between cursor-pointer select-none py-2"
+        onClick={() => { if (isEntering) stopEntering(); toggle(id) }}
+      >
+        <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>{label}</p>
+        <div style={{ color: "rgba(0,255,65,0.4)" }}>
+          <svg
+            width="12" height="12" viewBox="0 0 12 12" fill="none"
+            style={{ transform: showBody ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+          >
+            <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateRows: showBody ? '1fr' : '0fr', transition: 'grid-template-rows 300ms ease-in-out' }}>
+        <div style={{ overflow: 'hidden', minHeight: 0 }}>
+          <div className="space-y-4 pt-2">
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ChildCollapsibleLayer({
   id,
   header,
@@ -140,7 +180,7 @@ export function ChildCollapsibleLayer({
   const open = opens[id] ?? false
 
   return (
-    <div style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
+    <section className="rounded overflow-hidden" style={card}>
       <div
         className="px-5 py-4 flex items-start justify-between cursor-pointer select-none"
         style={{ background: "#001a00", borderBottom: open ? "1px solid rgba(0,255,65,0.1)" : "none" }}
@@ -161,6 +201,6 @@ export function ChildCollapsibleLayer({
           {children}
         </div>
       </div>
-    </div>
+    </section>
   )
 }

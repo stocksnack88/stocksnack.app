@@ -8,7 +8,7 @@ import DescriptionToggle from "@/components/ui/DescriptionToggle";
 import HealthCategories from "@/components/ui/HealthCategories";
 import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 import HazardTooltip from "@/components/ui/HazardTooltip";
-import { LayerProvider, CollapsibleLayer, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
+import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
 
 const FREE_LIMIT = 5;
 
@@ -276,11 +276,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
           </div>
 
           {/* Overview */}
-          <CollapsibleLayer id={0} header={(
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
-              OVERVIEW
-            </p>
-          )}>
+          <CollapsibleSectionHeader id={0} label="OVERVIEW">
 
           {/* Price projection */}
           <ChildCollapsibleLayer id={6} header={
@@ -443,14 +439,10 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
           </p>
           </ChildCollapsibleLayer>
-          </CollapsibleLayer>
+          </CollapsibleSectionHeader>
 
           {/* Market Comparison */}
-          <CollapsibleLayer id={1} header={(
-            <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
-              MARKET COMPARISON
-            </p>
-          )}>
+          <CollapsibleSectionHeader id={1} label="MARKET COMPARISON">
           {(() => {
           // ── Data ──────────────────────────────────────────────────────────────
           const peRatio      = score?.pe_ratio          != null ? Number(score.pe_ratio)          : null;
@@ -776,7 +768,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             </>
           );
         })()}
-          </CollapsibleLayer>
+          </CollapsibleSectionHeader>
 
           {/* Layer 1: PPM */}
           <CollapsibleLayer id={2} header={(

@@ -14,10 +14,10 @@ export default function NavDropdown() {
     function onEscape(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false)
     }
-    document.addEventListener('mousedown', onOutside)
+    document.addEventListener('click', onOutside)
     document.addEventListener('keydown', onEscape)
     return () => {
-      document.removeEventListener('mousedown', onOutside)
+      document.removeEventListener('click', onOutside)
       document.removeEventListener('keydown', onEscape)
     }
   }, [open])
@@ -63,7 +63,6 @@ export default function NavDropdown() {
           <Link
             href="/market"
             role="menuitem"
-            onClick={() => setOpen(false)}
             className="block px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
             style={{
               fontFamily: "var(--font-geist-mono), 'Courier New', monospace",
@@ -75,7 +74,6 @@ export default function NavDropdown() {
           <Link
             href="/account"
             role="menuitem"
-            onClick={() => setOpen(false)}
             className="block px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
             style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}
           >

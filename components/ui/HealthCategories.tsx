@@ -56,9 +56,18 @@ type MetricField = {
   neutral?: boolean;       // no red/green coloring — value is neither good nor bad in isolation
 };
 
+type RatioRow = {
+  label: string;
+  compute: (row: FundRow) => number | null;
+  fmt: MetricField["fmt"];
+  hib: boolean;
+  neutral?: boolean;
+};
+
 type CheckDetail = {
   fields: MetricField[];
   description: string;
+  ratioRow?: RatioRow;
 };
 
 const METRIC_DETAIL: [string, CheckDetail][] = [
@@ -68,6 +77,17 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       { key: "total_debt",           label: "TOTAL DEBT", fmt: "bn", hib: false, lowerIsBetter: true },
     ],
     description: "Compares cash on hand to total debt — more cash than debt signals the company can meet obligations without stress.",
+    ratioRow: {
+      label: "RATIO (CASH/DEBT)",
+      compute: (row) => {
+        const c = row.cash_and_equivalents;
+        const d = row.total_debt;
+        if (c == null || d == null || d === 0) return null;
+        return c / d;
+      },
+      fmt: "x",
+      hib: true,
+    },
   }],
   ["debt/equity", {
     fields: [{ key: "debt_to_equity", label: "DEBT / EQUITY", fmt: "x", hib: false, lowerIsBetter: true }],
@@ -95,6 +115,17 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       { key: "total_assets",     label: "TOTAL ASSETS",     fmt: "bn", hib: true, lowerIsBetter: false },
     ],
     description: "Operating income divided by total assets — how effectively the company generates profit from everything it owns.",
+    ratioRow: {
+      label: "RATIO (ROTA)",
+      compute: (row) => {
+        const oi = row.operating_income;
+        const ta = row.total_assets;
+        if (oi == null || ta == null || ta === 0) return null;
+        return oi / ta;
+      },
+      fmt: "pct",
+      hib: true,
+    },
   }],
   ["gross margin", {
     fields: [{ key: "gross_margin", label: "GROSS MARGIN", fmt: "pct", hib: true, lowerIsBetter: false }],
@@ -147,6 +178,18 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       { key: "buybacks",       label: "BUYBACKS",       fmt: "bn", hib: false, lowerIsBetter: false, abs: true },
     ],
     description: "Whether dividends and buybacks combined are covered by free cash flow — returns exceeding FCF may not be sustainable.",
+    ratioRow: {
+      label: "PAYOUT RATIO",
+      compute: (row) => {
+        const fcf = row.free_cash_flow;
+        if (fcf == null || fcf <= 0) return null;
+        const total = Math.abs(row.dividends_paid ?? 0) + Math.abs(row.buybacks ?? 0);
+        return total / fcf;
+      },
+      fmt: "pct",
+      hib: false,
+      neutral: true,
+    },
   }],
   ["dilution", {
     fields: [{ key: "shares_outstanding", label: "SHARES OUTSTANDING", fmt: "count", hib: false, lowerIsBetter: true, neutral: true }],
@@ -166,6 +209,18 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       { key: "net_income", label: "NET INCOME", fmt: "bn", hib: true,  lowerIsBetter: false },
     ],
     description: "How long it would take to pay off all debt using net income alone — under 4 years of earnings is considered healthy.",
+    ratioRow: {
+      label: "YEARS TO PAY OFF",
+      compute: (row) => {
+        const debt = row.total_debt;
+        const ni = row.net_income;
+        if (debt == null || ni == null || ni <= 0) return null;
+        return debt / ni;
+      },
+      fmt: "x",
+      hib: false,
+      neutral: true,
+    },
   }],
   ["retained test", {
     fields: [
@@ -280,28 +335,91 @@ function genVerdict(field: MetricField, rows: FundRow[]): string {
     .filter(Boolean) as { v: number; y: number }[];
   if (pairs.length < 2) return "";
 
-  const first = pairs[0];
-  const last = pairs[pairs.length - 1];
+  // Median of an array of numbers
+  function median(arr: number[]): number {
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+
+  // Anomaly detection — find the single most extreme outlier (> 3× median of others)
+  let anomalyYear: number | null = null;
+  let cleanPairs = pairs;
+  if (pairs.length >= 3) {
+    let maxRatio = 0;
+    let maxIdx = -1;
+    for (let i = 0; i < pairs.length; i++) {
+      const others = pairs.filter((_, j) => j !== i).map(p => Math.abs(p.v));
+      const med = median(others);
+      if (med > 0) {
+        const ratio = Math.abs(pairs[i].v) / med;
+        if (ratio > 3 && ratio > maxRatio) {
+          maxRatio = ratio;
+          maxIdx = i;
+        }
+      }
+    }
+    if (maxIdx >= 0) {
+      anomalyYear = pairs[maxIdx].y;
+      cleanPairs = pairs.filter((_, j) => j !== maxIdx);
+    }
+  }
+
+  const first = cleanPairs[0];
+  const last = cleanPairs[cleanPairs.length - 1];
   const pct = first.v !== 0 ? Math.round(Math.abs((last.v - first.v) / Math.abs(first.v)) * 100) : 0;
 
-  const prev = pairs[pairs.length - 2];
-  if (prev.v <= 0 && last.v > 0)
-    return `${sentenceCase(field.label)} turned positive in ${last.y} — a significant improvement.`;
-  if (prev.v >= 0 && last.v < 0)
-    return `${sentenceCase(field.label)} turned negative in ${last.y} — a trend worth monitoring.`;
+  // Count direction reversals in consecutive year-over-year changes
+  const diffs = cleanPairs.slice(1).map((p, i) => p.v - cleanPairs[i].v);
+  let reversals = 0;
+  for (let i = 1; i < diffs.length; i++) {
+    if (diffs[i] !== 0 && diffs[i - 1] !== 0 && Math.sign(diffs[i]) !== Math.sign(diffs[i - 1])) {
+      reversals++;
+    }
+  }
+  const isVolatile = reversals >= 2;
 
   const improved = field.lowerIsBetter ? last.v < first.v : last.v > first.v;
-  if (improved) {
-    if (pct > 80) return `${sentenceCase(field.label)} has grown strongly since ${first.y} — positive trend.`;
-    if (pct > 30) return `Up ${pct}% since ${first.y} — consistent improvement.`;
-    if (pct === 0) return `Roughly flat since ${first.y} — no material change.`;
-    return `Modestly improved since ${first.y} — moving in the right direction.`;
+  const prev = cleanPairs[cleanPairs.length - 2];
+
+  let verdict: string;
+
+  if (prev.v <= 0 && last.v > 0) {
+    verdict = `${sentenceCase(field.label)} turned positive in ${last.y} — a significant improvement.`;
+  } else if (prev.v >= 0 && last.v < 0) {
+    verdict = `${sentenceCase(field.label)} turned negative in ${last.y} — a trend worth monitoring.`;
+  } else if (isVolatile) {
+    verdict = "Mixed trend — no clear direction.";
+  } else if (field.lowerIsBetter) {
+    if (pct === 0) {
+      verdict = "Roughly flat — no material change.";
+    } else if (improved) {
+      verdict = "Steadily decreasing — moving in the right direction.";
+    } else {
+      verdict = "Has been rising — worth monitoring.";
+    }
   } else {
-    if (pct > 80) return `${sentenceCase(field.label)} has deteriorated significantly since ${first.y} — notable concern.`;
-    if (pct > 30) return `Down ${pct}% since ${first.y} — declining trend to watch.`;
-    if (pct === 0) return `Roughly flat since ${first.y} — no material change.`;
-    return `Slightly worse since ${first.y} — monitor for continued deterioration.`;
+    // higher is better
+    if (pct === 0) {
+      verdict = `Roughly flat since ${first.y} — no material change.`;
+    } else if (improved) {
+      if (pct > 80) verdict = `${sentenceCase(field.label)} has grown strongly since ${first.y} — positive trend.`;
+      else if (pct > 30) verdict = `Up ${pct}% since ${first.y} — consistent improvement.`;
+      else verdict = `Modestly improved since ${first.y} — moving in the right direction.`;
+    } else {
+      if (pct > 80) verdict = `Has been declining significantly since ${first.y} — notable concern.`;
+      else if (pct > 30) verdict = `Has been declining since ${first.y} — worth monitoring.`;
+      else verdict = `Slightly lower since ${first.y} — monitor for continued decline.`;
+    }
   }
+
+  // Prepend anomaly notice if an outlier was detected
+  if (anomalyYear !== null) {
+    const fy = `FY${String(anomalyYear).slice(2)}`;
+    return `${fy} shows an anomaly — likely a one-time event. Excluding that, ${verdict.charAt(0).toLowerCase()}${verdict.slice(1)}`;
+  }
+
+  return verdict;
 }
 
 // ── Detail panel ─────────────────────────────────────────────────────────────
@@ -320,40 +438,55 @@ function DetailPanel({ detail, rows }: { detail: CheckDetail; rows: FundRow[] })
         {detail.description}
       </p>
 
-      {/* Per-field blocks: label above, then year columns */}
-      <div className="space-y-3">
-        {detail.fields.map(field => (
-          <div key={field.key as string}>
-            <p className="text-[9px] font-mono font-bold tracking-wider mb-1" style={{ color: "rgba(0,255,65,0.5)" }}>
-              {field.label}
-            </p>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    {rows.map(r => (
-                      <th key={r.fiscal_year} className="text-[9px] font-mono text-right" style={{ color: "rgba(0,255,65,0.3)", paddingBottom: 4, paddingLeft: 6 }}>
-                        FY{String(r.fiscal_year).slice(2)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {rows.map(r => {
-                      const v = getVal(r, field);
-                      return (
-                        <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, field.hib, field.neutral), paddingBottom: 3, paddingLeft: 6 }}>
-                          {fmtVal(v, field.fmt)}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))}
+      {/* Unified table: single year header, one row per field, optional ratio row */}
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={{ width: "1%" }} />
+              {rows.map(r => (
+                <th key={r.fiscal_year} className="text-[9px] font-mono text-right" style={{ color: "rgba(0,255,65,0.3)", paddingBottom: 4, paddingLeft: 8 }}>
+                  FY{String(r.fiscal_year).slice(2)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {detail.fields.map(field => (
+              <tr key={field.key as string}>
+                <td className="text-[9px] font-mono font-bold tracking-wider" style={{ color: "rgba(0,255,65,0.5)", paddingRight: 12, whiteSpace: "nowrap", paddingBottom: 4 }}>
+                  {field.label}
+                </td>
+                {rows.map(r => {
+                  const v = getVal(r, field);
+                  return (
+                    <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, field.hib, field.neutral), paddingBottom: 4, paddingLeft: 8 }}>
+                      {fmtVal(v, field.fmt)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+            {detail.ratioRow && (() => {
+              const rr = detail.ratioRow;
+              return (
+                <tr style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
+                  <td className="text-[9px] font-mono font-bold tracking-wider" style={{ color: "rgba(0,255,65,0.4)", paddingRight: 12, whiteSpace: "nowrap", paddingTop: 5, paddingBottom: 3 }}>
+                    {rr.label}
+                  </td>
+                  {rows.map(r => {
+                    const v = rr.compute(r);
+                    return (
+                      <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, rr.hib, rr.neutral), paddingTop: 5, paddingBottom: 3, paddingLeft: 8 }}>
+                        {fmtVal(v, rr.fmt)}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })()}
+          </tbody>
+        </table>
       </div>
 
       {/* Sparkline + verdict */}

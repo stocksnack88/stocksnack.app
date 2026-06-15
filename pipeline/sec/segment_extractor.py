@@ -62,6 +62,26 @@ _NULL_RESULT = {"product_segments": None, "geo_segments": None}
 # Lowercased exact matches — anything starting with "total" is also excluded.
 _NAME_ROLLUPS = {"worldwide", "consolidated"}
 
+# Regex used to truncate verbose segment names (e.g. BKNG stores full SEC
+# paragraph text as XBRL labels).  Split at first verb/preposition.
+_SPLIT_RE = re.compile(
+    r'\b(are|is|were|from|derived|based|include)\b', re.IGNORECASE
+)
+
+
+def _shorten(name: str, max_len: int = 40) -> str:
+    """Truncate a verbose segment name at the first verb/preposition, max 40 chars."""
+    if len(name) <= max_len:
+        return name
+    m = _SPLIT_RE.search(name)
+    if m:
+        short = name[:m.start()].strip().rstrip('.,;:')
+        if short:
+            return short[:max_len].strip()
+    truncated = name[:max_len]
+    last_space = truncated.rfind(' ')
+    return (truncated[:last_space] if last_space > 0 else truncated).strip()
+
 
 # ── HTTP helper ───────────────────────────────────────────────────────────────
 
@@ -233,7 +253,7 @@ def _clean_member_name(member: str, labels: dict[str, str]) -> str:
         name = labels[member]
         name = re.sub(r"\s*\[Member\]\.?$", "", name).strip()
         name = re.sub(r"\s+Segment$", "", name).strip()
-        return name
+        return _shorten(name)
 
     # Strip namespace prefix
     local = member.split(":")[-1] if ":" in member else member
@@ -266,7 +286,7 @@ def _clean_member_name(member: str, labels: dict[str, str]) -> str:
                      ("Apac", "APAC"), ("Emea", "EMEA")]:
         words = re.sub(rf"\b{old}\b", new, words, flags=re.IGNORECASE)
 
-    return words
+    return _shorten(words)
 
 
 def _parse_contexts(root: ET.Element) -> dict[str, dict]:

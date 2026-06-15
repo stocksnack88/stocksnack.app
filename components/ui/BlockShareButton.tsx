@@ -42,25 +42,32 @@ function buildCaption(
   signal?: string | null,
   projectedReturn?: number | null,
   cagr?: number | null,
+  blockTitle?: string,
 ): string {
-  const lines: string[] = []
-  if (ticker || companyName) {
-    lines.push([ticker, companyName].filter(Boolean).join(' — '))
+  const company = companyName || ticker || 'this stock'
+  const cagrStr = cagr != null ? `${(cagr * 100).toFixed(1)}` : null
+  const signalStr = signal || 'unknown'
+
+  const para1 = `I just looked at ${company}'s ${blockTitle || 'analysis'} on StockSnack — ${signalStr} signal${cagrStr ? `, ${cagrStr}% CAGR projected` : ''}. Interesting numbers.`
+
+  let para2: string
+  if (blockTitle?.includes('MARKET COMPARISON')) {
+    para2 = `This shows how ${company} stacks up against S&P 500 benchmarks on P/E ratio, FCF yield, and dividend yield.`
+  } else if (blockTitle?.includes('PRICE PROJECTION')) {
+    para2 = `This shows the projected upside across 3 valuation models — what the stock could be worth in 5 years.`
+  } else if (blockTitle?.includes('FINANCIAL HEALTH')) {
+    para2 = `This breaks down ${company}'s balance sheet strength across 24 financial checks.`
+  } else if (blockTitle?.includes('ABOUT THE BUSINESS')) {
+    para2 = `This shows where ${company} actually makes its money — product and geographic revenue breakdown.`
+  } else if (blockTitle?.includes('OVERVIEW')) {
+    para2 = `This is the full summary — score, signal, and projected return at a glance.`
+  } else {
+    para2 = `StockSnack scores all 500 S&P 500 stocks using 30 financial metrics.`
   }
-  if (signal) lines.push(`Signal: ${signal}`)
-  if (projectedReturn != null || cagr != null) {
-    const ret = projectedReturn != null ? `${projectedReturn.toFixed(1)}x` : null
-    const cagrStr = cagr != null ? `${(cagr * 100).toFixed(1)}% CAGR` : null
-    const parts = [ret, cagrStr].filter(Boolean).join(' (')
-    lines.push(`5Y Projected Return: ${parts}${cagrStr ? ')' : ''}`)
-  }
-  lines.push('')
-  lines.push('Analysed by StockSnack')
-  lines.push('')
-  lines.push('Try it free → stocksnack.app')
-  lines.push('')
-  lines.push('Use code SNACKBUDDY50 for 50% off Pro')
-  return lines.join('\n')
+
+  const para3 = `Check it out → stocksnack.app\nUse code SNACKBUDDY50 for 50% off Pro`
+
+  return [para1, para2, para3].join('\n')
 }
 
 function ShareModal({
@@ -243,7 +250,7 @@ export default function BlockShareButton({
   const [status, setStatus] = useState<'idle' | 'busy'>('idle')
   const [modal, setModal] = useState<ModalImage[] | null>(null)
 
-  const defaultCaption = buildCaption(ticker, companyName, signal, projectedReturn, cagr)
+  const defaultCaption = buildCaption(ticker, companyName, signal, projectedReturn, cagr, blockTitle)
 
   async function handleShare(e: React.MouseEvent) {
     e.stopPropagation()

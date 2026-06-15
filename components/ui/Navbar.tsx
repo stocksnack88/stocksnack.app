@@ -44,6 +44,7 @@ export default async function Navbar() {
             >
               SIGN IN
             </Link>
+            <NavDropdown />
           </>
         )}
 
@@ -60,7 +61,15 @@ export default async function Navbar() {
         )}
 
         {user && isPro && (
-          <NavDropdown />
+          <>
+            <span
+              className="tracking-widest text-[10px] font-bold px-2 py-0.5 rounded"
+              style={{ background: 'rgba(0,255,65,0.1)', color: '#00ff41', border: '1px solid rgba(0,255,65,0.3)' }}
+            >
+              PRO
+            </span>
+            <NavDropdown />
+          </>
         )}
       </div>
     </nav>

@@ -299,21 +299,37 @@ def _parse_contexts(root: ET.Element) -> dict[str, dict]:
         # Extract explicit members
         members = ctx.findall(f".//{{{XBRLDI}}}explicitMember")
 
+        source = "1dim"
         if len(members) == 1:
             m      = members[0]
             axis   = m.get("dimension", "")
             member = (m.text or "").strip()
         elif len(members) == 2:
-            # Allow 2-dim contexts where one dim is ConsolidationItemsAxis=OperatingSegmentsMember.
-            # AMD and JPM report operating-segment revenue under this exact pattern.
             dims = {m.get("dimension", ""): (m.text or "").strip() for m in members}
-            if dims.get("srt:ConsolidationItemsAxis") != "us-gaap:OperatingSegmentsMember":
+
+            # Pattern 1: AMD/JPM style — ConsolidationItemsAxis=OperatingSegmentsMember
+            if dims.get("srt:ConsolidationItemsAxis") == "us-gaap:OperatingSegmentsMember":
+                other = [k for k in dims if k != "srt:ConsolidationItemsAxis"]
+                if len(other) != 1:
+                    continue
+                axis   = other[0]
+                member = dims[axis]
+
+            # Pattern 2: NFLX/single-product style — ProductOrService + Geo.
+            # Companies that have one product line report geo breakdowns as 2-dim
+            # contexts (e.g. ProductOrServiceAxis=StreamingMember +
+            # GeographicalAxis=EMEAMember). Extract the geo dimension.
+            elif (any(k in (_PRODUCT_AXES | _BIZ_SEGMENT_AXES) for k in dims) and
+                  any(k in _GEO_AXES for k in dims)):
+                geo_keys = [k for k in dims if k in _GEO_AXES]
+                if len(geo_keys) != 1:
+                    continue
+                axis   = geo_keys[0]
+                member = dims[axis]
+                source = "2dim_geo"
+
+            else:
                 continue
-            other = [k for k in dims if k != "srt:ConsolidationItemsAxis"]
-            if len(other) != 1:
-                continue
-            axis   = other[0]
-            member = dims[axis]
         else:
             continue
 
@@ -329,6 +345,7 @@ def _parse_contexts(root: ET.Element) -> dict[str, dict]:
             "axis":       axis,
             "member":     member,
             "period_end": period_end,
+            "source":     source,
         }
 
     return ctx_map
@@ -387,6 +404,7 @@ def _extract_revenue_facts(
                     "member":     ctx["member"],
                     "period_end": ctx["period_end"],
                     "value":      val,
+                    "source":     ctx.get("source", "1dim"),
                 })
 
     return facts
@@ -465,6 +483,14 @@ def _build_segments(
     relevant = [f for f in facts if f["axis"] in axes]
     if not relevant:
         return None
+
+    # When some facts came from 2-dim Product+Geo contexts (e.g. NFLX reports
+    # geo revenue as ProductOrServiceAxis + GeographicalAxis), prefer those over
+    # any 1-dim geo facts (e.g. country:US) that may also be in the filing.
+    # The 1-dim facts are typically a finer-grained or overlapping subset and
+    # would produce incorrect totals if mixed with the 2-dim regional breakdown.
+    if any(f.get("source") == "2dim_geo" for f in relevant):
+        relevant = [f for f in relevant if f.get("source") == "2dim_geo"]
 
     # Group by period_end year — pick the year from the date string
     def year_of(period_end: str) -> int:

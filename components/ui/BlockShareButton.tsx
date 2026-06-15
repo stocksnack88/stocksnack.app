@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Share2 } from 'lucide-react'
 
 const SCALE = 2
 
@@ -377,7 +378,7 @@ export default function BlockShareButton({
         className="font-mono text-[10px] tracking-wider transition-colors"
         style={{ color: status === 'busy' ? 'rgba(0,255,65,0.15)' : 'rgba(0,255,65,0.35)' }}
       >
-        {status === 'busy' ? '···' : 'SHARE'}
+        {status === 'busy' ? '···' : <Share2 size={16} />}
       </button>
       {modal && typeof document !== 'undefined' && createPortal(
         <ShareModal

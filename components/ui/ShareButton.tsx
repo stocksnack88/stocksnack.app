@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { Share2 } from 'lucide-react'
 
 type Props = {
   ticker: string
@@ -67,7 +68,7 @@ export default function ShareButton(props: Props) {
       className="border border-[#00ff41]/25 rounded px-2.5 py-1 font-mono text-xs tracking-wider transition-colors"
       style={{ color: status === 'copied' ? '#00ff41' : 'rgba(0,255,65,0.4)' }}
     >
-      {status === 'copied' ? 'COPIED!' : 'SHARE'}
+      {status === 'copied' ? 'COPIED!' : <Share2 size={16} />}
     </button>
   )
 }

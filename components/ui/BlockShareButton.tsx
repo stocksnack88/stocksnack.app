@@ -268,33 +268,44 @@ export default function BlockShareButton({
       const contentWrap = document.createElement('div')
       contentWrap.style.cssText = 'padding:20px;background:#000000;'
 
-      // Header strip — mirrors footer style
-      const header = document.createElement('div')
-      header.style.cssText = [
-        'display:flex',
-        'align-items:center',
-        'justify-content:space-between',
-        'margin-bottom:16px',
-        'padding:10px 0',
+      // Header strip — two rows
+      const headerBase = [
         'background:#001a00',
         'border-bottom:1px solid rgba(0,255,65,0.2)',
         "font-family:'Courier New',Courier,monospace",
-        'font-size:11px',
         'font-weight:bold',
         'color:#00ff88',
         'letter-spacing:0.12em',
+        'margin-bottom:16px',
       ].join(';')
+
+      const header = document.createElement('div')
+      header.style.cssText = headerBase
+
+      // Row 1: STOCKSNACK (left) — ticker + company (right), smaller font
+      const hRow1 = document.createElement('div')
+      hRow1.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 16px;font-size:10px;'
       const hLeft = document.createElement('span')
       hLeft.textContent = 'STOCKSNACK'
-      const hCenter = document.createElement('span')
-      hCenter.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);'
-      hCenter.textContent = blockTitle || ''
       const hRight = document.createElement('span')
       hRight.textContent = [ticker, companyName].filter(Boolean).join(' — ')
-      header.style.position = 'relative'
-      header.appendChild(hLeft)
-      if (blockTitle) header.appendChild(hCenter)
-      header.appendChild(hRight)
+      hRow1.appendChild(hLeft)
+      hRow1.appendChild(hRight)
+      header.appendChild(hRow1)
+
+      // Row 2: block title centered, slightly larger font
+      if (blockTitle) {
+        const hRow2 = document.createElement('div')
+        hRow2.style.cssText = [
+          'text-align:center',
+          'padding:6px 16px 10px',
+          'font-size:13px',
+          'border-top:1px solid rgba(0,255,65,0.1)',
+        ].join(';')
+        hRow2.textContent = blockTitle
+        header.appendChild(hRow2)
+      }
+
       contentWrap.appendChild(header)
 
       // Clone each source element into the render div, stacked vertically
@@ -315,7 +326,7 @@ export default function BlockShareButton({
       const brand = document.createElement('div')
       brand.style.cssText = [
         'margin-top:16px',
-        'padding:10px 0',
+        'padding:10px 20px',
         'background:#001a00',
         'border-top:1px solid rgba(0,255,65,0.2)',
         'text-align:center',

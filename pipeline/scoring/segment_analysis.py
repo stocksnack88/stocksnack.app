@@ -7,22 +7,26 @@ revenue share, CAGR, and concentration risk.
 from __future__ import annotations
 
 import logging
+import re
 from scoring.utils import compute_cagr
 
 log = logging.getLogger(__name__)
 
 
+_SPLIT_RE = re.compile(
+    r'\b(are|is|were|from|derived|based|include)\b', re.IGNORECASE
+)
+
 def _clean_name(name: str, max_len: int = 40) -> str:
-    """Truncate verbose segment names at first comma/period; hard-cap at max_len chars."""
+    """Shorten verbose segment names to words before the first verb/preposition."""
     if len(name) <= max_len:
         return name
-    first_comma  = name.find(',')
-    first_period = name.find('.')
-    candidates   = [p for p in (first_comma, first_period) if p > 0]
-    first_break  = min(candidates) if candidates else -1
-    if 0 < first_break < max_len:
-        return name[:first_break].strip()
-    # No natural break within max_len — fall back to last word boundary
+    m = _SPLIT_RE.search(name)
+    if m:
+        short = name[:m.start()].strip().rstrip('.,;:')
+        if short:
+            return short[:max_len].strip()
+    # Fall back: last word boundary within max_len
     truncated  = name[:max_len]
     last_space = truncated.rfind(' ')
     return (truncated[:last_space] if last_space > 0 else truncated).strip()

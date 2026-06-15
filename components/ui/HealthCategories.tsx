@@ -158,6 +158,17 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
   ["sbc", {
     fields: [{ key: "sbc", label: "STOCK-BASED COMP", fmt: "bn", hib: false, lowerIsBetter: true }],
     description: "Non-cash compensation paid as equity — dilutes shareholders and inflates reported earnings vs real cash profit.",
+    ratioRow: {
+      label: "SBC / NET INCOME",
+      compute: (row) => {
+        const s  = row.sbc;
+        const ni = row.net_income;
+        if (s == null || ni == null || ni <= 0) return null;
+        return s / ni;
+      },
+      fmt: "pct",
+      hib: false,
+    },
   }],
   ["ocf", {
     fields: [{ key: "operating_cash_flow", label: "OPERATING CASH FLOW", fmt: "bn", hib: true, lowerIsBetter: false }],
@@ -170,6 +181,18 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
   ["capex", {
     fields: [{ key: "capex", label: "CAPITAL EXPENDITURE", fmt: "bn", hib: false, lowerIsBetter: false, abs: true }],
     description: "Cash spent on property, plant, and equipment — high capex relative to cash flow signals a capital-intensive business.",
+    ratioRow: {
+      label: "CAPEX / OCF",
+      compute: (row) => {
+        const c   = row.capex;
+        const ocf = row.operating_cash_flow;
+        if (c == null || ocf == null || ocf <= 0) return null;
+        return Math.abs(c) / ocf;
+      },
+      fmt: "pct",
+      hib: false,
+      neutral: true,
+    },
   }],
   ["payout ratio", {
     fields: [
@@ -202,6 +225,18 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
   ["intangibles", {
     fields: [{ key: "intangibles", label: "INTANGIBLES + GOODWILL", fmt: "bn", hib: false, lowerIsBetter: true }],
     description: "Goodwill and intangible assets — often reflects acquisition premiums; high intangibles relative to total assets can impair if the business deteriorates.",
+    ratioRow: {
+      label: "INTANGIBLES / ASSETS",
+      compute: (row) => {
+        const i = row.intangibles;
+        const a = row.total_assets;
+        if (i == null || a == null || a <= 0) return null;
+        return i / a;
+      },
+      fmt: "pct",
+      hib: false,
+      neutral: true,
+    },
   }],
   ["debt payoff", {
     fields: [

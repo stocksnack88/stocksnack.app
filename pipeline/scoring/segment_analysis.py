@@ -12,6 +12,22 @@ from scoring.utils import compute_cagr
 log = logging.getLogger(__name__)
 
 
+def _clean_name(name: str, max_len: int = 40) -> str:
+    """Truncate verbose segment names at first comma/period; hard-cap at max_len chars."""
+    if len(name) <= max_len:
+        return name
+    first_comma  = name.find(',')
+    first_period = name.find('.')
+    candidates   = [p for p in (first_comma, first_period) if p > 0]
+    first_break  = min(candidates) if candidates else -1
+    if 0 < first_break < max_len:
+        return name[:first_break].strip()
+    # No natural break within max_len — fall back to last word boundary
+    truncated  = name[:max_len]
+    last_space = truncated.rfind(' ')
+    return (truncated[:last_space] if last_space > 0 else truncated).strip()
+
+
 def _parse_year(item: dict) -> int | None:
     raw = item.get("fiscalYear") or item.get("date") or ""
     try:
@@ -60,7 +76,7 @@ def _analyse_segments(raw: list) -> tuple[list[dict], bool]:
             cagr = round(c, 4) if c is not None else None
 
         results.append({
-            "name":  name,
+            "name":  _clean_name(name),
             "pct":   round(current_value / total_revenue * 100, 2),
             "cagr":  cagr,
             "value": int(current_value),

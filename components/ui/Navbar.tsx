@@ -1,5 +1,6 @@
 import { getCachedUser, getCachedUserProfile } from '@/lib/server-auth'
 import Link from "next/link";
+import NavDropdown from "./NavDropdown";
 
 export default async function Navbar() {
   const user = await getCachedUser()
@@ -54,22 +55,12 @@ export default async function Navbar() {
             >
               UPGRADE
             </Link>
-            <Link
-              href="/account"
-              className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
-            >
-              ACCOUNT
-            </Link>
+            <NavDropdown />
           </>
         )}
 
         {user && isPro && (
-          <Link
-            href="/account"
-            className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
-          >
-            ACCOUNT
-          </Link>
+          <NavDropdown />
         )}
       </div>
     </nav>

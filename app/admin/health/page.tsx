@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react'
 import { getCachedUser } from '@/lib/server-auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import RefreshButton from './RefreshButton'
+import CopyReportButton from './CopyReportButton'
 
 const ADMIN_EMAIL = 'stocksnack88@gmail.com'
 const STALE_DAYS  = 14
@@ -248,6 +249,63 @@ export default async function AdminHealthPage() {
 
   const staleCount = stalenessRows.filter(r => r.days > STALE_DAYS).length
 
+  // ── report string ───────────────────────────────────────────────────────────
+  const hr = '─'.repeat(60)
+  const reportLines: string[] = [
+    hr,
+    'STOCKSNACK · PIPELINE HEALTH REPORT',
+    refreshedAt,
+    hr,
+    '',
+    '01 — SUMMARY',
+    `  TOTAL TICKERS TRACKED   ${totalTickers}`,
+    `  COMPLETE CORE DATA      ${completePct}% (${withFinalScore} with final_score)`,
+    `  ANOMALY FLAGS ACTIVE    ${anomalyFlagged}`,
+    '',
+    `02 — FIELD COVERAGE  (${fundTotal} tickers in fundamentals · ${scoresTotal} in scores)`,
+    `  ${'FIELD'.padEnd(25)} ${'SOURCE'.padEnd(16)} ${'POP'.padStart(5)} ${'NULL'.padStart(5)} ${'COV'.padStart(4)} STATUS`,
+    ...allCoverage.map(row =>
+      `  ${row.label.padEnd(25)} ${row.source.padEnd(16)} ${String(row.populated).padStart(5)} ${String(row.null_).padStart(5)} ${String(row.coverage).padStart(3)}% ${coverageLabel(row.coverage)}`
+    ),
+    '',
+    `03 — QUALITY FLAGS`,
+    `  PRODUCT SEGMENT NAMES > 40 CHARS (${longSegNames.length})`,
+    ...(longSegNames.length === 0
+      ? ['  ✓ None']
+      : longSegNames.map(r => `  ${r.ticker.padEnd(6)} [${r.len}] ${r.name}`)
+    ),
+    '',
+    `  MISSING CRITICAL FIELDS (${missingData.length} tickers)`,
+    ...(missingData.length === 0
+      ? ['  ✓ None']
+      : missingData.map(r => `  ${r.ticker.padEnd(6)} ${r.flags.join(' · ')}`)
+    ),
+    '',
+    `04 — ANOMALY ALERTS — VALUES > 10x MEDIAN (${anomalies.length} flagged)`,
+    `  MEDIAN: REV ${fmtB(medRev)}  ASSETS ${fmtB(medAssets)}  MKTCAP ${fmtB(medMktcap)}`,
+    ...(anomalies.length === 0
+      ? ['  ✓ No outliers detected']
+      : [
+          `  ${'TICKER'.padEnd(6)} ${'REVENUE'.padStart(9)} ${'ASSETS'.padStart(9)} ${'MKTCAP'.padStart(9)} FLAGS`,
+          ...anomalies.map(r =>
+            `  ${r.ticker.padEnd(6)} ${fmtB(r.rev).padStart(9)} ${fmtB(r.ast).padStart(9)} ${fmtB(r.mktcap ?? null).padStart(9)} ${r.flags.join(' · ')}`
+          ),
+        ]
+    ),
+    '',
+    `05 — PIPELINE HEALTH — LAST UPDATED PER TICKER`,
+    `  ${staleCount} STALE (>${STALE_DAYS} days) · ${stalenessRows.length - staleCount} UP TO DATE`,
+    `  ${'TICKER'.padEnd(6)} ${'LAST UPDATED'.padEnd(12)} ${'DAYS'.padStart(4)} STATUS`,
+    ...stalenessRows.map(r => {
+      const missing = r.days === 9999
+      const status  = missing ? 'MISSING' : r.days > STALE_DAYS ? 'STALE' : 'OK'
+      const days    = missing ? '—' : String(r.days)
+      return `  ${r.ticker.padEnd(6)} ${fmtDate(r.lastUpdated).padEnd(12)} ${days.padStart(4)} ${status}`
+    }),
+    hr,
+  ]
+  const report = reportLines.join('\n')
+
   // ── render ──────────────────────────────────────────────────────────────────
   return (
     <div style={S.page}>
@@ -261,6 +319,7 @@ export default async function AdminHealthPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingTop: 4 }}>
             <span style={{ fontSize: 9, color: DIM }}>{refreshedAt}</span>
+            <CopyReportButton report={report} />
             <RefreshButton />
           </div>
         </div>

@@ -11,9 +11,9 @@ export type AggregateYear = {
   fcf: number | null
 }
 
-const GREEN = '#00ff88'
-const DIM   = 'rgba(0,255,136,0.35)'
-const FONT  = "'Courier New', Courier, monospace"
+const GREEN = '#00ff41'
+const DIM   = 'rgba(0,255,65,0.35)'
+const FONT  = "var(--font-geist-mono), 'Courier New', monospace"
 
 function fmtT(v: number): string {
   const abs = Math.abs(v)
@@ -41,7 +41,7 @@ const CustomTooltip = ({ active, payload, label }: {
   if (!active || !payload?.length) return null
   return (
     <div style={{
-      background: '#0a0a0a', border: '1px solid rgba(0,255,136,0.2)',
+      background: '#000', border: '1px solid rgba(0,255,65,0.2)',
       padding: '8px 12px', fontFamily: FONT, fontSize: 11,
     }}>
       <p style={{ color: DIM, marginBottom: 4 }}>FY{label}</p>
@@ -69,7 +69,7 @@ function SingleChart({
       </p>
       <ResponsiveContainer width="100%" height={160}>
         <LineChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="2 4" stroke="rgba(0,255,136,0.08)" vertical={false} />
+          <CartesianGrid strokeDasharray="2 4" stroke="rgba(0,255,65,0.07)" vertical={false} />
           <XAxis
             dataKey="year"
             tick={{ fill: DIM, fontSize: 9, fontFamily: FONT }}
@@ -125,7 +125,7 @@ export default function AggregateCharts({ data }: { data: AggregateYear[] }) {
   return (
     <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
       <SingleChart title="TOTAL REVENUE" dataKey="revenue" data={data} color={GREEN} />
-      <SingleChart title="TOTAL EBITDA"  dataKey="ebitda"  data={data} color="#ffcc00" />
+      <SingleChart title="TOTAL EBITDA"  dataKey="ebitda"  data={data} color="#f59e0b" />
       <SingleChart title="TOTAL FCF"     dataKey="fcf"     data={data} color="#3b82f6" />
     </div>
   )

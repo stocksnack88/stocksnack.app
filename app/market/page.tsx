@@ -8,16 +8,16 @@ import SectorTrendChart, { type SectorYearData } from './SectorTrendChart'
 
 // ── constants ──────────────────────────────────────────────────────────────────
 
-const GREEN = '#00ff88'
-const DIM   = 'rgba(0,255,136,0.4)'
-const FAINT = 'rgba(0,255,136,0.1)'
-const FONT: CSSProperties = { fontFamily: "'Courier New', Courier, monospace" }
+const GREEN = '#00ff41'
+const DIM   = 'rgba(0,255,65,0.4)'
+const FAINT = 'rgba(0,255,65,0.1)'
+const FONT: CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }
 
 const SIGNALS = ['BUY+', 'BUY', 'HOLD', 'SELL'] as const
 const SIGNAL_COLOR: Record<string, string> = {
-  'BUY+': '#00ff88',
+  'BUY+': '#00ff41',
   'BUY':  '#22c55e',
-  'HOLD': '#ffcc00',
+  'HOLD': '#f59e0b',
   'SELL': '#ef4444',
 }
 
@@ -27,16 +27,15 @@ const FUND_YEARS = [2021, 2022, 2023, 2024, 2025]
 
 const S = {
   page:    { background: '#000', color: GREEN, minHeight: '100vh', ...FONT } as CSSProperties,
-  wrap:    { maxWidth: 1140, margin: '0 auto', padding: '0 1.5rem 4rem' } as CSSProperties,
-  section: { marginTop: '3.5rem' } as CSSProperties,
+  wrap:    { maxWidth: 896, margin: '0 auto', padding: '0 1.5rem 4rem' } as CSSProperties,
+  section: { marginTop: '2rem' } as CSSProperties,
   head: {
-    fontSize: 9, fontWeight: 'bold', letterSpacing: '0.22em',
-    color: DIM, marginBottom: '1rem',
-    borderBottom: `1px solid ${FAINT}`, paddingBottom: '0.4rem',
+    fontSize: 12, fontWeight: 'bold', letterSpacing: '0.1em',
+    color: GREEN, margin: 0,
   } as CSSProperties,
   table:  { width: '100%', borderCollapse: 'collapse' as const, fontSize: 11 },
-  th:     { textAlign: 'left' as const, color: DIM, padding: '4px 10px 4px 0', fontWeight: 'normal', letterSpacing: '0.1em', fontSize: 9 },
-  td:     { padding: '5px 10px 5px 0', borderBottom: `1px solid ${FAINT}`, verticalAlign: 'middle' as const },
+  th:     { textAlign: 'left' as const, color: 'rgba(0,255,65,0.35)', padding: '4px 10px 6px 0', fontWeight: 'normal', letterSpacing: '0.1em', fontSize: 9, borderBottom: '1px solid rgba(0,255,65,0.12)' },
+  td:     { padding: '5px 10px 5px 0', borderBottom: '1px solid rgba(0,255,65,0.07)', verticalAlign: 'middle' as const },
 }
 
 // ── types ──────────────────────────────────────────────────────────────────────
@@ -96,7 +95,7 @@ function fmtCagr(v: number | null): string {
 
 function scoreColor(s: number): string {
   if (s >= 70) return GREEN
-  if (s >= 50) return '#ffcc00'
+  if (s >= 50) return '#f59e0b'
   return '#ef4444'
 }
 
@@ -111,7 +110,7 @@ function valStatus(
   const exp   = higherIsCheap ? val < expThresh   : val > expThresh
   if (cheap) return { label: 'CHEAP',     color: GREEN }
   if (exp)   return { label: 'EXPENSIVE', color: '#ef4444' }
-  return { label: 'FAIR', color: '#ffcc00' }
+  return { label: 'FAIR', color: '#f59e0b' }
 }
 
 // ── data ──────────────────────────────────────────────────────────────────────
@@ -293,60 +292,64 @@ export default async function MarketPage() {
           </p>
           <p style={{ fontSize: 'clamp(16px, 2.5vw, 22px)', fontWeight: 'bold', lineHeight: 1.4, margin: 0, letterSpacing: '0.03em' }}>
             <span style={{ color: GREEN }}>{bullishPct}%</span>
-            <span style={{ color: 'rgba(0,255,136,0.75)' }}> of S&P 500 stocks are projected to beat the market right now — </span>
-            <span style={{ color: 'rgba(0,255,136,0.75)' }}>the market is </span>
+            <span style={{ color: 'rgba(0,255,65,0.75)' }}> of S&P 500 stocks are projected to beat the market right now — </span>
+            <span style={{ color: 'rgba(0,255,65,0.75)' }}>the market is </span>
             <span style={{ color: sentimentColor }}>{sentiment}</span>
-            <span style={{ color: 'rgba(0,255,136,0.75)' }}> by StockSnack&apos;s scoring.</span>
+            <span style={{ color: 'rgba(0,255,65,0.75)' }}> by StockSnack&apos;s scoring.</span>
           </p>
         </div>
 
         {/* ── SECTION 1: SIGNAL DISTRIBUTION ── */}
         <div style={S.section}>
-          <p style={S.head}>01 — SIGNAL DISTRIBUTION</p>
-          <p style={{ fontSize: 11, color: DIM, margin: '0 0 1rem', letterSpacing: '0.08em' }}>
-            Where {total} stocks stand today
-          </p>
-
-          {/* stacked bar */}
-          <div style={{
-            display: 'flex', height: 36, borderRadius: 4, overflow: 'hidden',
-            border: `1px solid ${FAINT}`, marginBottom: '1rem',
-          }}>
-            {sigBars.map(({ sig, pct: p, color }) =>
-              p > 0 && (
-                <div
-                  key={sig}
-                  title={`${sig}: ${sigCounts[sig]} stocks (${p}%)`}
-                  style={{
-                    width: `${p}%`, background: color, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    fontSize: 9, fontWeight: 'bold', color: '#000',
-                    letterSpacing: '0.1em', transition: 'width 0.3s',
-                  }}
-                >
-                  {p >= 8 ? sig : ''}
-                </div>
-              )
-            )}
-          </div>
-
-          {/* legend */}
-          <div style={{ display: 'flex', gap: '0 2rem', flexWrap: 'wrap' }}>
-            {sigBars.map(({ sig, count, pct: p, color }) => (
-              <div key={sig} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 10, height: 10, background: color, borderRadius: 2 }} />
-                <span style={{ fontSize: 10, color: DIM, letterSpacing: '0.08em' }}>{sig}</span>
-                <span style={{ fontSize: 13, fontWeight: 'bold', color }}>{count}</span>
-                <span style={{ fontSize: 9, color: DIM }}>({p}%)</span>
+          <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
+              <p style={S.head}>01 — SIGNAL DISTRIBUTION</p>
+              <p style={{ fontSize: 11, color: DIM, margin: 0, letterSpacing: '0.08em' }}>
+                Where {total} stocks stand today
+              </p>
+            </div>
+            <div style={{ padding: '1.25rem' }}>
+              {/* stacked bar */}
+              <div style={{
+                display: 'flex', height: 36, borderRadius: 4, overflow: 'hidden',
+                border: `1px solid ${FAINT}`, marginBottom: '1rem',
+              }}>
+                {sigBars.map(({ sig, pct: p, color }) =>
+                  p > 0 && (
+                    <div
+                      key={sig}
+                      title={`${sig}: ${sigCounts[sig]} stocks (${p}%)`}
+                      style={{
+                        width: `${p}%`, background: color, display: 'flex',
+                        alignItems: 'center', justifyContent: 'center',
+                        fontSize: 9, fontWeight: 'bold', color: '#000',
+                        letterSpacing: '0.1em', transition: 'width 0.3s',
+                      }}
+                    >
+                      {p >= 8 ? sig : ''}
+                    </div>
+                  )
+                )}
               </div>
-            ))}
+              {/* legend */}
+              <div style={{ display: 'flex', gap: '0 2rem', flexWrap: 'wrap' }}>
+                {sigBars.map(({ sig, count, pct: p, color }) => (
+                  <div key={sig} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 10, height: 10, background: color, borderRadius: 2 }} />
+                    <span style={{ fontSize: 10, color: DIM, letterSpacing: '0.08em' }}>{sig}</span>
+                    <span style={{ fontSize: 13, fontWeight: 'bold', color }}>{count}</span>
+                    <span style={{ fontSize: 9, color: DIM }}>({p}%)</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* ── SECTION 2: MARKET VALUATION ── */}
         <div style={S.section}>
-          <p style={S.head}>02 — MARKET VALUATION — S&P 500 AVERAGE</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+          <p style={{ ...S.head, marginBottom: '0.75rem' }}>02 — MARKET VALUATION — S&P 500 AVERAGE</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
             <ValuationCard
               label="P/E RATIO"
               displayValue={fmtPE(avgPE)}
@@ -373,83 +376,91 @@ export default async function MarketPage() {
 
         {/* ── SECTION 3: SECTOR RANKINGS ── */}
         <div style={S.section}>
-          <p style={S.head}>03 — SECTOR RANKINGS — SORTED BY AVG SCORE</p>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={S.table}>
-              <thead>
-                <tr>
-                  <th style={S.th}>SECTOR</th>
-                  <th style={{ ...S.th, textAlign: 'right' as const }}>STOCKS</th>
-                  <th style={{ ...S.th, textAlign: 'right' as const }}>AVG SCORE</th>
-                  <th style={{ ...S.th, textAlign: 'right' as const }}>AVG CAGR</th>
-                  {SIGNALS.map(s => (
-                    <th key={s} style={{ ...S.th, textAlign: 'right' as const, color: SIGNAL_COLOR[s] }}>{s}</th>
-                  ))}
-                  <th style={{ ...S.th, textAlign: 'right' as const }}>VERDICT</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sectorRows.map((r, i) => {
-                  const verdict =
-                    i < 3                     ? 'Leading' :
-                    i >= totalSectors - 3     ? 'Lagging' : 'Neutral'
-                  const verdictColor =
-                    verdict === 'Leading' ? GREEN :
-                    verdict === 'Lagging' ? '#ef4444' : DIM
-                  return (
-                    <tr key={r.sector}>
-                      <td style={S.td}>{r.sector}</td>
-                      <td style={{ ...S.td, textAlign: 'right' as const, color: DIM }}>{r.count}</td>
-                      <td style={{ ...S.td, textAlign: 'right' as const, fontWeight: 'bold', color: scoreColor(r.avgScore) }}>
-                        {r.avgScore.toFixed(1)}
-                      </td>
-                      <td style={{ ...S.td, textAlign: 'right' as const, color: DIM }}>
-                        {fmtCagr(r.avgCagr)}
-                      </td>
-                      {SIGNALS.map(sig => (
-                        <td key={sig} style={{ ...S.td, textAlign: 'right' as const, color: r.signals[sig] > 0 ? SIGNAL_COLOR[sig] : DIM }}>
-                          {r.signals[sig] > 0 ? r.signals[sig] : '—'}
+          <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
+              <p style={S.head}>03 — SECTOR RANKINGS — SORTED BY AVG SCORE</p>
+            </div>
+            <div style={{ padding: '0 1.25rem', overflowX: 'auto' }}>
+              <table style={{ ...S.table, fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}>
+                <thead>
+                  <tr>
+                    <th style={S.th}>SECTOR</th>
+                    <th style={{ ...S.th, textAlign: 'right' as const }}>STOCKS</th>
+                    <th style={{ ...S.th, textAlign: 'right' as const }}>AVG SCORE</th>
+                    <th style={{ ...S.th, textAlign: 'right' as const }}>AVG CAGR</th>
+                    {SIGNALS.map(s => (
+                      <th key={s} style={{ ...S.th, textAlign: 'right' as const, color: SIGNAL_COLOR[s] }}>{s}</th>
+                    ))}
+                    <th style={{ ...S.th, textAlign: 'right' as const }}>VERDICT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sectorRows.map((r, i) => {
+                    const verdict =
+                      i < 3                     ? 'Leading' :
+                      i >= totalSectors - 3     ? 'Lagging' : 'Neutral'
+                    const verdictColor =
+                      verdict === 'Leading' ? GREEN :
+                      verdict === 'Lagging' ? '#ef4444' : DIM
+                    return (
+                      <tr key={r.sector}>
+                        <td style={S.td}>{r.sector}</td>
+                        <td style={{ ...S.td, textAlign: 'right' as const, color: DIM }}>{r.count}</td>
+                        <td style={{ ...S.td, textAlign: 'right' as const, fontWeight: 'bold', color: scoreColor(r.avgScore) }}>
+                          {r.avgScore.toFixed(1)}
                         </td>
-                      ))}
-                      <td style={{ ...S.td, textAlign: 'right' as const, fontWeight: 'bold', fontSize: 9, letterSpacing: '0.1em', color: verdictColor }}>
-                        {verdict.toUpperCase()}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                        <td style={{ ...S.td, textAlign: 'right' as const, color: DIM }}>
+                          {fmtCagr(r.avgCagr)}
+                        </td>
+                        {SIGNALS.map(sig => (
+                          <td key={sig} style={{ ...S.td, textAlign: 'right' as const, color: r.signals[sig] > 0 ? SIGNAL_COLOR[sig] : DIM }}>
+                            {r.signals[sig] > 0 ? r.signals[sig] : '—'}
+                          </td>
+                        ))}
+                        <td style={{ ...S.td, textAlign: 'right' as const, fontWeight: 'bold', fontSize: 9, letterSpacing: '0.1em', color: verdictColor }}>
+                          {verdict.toUpperCase()}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
         {/* ── SECTION 4: MARKET HEALTH & GROWTH ── */}
         <div style={S.section}>
-          <p style={S.head}>04 — MARKET HEALTH & GROWTH</p>
+          <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
+            {/* 4A header */}
+            <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
+              <p style={S.head}>04A — S&P 500 AGGREGATE TRENDS (SUM, FY21–FY25)</p>
+            </div>
+            <div style={{ padding: '1.25rem' }}>
+              <AggregateCharts data={aggregateYears} />
+            </div>
+          </div>
 
-          {/* 4A: Aggregate trends */}
-          <p style={{ fontSize: 9, letterSpacing: '0.15em', color: DIM, margin: '0 0 1.25rem' }}>
-            PART A — S&P 500 AGGREGATE TRENDS (SUM, FY21–FY25)
-          </p>
-          <AggregateCharts data={aggregateYears} />
-
-          {/* divider */}
-          <div style={{ borderTop: `1px solid ${FAINT}`, margin: '2.5rem 0 2rem' }} />
-
-          {/* 4B: Sector trends */}
-          <p style={{ fontSize: 9, letterSpacing: '0.15em', color: DIM, margin: '0 0 1.25rem' }}>
-            PART B — SECTOR TRENDS (AVG PER COMPANY, FY21–FY25)
-          </p>
-          <SectorTrendChart sectorYears={sectorYears} />
+          {/* 4B card */}
+          <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden', marginTop: '0.75rem' }}>
+            <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
+              <p style={S.head}>04B — SECTOR TRENDS (AVG PER COMPANY, FY21–FY25)</p>
+            </div>
+            <div style={{ padding: '1.25rem' }}>
+              <SectorTrendChart sectorYears={sectorYears} />
+            </div>
+          </div>
         </div>
 
         {/* ── footer ── */}
-        <div style={{
-          marginTop: '3rem', paddingTop: '1rem',
+        <p style={{
+          marginTop: '2.5rem', paddingTop: '1rem',
           borderTop: `1px solid ${FAINT}`,
-          fontSize: 9, color: 'rgba(0,255,136,0.18)',
+          fontSize: 9, color: 'rgba(0,255,65,0.2)',
+          textAlign: 'center', letterSpacing: '0.15em',
         }}>
           STOCKSNACK · MARKET OVERVIEW · DATA UPDATED WEEKLY
-        </div>
+        </p>
 
       </div>
     </div>
@@ -468,49 +479,65 @@ function ValuationCard({
   status: { label: string; color: string }
 }) {
   return (
-    <div style={{ border: `1px solid ${FAINT}`, borderRadius: 5, padding: '1.25rem' }}>
-      <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.18em', margin: '0 0 8px' }}>{label}</p>
-      <p style={{ fontSize: 30, fontWeight: 'bold', margin: '0 0 14px', color: status.color }}>{displayValue}</p>
+    <div style={{
+      border: '1px solid rgba(0,255,65,0.2)',
+      background: 'rgba(0,255,65,0.02)',
+      borderRadius: 4,
+      overflow: 'hidden',
+    }}>
+      {/* card header */}
+      <div style={{
+        background: '#001a00',
+        borderBottom: '1px solid rgba(0,255,65,0.1)',
+        padding: '0.75rem 1.25rem',
+      }}>
+        <p style={{ fontSize: 9, color: 'rgba(0,255,65,0.4)', letterSpacing: '0.18em', margin: 0, fontWeight: 'bold' }}>{label}</p>
+      </div>
 
-      {/* spectrum bar with marker */}
-      <div style={{ position: 'relative', marginBottom: 18 }}>
-        <div style={{
-          display: 'flex', height: 7, borderRadius: 3, overflow: 'visible',
-          position: 'relative',
-        }}>
-          <div style={{ flex: 1, background: '#00ff88', opacity: 0.6, borderRadius: '3px 0 0 3px' }} />
-          <div style={{ flex: 1, background: '#ffcc00', opacity: 0.6 }} />
-          <div style={{ flex: 1, background: '#ef4444', opacity: 0.6, borderRadius: '0 3px 3px 0' }} />
+      {/* card body */}
+      <div style={{ padding: '1rem 1.25rem 1.25rem' }}>
+        <p style={{ fontSize: 30, fontWeight: 'bold', margin: '0 0 14px', color: status.color }}>{displayValue}</p>
+
+        {/* spectrum bar with marker */}
+        <div style={{ position: 'relative', marginBottom: 18 }}>
+          <div style={{
+            display: 'flex', height: 7, borderRadius: 3, overflow: 'visible',
+            position: 'relative',
+          }}>
+            <div style={{ flex: 1, background: '#00ff41', opacity: 0.55, borderRadius: '3px 0 0 3px' }} />
+            <div style={{ flex: 1, background: '#f59e0b', opacity: 0.55 }} />
+            <div style={{ flex: 1, background: '#ef4444', opacity: 0.55, borderRadius: '0 3px 3px 0' }} />
+          </div>
+          {/* marker */}
+          <div style={{
+            position: 'absolute',
+            left: `${markerPct}%`,
+            top: -3,
+            width: 3,
+            height: 13,
+            background: '#fff',
+            borderRadius: 2,
+            transform: 'translateX(-50%)',
+            boxShadow: '0 0 4px rgba(255,255,255,0.6)',
+          }} />
         </div>
-        {/* marker */}
-        <div style={{
-          position: 'absolute',
-          left: `${markerPct}%`,
-          top: -3,
-          width: 3,
-          height: 13,
-          background: '#fff',
-          borderRadius: 2,
-          transform: 'translateX(-50%)',
-          boxShadow: '0 0 4px rgba(255,255,255,0.6)',
-        }} />
+
+        {/* zone labels */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 7, color: 'rgba(0,255,65,0.25)', marginBottom: 10 }}>
+          <span>CHEAP</span>
+          <span>FAIR</span>
+          <span>EXPENSIVE</span>
+        </div>
+
+        {/* benchmark */}
+        <p style={{ fontSize: 8, color: 'rgba(0,255,65,0.25)', margin: '0 0 10px', lineHeight: 1.6 }}>
+          {benchmark}
+        </p>
+
+        <p style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.15em', color: status.color, margin: 0 }}>
+          {status.label}
+        </p>
       </div>
-
-      {/* zone labels */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 7, color: 'rgba(0,255,136,0.25)', marginBottom: 10 }}>
-        <span>CHEAP</span>
-        <span>FAIR</span>
-        <span>EXPENSIVE</span>
-      </div>
-
-      {/* benchmark */}
-      <p style={{ fontSize: 8, color: 'rgba(0,255,136,0.25)', margin: '0 0 8px', lineHeight: 1.5 }}>
-        {benchmark}
-      </p>
-
-      <p style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.15em', color: status.color, margin: 0 }}>
-        {status.label}
-      </p>
     </div>
   )
 }

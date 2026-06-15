@@ -16,12 +16,12 @@ export type SectorYearData = {
 
 type Metric = 'Revenue' | 'EBITDA' | 'FCF'
 
-const FONT = "'Courier New', Courier, monospace"
-const DIM  = 'rgba(0,255,136,0.35)'
+const FONT = "var(--font-geist-mono), 'Courier New', monospace"
+const DIM  = 'rgba(0,255,65,0.35)'
 
 const SECTOR_COLORS: Record<string, string> = {
-  'Information Technology': '#00ff88',
-  'Technology':             '#00ff88',
+  'Information Technology': '#00ff41',
+  'Technology':             '#00ff41',
   'Health Care':            '#3b82f6',
   'Financials':             '#f59e0b',
   'Consumer Discretionary': '#ef4444',
@@ -36,7 +36,7 @@ const SECTOR_COLORS: Record<string, string> = {
 }
 
 const FALLBACK_COLORS = [
-  '#00ff88','#3b82f6','#f59e0b','#ef4444','#a855f7',
+  '#00ff41','#3b82f6','#f59e0b','#ef4444','#a855f7',
   '#06b6d4','#84cc16','#f97316','#ec4899','#14b8a6','#6366f1','#94a3b8',
 ]
 
@@ -83,7 +83,7 @@ const SectorTooltip = ({ active, payload, label, formatter }: {
   const sorted = [...payload].filter(p => p.value != null).sort((a, b) => b.value - a.value)
   return (
     <div style={{
-      background: '#080808', border: '1px solid rgba(0,255,136,0.2)',
+      background: '#000', border: '1px solid rgba(0,255,65,0.2)',
       padding: '8px 12px', fontFamily: FONT, fontSize: 10, maxWidth: 220,
     }}>
       <p style={{ color: DIM, marginBottom: 6, fontSize: 9 }}>FY{label}</p>
@@ -107,9 +107,9 @@ export default function SectorTrendChart({ sectorYears }: { sectorYears: SectorY
   const healthData  = buildChartData(sectorYears, sectors, 'avgGrossMargin', years)
 
   const btnStyle = (active: boolean) => ({
-    background: active ? 'rgba(0,255,136,0.12)' : 'none',
-    border: `1px solid ${active ? 'rgba(0,255,136,0.45)' : 'rgba(0,255,136,0.18)'}`,
-    color: active ? '#00ff88' : DIM,
+    background: active ? 'rgba(0,255,65,0.12)' : 'none',
+    border: `1px solid ${active ? 'rgba(0,255,65,0.45)' : 'rgba(0,255,65,0.18)'}`,
+    color: active ? '#00ff41' : DIM,
     padding: '4px 12px',
     cursor: 'pointer',
     fontFamily: FONT,
@@ -135,7 +135,7 @@ export default function SectorTrendChart({ sectorYears }: { sectorYears: SectorY
       </p>
       <ResponsiveContainer width="100%" height={260}>
         <LineChart data={revenueData} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="2 4" stroke="rgba(0,255,136,0.07)" vertical={false} />
+          <CartesianGrid strokeDasharray="2 4" stroke="rgba(0,255,65,0.07)" vertical={false} />
           <XAxis
             dataKey="year"
             tick={{ fill: DIM, fontSize: 9, fontFamily: FONT }}
@@ -182,7 +182,7 @@ export default function SectorTrendChart({ sectorYears }: { sectorYears: SectorY
       </p>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={healthData} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="2 4" stroke="rgba(0,255,136,0.07)" vertical={false} />
+          <CartesianGrid strokeDasharray="2 4" stroke="rgba(0,255,65,0.07)" vertical={false} />
           <XAxis
             dataKey="year"
             tick={{ fill: DIM, fontSize: 9, fontFamily: FONT }}

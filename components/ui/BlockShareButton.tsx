@@ -319,6 +319,7 @@ export default function BlockShareButton({
         clone.style.maxWidth = '100%'
         clone.style.boxSizing = 'border-box'
         clone.style.marginTop = '0'
+        clone.style.paddingTop = '0'
         contentWrap.appendChild(clone)
         if (i < sourceEls.length - 1) {
           const sep = document.createElement('div')

@@ -272,9 +272,10 @@ export default function BlockShareButton({
         "font-family:'Courier New',Courier,monospace",
       ].join(';')
 
-      // Content wrapper — what html2canvas will screenshot
+      // Content wrapper — what html2canvas will screenshot.
+      // display:flex prevents margin collapsing between cloned block elements.
       const contentWrap = document.createElement('div')
-      contentWrap.style.cssText = 'padding:20px;background:#000000;'
+      contentWrap.style.cssText = 'padding:20px;background:#000000;display:flex;flex-direction:column;'
 
       // Header strip — two rows
       const headerBase = [
@@ -290,15 +291,10 @@ export default function BlockShareButton({
       const header = document.createElement('div')
       header.style.cssText = headerBase
 
-      // Row 1: STOCKSNACK (left) — ticker + company (right), smaller font
+      // Row 1: ticker + company name, left-aligned
       const hRow1 = document.createElement('div')
-      hRow1.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 16px;font-size:10px;'
-      const hLeft = document.createElement('span')
-      hLeft.textContent = 'STOCKSNACK'
-      const hRight = document.createElement('span')
-      hRight.textContent = [ticker, companyName].filter(Boolean).join(' — ')
-      hRow1.appendChild(hLeft)
-      hRow1.appendChild(hRight)
+      hRow1.style.cssText = 'padding:8px 16px;font-size:10px;'
+      hRow1.textContent = [ticker, companyName].filter(Boolean).join(' — ')
       header.appendChild(hRow1)
 
       // Row 2: block title centered, slightly larger font
@@ -322,6 +318,7 @@ export default function BlockShareButton({
         clone.style.width = '100%'
         clone.style.maxWidth = '100%'
         clone.style.boxSizing = 'border-box'
+        clone.style.marginTop = '0'
         contentWrap.appendChild(clone)
         if (i < sourceEls.length - 1) {
           const sep = document.createElement('div')

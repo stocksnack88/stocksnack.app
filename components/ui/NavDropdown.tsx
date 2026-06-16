@@ -30,7 +30,7 @@ export default function NavDropdown() {
         aria-label="Open menu"
         aria-expanded={open}
         aria-haspopup="true"
-        className="self-center tracking-widest transition-colors cursor-pointer select-none py-3 px-1"
+        className="self-center mt-1 tracking-widest transition-colors cursor-pointer select-none py-3 px-1"
         style={{
           background: 'none',
           border: 'none',

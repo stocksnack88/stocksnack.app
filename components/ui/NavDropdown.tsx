@@ -23,7 +23,7 @@ export default function NavDropdown() {
   }, [open])
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+    <div ref={ref} className="relative flex items-center">
       {/* trigger */}
       <button
         onClick={() => setOpen(o => !o)}

@@ -305,7 +305,24 @@ def _safe(v, default=0.0) -> float:
         return default
 
 
-def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None) -> dict:
+def _fetch_supabase_ebitda(ticker: str, client) -> dict[int, float]:
+    """Return {fiscal_year: ebitda} from stock_fundamentals for EBITDA zero-fill."""
+    try:
+        resp = client.table("stock_fundamentals") \
+            .select("fiscal_year,ebitda") \
+            .eq("ticker", ticker) \
+            .execute()
+        return {
+            int(row["fiscal_year"]): float(row["ebitda"])
+            for row in (resp.data or [])
+            if row.get("ebitda") is not None and row.get("fiscal_year") is not None
+        }
+    except Exception as exc:
+        log.warning("[%s] Supabase EBITDA lookup failed: %s", ticker, exc)
+        return {}
+
+
+def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None, client=None) -> dict:
     """
     Fetch SEC + yfinance data and assemble the exact data dict the scoring
     layers expect, mirroring the structure that fmp.fetch_all() produces.
@@ -352,6 +369,19 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
         cf["dividendsPaid"] = yr.get("netDividendsPaid", 0.0)
         cashflow_list.append(cf)
 
+    # ── Supabase EBITDA zero-fill ─────────────────────────────────────────────
+    # When SEC XBRL produces ebitda=0 (e.g. D&A tag missing for a year), fall back
+    # to the stored stock_fundamentals value which may come from FMP or a prior run.
+    if client is not None:
+        sb_ebitda = _fetch_supabase_ebitda(ticker, client)
+        if sb_ebitda:
+            for yr_dict, inc in zip(flat_years, income_list):
+                fy = int(yr_dict["date"][:4])
+                if _safe(inc.get("ebitda")) == 0 and fy in sb_ebitda:
+                    log.info("[%s] FY%d EBITDA=0 from XBRL → using Supabase value: %g",
+                             ticker, fy, sb_ebitda[fy])
+                    inc["ebitda"] = sb_ebitda[fy]
+
     # ── Metrics list (one per year, using historical market cap) ─────────────
     fiscal_year_ints = [int(yr["date"][:4]) for yr in flat_years]
 
@@ -384,7 +414,7 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
 
         ev = (mktcap + debt__ - cash__) if mktcap and mktcap > 0 else None
 
-        ev_ebitda = (ev / ebitda_)  if ev and ebitda_  > 0 else None
+        ev_ebitda = (ev / ebitda_)  if ev and ebitda_ != 0 else None
         p_fcf     = (mktcap / fcf_) if mktcap and mktcap > 0 and fcf_ > 0 else None
         div_yield = (net_div_ / mktcap) if mktcap and mktcap > 0 and net_div_ > 0 else None
 
@@ -446,7 +476,11 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
         sector_mode = _resolve_sector_mode(
             ticker, client=writer.client if writer is not None else None
         )
-        data = build_data_dict(ticker, sector_mode=sector_mode)
+        data = build_data_dict(
+            ticker,
+            sector_mode=sector_mode,
+            client=writer.client if writer is not None else None,
+        )
 
         if not data["profile"].get("price"):
             log.warning("[%s] No price from yfinance — skipped", ticker)

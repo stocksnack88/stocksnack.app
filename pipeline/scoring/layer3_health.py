@@ -81,10 +81,10 @@ def score_health(data: dict) -> dict:
 
     # ── Balance Sheet (7) ─────────────────────────────────────────────────────
 
-    # BS_1: Cash/Debt > 1.0
+    # BS_1: Cash/Debt > 1.0 (no debt = automatic pass)
     metric("Cash/Debt > 1.0",
         lambda d: _f(d,"cashAndCashEquivalents") / _f(d,"totalDebt") > 1
-                  if _f(d,"totalDebt") > 0 else False)
+                  if _f(d,"totalDebt") > 0 else True)
 
     # BS_2: Debt/Equity < 80% (total liabilities / equity, matching n8n)
     metric("Debt/Equity < 80%",

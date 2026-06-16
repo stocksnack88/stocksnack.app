@@ -58,6 +58,7 @@ DepreciationAndAmortization,depreciation_amortization,5,2026-05-24,fallback comp
 CashAndCashEquivalentsAtCarryingValue,cash_and_equivalents,1,2026-05-16,confirmed AAPL
 CashAndCashEquivalents,cash_and_equivalents,2,2026-05-16,
 CashCashEquivalentsAndShortTermInvestments,cash_and_equivalents,3,2026-05-16,
+CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents,cash_and_equivalents,4,2026-06-16,fixes EL GPC HAS OMC — restricted cash included in statement of cash flows
 LongTermDebt,total_debt,1,2026-05-17,complete total including current maturities
 LongTermDebtNoncurrent,total_debt,2,2026-05-17,noncurrent portion only — fallback
 DebtAndCapitalLeaseObligations,total_debt,3,2026-05-16,

@@ -44,6 +44,7 @@ export type FundRow = {
   shares_outstanding: number | null;
   intangibles: number | null;
   preferred_stock: number | null;
+  retained_earnings: number | null;
 };
 
 // ── Metric detail map ────────────────────────────────────────────────────────
@@ -114,38 +115,66 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
     description: "Value of preferred shares outstanding — preferred holders get paid before common shareholders in dividends and liquidation.",
   }],
   ["retained earnings", {
-    fields: [{ key: "total_equity", label: "TOTAL EQUITY", fmt: "bn", hib: true, lowerIsBetter: false }],
-    description: "Total shareholders' equity grows when a company retains profits year after year instead of paying them all out.",
+    fields: [{ key: "retained_earnings", label: "RETAINED EARNINGS", fmt: "bn", hib: true, lowerIsBetter: false }],
+    description: "Cumulative profits kept inside the business rather than paid out — growing retained earnings signal compounding internal wealth.",
   }],
   ["active buybacks", {
     fields: [{ key: "buybacks", label: "BUYBACKS", fmt: "bn", hib: true, lowerIsBetter: false, abs: true }],
     description: "Cash spent repurchasing shares — reduces share count and increases each remaining shareholder's ownership.",
   }],
   ["roe", {
-    fields: [{ key: "roe", label: "RETURN ON EQUITY", fmt: "pct", hib: true, lowerIsBetter: false }],
+    fields: [
+      { key: "net_income",   label: "NET INCOME",   fmt: "bn",  hib: true, lowerIsBetter: false },
+      { key: "total_equity", label: "TOTAL EQUITY", fmt: "bn",  hib: true, lowerIsBetter: false, neutral: true },
+    ],
     description: "Net income divided by shareholders' equity — how efficiently the company turns invested capital into profit.",
+    ratioRows: [{
+      label: "RETURN ON EQUITY",
+      compute: (row) => {
+        const ni = row.net_income;
+        const eq = row.total_equity;
+        if (ni == null || eq == null || eq === 0) return null;
+        return ni / eq;
+      },
+      fmt: "pct",
+      hib: true,
+    }],
   }],
   ["rota", {
     fields: [
-      { key: "operating_income", label: "OPERATING INCOME", fmt: "bn", hib: true, lowerIsBetter: false },
-      { key: "total_assets",     label: "TOTAL ASSETS",     fmt: "bn", hib: true, lowerIsBetter: false },
+      { key: "net_income",   label: "NET INCOME",   fmt: "bn", hib: true, lowerIsBetter: false },
+      { key: "total_assets", label: "TOTAL ASSETS", fmt: "bn", hib: true, lowerIsBetter: false, neutral: true },
     ],
-    description: "Operating income divided by total assets — how effectively the company generates profit from everything it owns.",
+    description: "Net income divided by total assets — how effectively the company generates profit from everything it owns.",
     ratioRows: [{
       label: "RATIO (ROTA)",
       compute: (row) => {
-        const oi = row.operating_income;
+        const ni = row.net_income;
         const ta = row.total_assets;
-        if (oi == null || ta == null || ta === 0) return null;
-        return oi / ta;
+        if (ni == null || ta == null || ta === 0) return null;
+        return ni / ta;
       },
       fmt: "pct",
       hib: true,
     }],
   }],
   ["gross margin", {
-    fields: [{ key: "gross_margin", label: "GROSS MARGIN", fmt: "pct", hib: true, lowerIsBetter: false }],
+    fields: [
+      { key: "gross_profit", label: "GROSS PROFIT", fmt: "bn",  hib: true, lowerIsBetter: false },
+      { key: "revenue",      label: "REVENUE",      fmt: "bn",  hib: true, lowerIsBetter: false, neutral: true },
+    ],
     description: "Revenue minus cost of goods sold as a percentage — reflects pricing power and production cost efficiency.",
+    ratioRows: [{
+      label: "GROSS MARGIN",
+      compute: (row) => {
+        const gp = row.gross_profit;
+        const r  = row.revenue;
+        if (gp == null || r == null || r === 0) return null;
+        return gp / r;
+      },
+      fmt: "pct",
+      hib: true,
+    }],
   }],
   ["sg&a", {
     fields: [
@@ -200,38 +229,47 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
     description: "Net income divided by shares outstanding — the profit attributable to each share, which should grow over time.",
   }],
   ["sbc", {
-    fields: [{ key: "sbc", label: "STOCK-BASED COMP", fmt: "bn", hib: false, lowerIsBetter: true }],
+    fields: [
+      { key: "sbc",     label: "STOCK-BASED COMP", fmt: "bn", hib: false, lowerIsBetter: true },
+      { key: "revenue", label: "REVENUE",           fmt: "bn", hib: true,  lowerIsBetter: false, neutral: true },
+    ],
     description: "Non-cash compensation paid as equity — dilutes shareholders and inflates reported earnings vs real cash profit.",
     ratioRows: [{
-      label: "SBC / NET INCOME",
+      label: "SBC / REVENUE",
       compute: (row) => {
-        const s  = row.sbc;
-        const ni = row.net_income;
-        if (s == null || ni == null || ni <= 0) return null;
-        return s / ni;
+        const s = row.sbc;
+        const r = row.revenue;
+        if (s == null || r == null || r === 0) return null;
+        return s / r;
       },
       fmt: "pct",
       hib: false,
     }],
   }],
   ["ocf", {
-    fields: [{ key: "operating_cash_flow", label: "OPERATING CASH FLOW", fmt: "bn", hib: true, lowerIsBetter: false }],
-    description: "Cash generated from core business operations — the real cash engine before investment and financing.",
+    fields: [
+      { key: "operating_cash_flow", label: "OPERATING CASH FLOW", fmt: "bn", hib: true, lowerIsBetter: false },
+      { key: "net_income",          label: "NET INCOME",          fmt: "bn", hib: true, lowerIsBetter: false, neutral: true },
+    ],
+    description: "Cash generated from core business operations — should exceed net income to confirm profits are backed by real cash.",
   }],
   ["fcf growth", {
     fields: [{ key: "free_cash_flow", label: "FREE CASH FLOW", fmt: "bn", hib: true, lowerIsBetter: false }],
     description: "Operating cash flow minus capital expenditure — the cash the business generates after maintaining its asset base.",
   }],
   ["capex", {
-    fields: [{ key: "capex", label: "CAPITAL EXPENDITURE", fmt: "bn", hib: false, lowerIsBetter: false, abs: true }],
-    description: "Cash spent on property, plant, and equipment — high capex relative to cash flow signals a capital-intensive business.",
+    fields: [
+      { key: "capex",      label: "CAPITAL EXPENDITURE", fmt: "bn", hib: false, lowerIsBetter: false, abs: true },
+      { key: "net_income", label: "NET INCOME",          fmt: "bn", hib: true,  lowerIsBetter: false, neutral: true },
+    ],
+    description: "Cash spent on property, plant, and equipment — high capex relative to net income signals a capital-intensive business.",
     ratioRows: [{
-      label: "CAPEX / OCF",
+      label: "CAPEX / NET INCOME",
       compute: (row) => {
-        const c   = row.capex;
-        const ocf = row.operating_cash_flow;
-        if (c == null || ocf == null || ocf <= 0) return null;
-        return Math.abs(c) / ocf;
+        const c  = row.capex;
+        const ni = row.net_income;
+        if (c == null || ni == null || ni <= 0) return null;
+        return Math.abs(c) / ni;
       },
       fmt: "pct",
       hib: false,

@@ -113,6 +113,7 @@ def _build_fundamentals(ticker: str, data: dict) -> list[dict]:
             "shares_outstanding":   safe_float(bal.get("weightedAverageShsOutDil"))                or None,
             "intangibles":          safe_float(bal.get("intangibleAssets")) or safe_float(bal.get("goodwillAndIntangibleAssets")) or None,
             "preferred_stock":      (lambda v: safe_float(v) if v is not None else None)(bal.get("preferredStock")),
+            "retained_earnings":    safe_float(bal.get("retainedEarnings"))                        or None,
             "current_assets":       safe_float(bal.get("currentAssets"))                           or None,
             "current_liabilities":  safe_float(bal.get("currentLiabilities"))                      or None,
             "updated_at":           _now(),

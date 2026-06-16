@@ -30,14 +30,12 @@ export default function NavDropdown() {
         aria-label="Open menu"
         aria-expanded={open}
         aria-haspopup="true"
-        className="self-center tracking-[0.15em] transition-colors text-[11px] border rounded-sm px-[10px] py-[5px] cursor-pointer select-none"
+        className="self-center tracking-widest transition-colors cursor-pointer select-none py-3 px-1"
         style={{
           background: 'none',
-          borderColor: open ? 'rgba(0,255,65,0.5)' : 'rgba(0,255,65,0.25)',
+          border: 'none',
           color: open ? '#00ff41' : 'rgba(0,255,65,0.5)',
           fontFamily: "var(--font-geist-mono), 'Courier New', monospace",
-          lineHeight: 1,
-          fontSize: 14,
         }}
       >
         {open ? '✕' : '≡'}

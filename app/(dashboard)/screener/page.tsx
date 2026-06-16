@@ -193,7 +193,7 @@ export default async function ScreenerPage({
               href="/signup"
               className="bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest px-4 py-2 rounded hover:bg-[#00dd38] transition-colors text-center"
             >
-              UNLOCK FULL ACCESS →
+              START 5 MIN PRO TRIAL →
             </a>
           </div>
         </div>

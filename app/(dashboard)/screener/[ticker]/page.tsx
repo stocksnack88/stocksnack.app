@@ -7,7 +7,6 @@ import BackButton from "@/components/ui/BackButton";
 import UpgradeButton from "@/components/ui/UpgradeButton";
 import DescriptionToggle from "@/components/ui/DescriptionToggle";
 import HealthCategories, { type FundRow as HealthFundRow } from "@/components/ui/HealthCategories";
-import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 import HazardTooltip from "@/components/ui/HazardTooltip";
 import ShareButton from "@/components/ui/ShareButton";
 import BlockShareButton from "@/components/ui/BlockShareButton";

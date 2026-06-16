@@ -1,10 +1,14 @@
-export const revalidate = 3600
+export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getCachedUser } from '@/lib/server-auth'
 import type { CSSProperties } from 'react'
 import AggregateCharts, { type AggregateYear } from './AggregateCharts'
 import SectorTrendChart, { type SectorYearData } from './SectorTrendChart'
+
+const INTERNAL_EMAILS = ['mrepsiloned@gmail.com', 'stocksnack88@gmail.com']
 
 // ── constants ──────────────────────────────────────────────────────────────────
 
@@ -140,6 +144,9 @@ const getMarketData = unstable_cache(
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default async function MarketPage() {
+  const user = await getCachedUser()
+  if (!user || !INTERNAL_EMAILS.includes(user.email ?? '')) redirect('/screener')
+
   const { scores, fund } = await getMarketData()
 
   // ── sector map from scores ──────────────────────────────────────────────────

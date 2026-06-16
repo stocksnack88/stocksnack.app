@@ -23,7 +23,7 @@ export default function NavDropdown() {
   }, [open])
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
       {/* trigger */}
       <button
         onClick={() => setOpen(o => !o)}
@@ -54,7 +54,7 @@ export default function NavDropdown() {
             background: '#000',
             border: '1px solid rgba(0,255,65,0.2)',
             borderRadius: 4,
-            minWidth: 190,
+            minWidth: 200,
             zIndex: 200,
             padding: '4px 0',
             boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
@@ -63,13 +63,24 @@ export default function NavDropdown() {
           <Link
             href="/market"
             role="menuitem"
-            className="block px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
+            className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
             style={{
               fontFamily: "var(--font-geist-mono), 'Courier New', monospace",
               borderBottom: '1px solid rgba(0,255,65,0.08)',
             }}
           >
-            MARKET OVERVIEW
+            MARKET OVERVIEW <span style={{ fontSize: 10 }}>🔒</span>
+          </Link>
+          <Link
+            href="/compare"
+            role="menuitem"
+            className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
+            style={{
+              fontFamily: "var(--font-geist-mono), 'Courier New', monospace",
+              borderBottom: '1px solid rgba(0,255,65,0.08)',
+            }}
+          >
+            COMPARE <span style={{ fontSize: 10 }}>🔒</span>
           </Link>
           <Link
             href="/account"

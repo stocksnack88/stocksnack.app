@@ -382,6 +382,22 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
                              ticker, fy, sb_ebitda[fy])
                     inc["ebitda"] = sb_ebitda[fy]
 
+    # ── EBITDA sanity check ───────────────────────────────────────────────────
+    # SEC XBRL D&A can be reported in thousands while operatingIncome is in
+    # dollars; field_mapper computes ebitda = operatingIncome + D&A, inflating
+    # the result by ~1000×. Catch it by comparing against revenue (a 500% EBITDA
+    # margin is impossible) and divide by 1000 to correct.
+    for inc in income_list:
+        eb = _safe(inc.get("ebitda"))
+        rv = _safe(inc.get("revenue"))
+        if rv > 0 and eb > rv * 5:
+            corrected = eb / 1000
+            log.warning(
+                "[%s] EBITDA %.0f >> revenue %.0f — D&A unit mismatch suspected; corrected to %.0f",
+                ticker, eb, rv, corrected,
+            )
+            inc["ebitda"] = corrected
+
     # ── Metrics list (one per year, using historical market cap) ─────────────
     fiscal_year_ints = [int(yr["date"][:4]) for yr in flat_years]
 

@@ -138,6 +138,12 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
     rev_weighted_cagr = gq_rev["weightedCAGR"]
     ni_weighted_cagr  = gq_ni["weightedCAGR"]
 
+    # 3-year variants (identical logic, shorter window)
+    gq_rev_3y = compute_gq(list(reversed(rev_vals[:3])), _base)
+    gq_ni_3y  = compute_gq(list(reversed(ni_vals[:3])),  _base)
+    rev_weighted_cagr_3y = gq_rev_3y["weightedCAGR"]
+    ni_weighted_cagr_3y  = gq_ni_3y["weightedCAGR"]
+
     rev_ni_scores = [
         cagr_to_score(rev_weighted_cagr, _base),
         cagr_to_score(ni_weighted_cagr,  _base),
@@ -151,11 +157,18 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
         if ticker:
             log.info("[%s] Financial sector — FCF excluded from growth scoring", ticker)
         fcf_ng  = None
+        fcf_ng_3y = None
         sig_fcf_gq = None
         all_scores = rev_ni_scores
     else:
         fcf_score, fcf_ng, sig_fcf_gq = _fcf_gq_score(fcf_vals, _base, ticker)
         all_scores = rev_ni_scores + [fcf_score]
+        # FCF 3-year (identical to _fcf_gq_score logic with [:3])
+        series_3y = list(reversed(fcf_vals[:3]))
+        if sum(series_3y) < 0:
+            fcf_ng_3y = None
+        else:
+            fcf_ng_3y = compute_gq(series_3y, _base)["weightedCAGR"]
 
     avg_score = sum(all_scores) / len(all_scores) if all_scores else 50.0
 
@@ -182,12 +195,12 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
 
     return {
         "score":              final_score,
-        "revenue_cagr_3y":    None,
+        "revenue_cagr_3y":    round(rev_weighted_cagr_3y, 4),
         "revenue_cagr_5y":    round(rev_weighted_cagr, 4),
-        "net_income_cagr_3y": None,
+        "net_income_cagr_3y": round(ni_weighted_cagr_3y,  4),
         "net_income_cagr_5y": round(ni_weighted_cagr,  4),
         # FCF stored as normalised regression growth rate; None for financial companies
-        "fcf_cagr_3y":        None,
+        "fcf_cagr_3y":        round(fcf_ng_3y, 4) if fcf_ng_3y is not None else None,
         "fcf_cagr_5y":        round(fcf_ng, 4) if fcf_ng is not None else None,
         # YoY rates (comma-separated strings, newest first)
         "revenue_yoy_rates":    _fmt_rates(rev_yoy),

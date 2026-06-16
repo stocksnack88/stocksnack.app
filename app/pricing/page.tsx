@@ -214,7 +214,7 @@ export default async function PricingPage() {
                     />
                   ) : (
                     <a href="/signup" style={{ ...ctaBase, border: "0.5px solid rgba(0,255,65,0.35)", color: "rgba(0,255,65,0.7)" }}>
-                      START FREE TRIAL →
+                      START 5 MIN PRO TRIAL →
                     </a>
                   )}
                 </td>

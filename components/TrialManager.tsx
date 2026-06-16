@@ -136,7 +136,7 @@ export default function TrialManager({ initialTrialStatus }: { initialTrialStatu
           style={{ background: 'rgba(0,8,0,0.95)', borderTop: '1px solid rgba(0,255,65,0.2)', backdropFilter: 'blur(8px)', fontFamily: mono }}
         >
           <span className="text-xs tracking-widest" style={{ color: 'rgba(0,255,65,0.45)' }}>
-            PRO PREVIEW
+            5 MIN TRIAL
           </span>
           <span className="text-sm font-bold tracking-widest tabular-nums" style={{ color: timeLeftMs < 60000 ? '#f87171' : '#00ff41' }}>
             {fmtTime(timeLeftMs)} REMAINING

@@ -16,6 +16,8 @@ export type HealthCat = {
 
 export type FundRow = {
   fiscal_year: number;
+  revenue: number | null;
+  gross_profit: number | null;
   cash_and_equivalents: number | null;
   total_debt: number | null;
   debt_to_equity: number | null;
@@ -67,7 +69,7 @@ type RatioRow = {
 type CheckDetail = {
   fields: MetricField[];
   description: string;
-  ratioRow?: RatioRow;
+  ratioRows?: RatioRow[];
 };
 
 const METRIC_DETAIL: [string, CheckDetail][] = [
@@ -77,7 +79,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       { key: "total_debt",           label: "TOTAL DEBT", fmt: "bn", hib: false, lowerIsBetter: true },
     ],
     description: "Compares cash on hand to total debt — more cash than debt signals the company can meet obligations without stress.",
-    ratioRow: {
+    ratioRows: [{
       label: "RATIO (CASH/DEBT)",
       compute: (row) => {
         const c = row.cash_and_equivalents;
@@ -87,11 +89,25 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       },
       fmt: "x",
       hib: true,
-    },
+    }],
   }],
   ["debt/equity", {
-    fields: [{ key: "debt_to_equity", label: "DEBT / EQUITY", fmt: "x", hib: false, lowerIsBetter: true }],
+    fields: [
+      { key: "total_debt",   label: "TOTAL DEBT",   fmt: "bn", hib: false, lowerIsBetter: true },
+      { key: "total_equity", label: "TOTAL EQUITY",  fmt: "bn", hib: true,  lowerIsBetter: false },
+    ],
     description: "Total debt divided by shareholders' equity — measures financial leverage; lower means less risk.",
+    ratioRows: [{
+      label: "DEBT / EQUITY",
+      compute: (row) => {
+        const d = row.total_debt;
+        const e = row.total_equity;
+        if (d == null || e == null || e === 0) return null;
+        return d / e;
+      },
+      fmt: "x",
+      hib: false,
+    }],
   }],
   ["preferred stock", {
     fields: [{ key: "preferred_stock", label: "PREFERRED STOCK", fmt: "bn", hib: false, lowerIsBetter: true }],
@@ -115,7 +131,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       { key: "total_assets",     label: "TOTAL ASSETS",     fmt: "bn", hib: true, lowerIsBetter: false },
     ],
     description: "Operating income divided by total assets — how effectively the company generates profit from everything it owns.",
-    ratioRow: {
+    ratioRows: [{
       label: "RATIO (ROTA)",
       compute: (row) => {
         const oi = row.operating_income;
@@ -125,19 +141,47 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       },
       fmt: "pct",
       hib: true,
-    },
+    }],
   }],
   ["gross margin", {
     fields: [{ key: "gross_margin", label: "GROSS MARGIN", fmt: "pct", hib: true, lowerIsBetter: false }],
     description: "Revenue minus cost of goods sold as a percentage — reflects pricing power and production cost efficiency.",
   }],
   ["sg&a", {
-    fields: [{ key: "sga", label: "SG&A EXPENSE", fmt: "bn", hib: false, lowerIsBetter: true }],
+    fields: [
+      { key: "sga",         label: "SG&A EXPENSE",  fmt: "bn", hib: false, lowerIsBetter: true },
+      { key: "gross_profit", label: "GROSS PROFIT",  fmt: "bn", hib: true,  lowerIsBetter: false, neutral: true },
+    ],
     description: "Selling, general, and administrative expenses — overhead costs that eat into gross profit on the way to operating income.",
+    ratioRows: [{
+      label: "SG&A / GP",
+      compute: (row) => {
+        const s  = row.sga;
+        const gp = row.gross_profit;
+        if (s == null || gp == null || gp === 0) return null;
+        return s / gp;
+      },
+      fmt: "pct",
+      hib: false,
+    }],
   }],
   ["r&d", {
-    fields: [{ key: "rd_expense", label: "R&D EXPENSE", fmt: "bn", hib: false, lowerIsBetter: false }],
+    fields: [
+      { key: "rd_expense",  label: "R&D EXPENSE",   fmt: "bn", hib: false, lowerIsBetter: false },
+      { key: "gross_profit", label: "GROSS PROFIT",  fmt: "bn", hib: true,  lowerIsBetter: false, neutral: true },
+    ],
     description: "Research and development spending — reduces current earnings but may fuel future growth; the check flags excessive R&D relative to gross profit.",
+    ratioRows: [{
+      label: "R&D / GP",
+      compute: (row) => {
+        const r  = row.rd_expense;
+        const gp = row.gross_profit;
+        if (r == null || gp == null || gp === 0) return null;
+        return r / gp;
+      },
+      fmt: "pct",
+      hib: false,
+    }],
   }],
   ["interest", {
     fields: [{ key: "interest_coverage", label: "INTEREST COVERAGE", fmt: "x", hib: true, lowerIsBetter: false }],
@@ -158,7 +202,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
   ["sbc", {
     fields: [{ key: "sbc", label: "STOCK-BASED COMP", fmt: "bn", hib: false, lowerIsBetter: true }],
     description: "Non-cash compensation paid as equity — dilutes shareholders and inflates reported earnings vs real cash profit.",
-    ratioRow: {
+    ratioRows: [{
       label: "SBC / NET INCOME",
       compute: (row) => {
         const s  = row.sbc;
@@ -168,7 +212,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       },
       fmt: "pct",
       hib: false,
-    },
+    }],
   }],
   ["ocf", {
     fields: [{ key: "operating_cash_flow", label: "OPERATING CASH FLOW", fmt: "bn", hib: true, lowerIsBetter: false }],
@@ -181,7 +225,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
   ["capex", {
     fields: [{ key: "capex", label: "CAPITAL EXPENDITURE", fmt: "bn", hib: false, lowerIsBetter: false, abs: true }],
     description: "Cash spent on property, plant, and equipment — high capex relative to cash flow signals a capital-intensive business.",
-    ratioRow: {
+    ratioRows: [{
       label: "CAPEX / OCF",
       compute: (row) => {
         const c   = row.capex;
@@ -192,7 +236,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       fmt: "pct",
       hib: false,
       neutral: true,
-    },
+    }],
   }],
   ["payout ratio", {
     fields: [
@@ -201,7 +245,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       { key: "buybacks",       label: "BUYBACKS",       fmt: "bn", hib: false, lowerIsBetter: false, abs: true },
     ],
     description: "Whether dividends and buybacks combined are covered by free cash flow — returns exceeding FCF may not be sustainable.",
-    ratioRow: {
+    ratioRows: [{
       label: "PAYOUT RATIO",
       compute: (row) => {
         const fcf = row.free_cash_flow;
@@ -212,7 +256,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       fmt: "pct",
       hib: false,
       neutral: true,
-    },
+    }],
   }],
   ["dilution", {
     fields: [{ key: "shares_outstanding", label: "SHARES OUTSTANDING", fmt: "count", hib: false, lowerIsBetter: true, neutral: true }],
@@ -225,7 +269,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
   ["intangibles", {
     fields: [{ key: "intangibles", label: "INTANGIBLES + GOODWILL", fmt: "bn", hib: false, lowerIsBetter: true }],
     description: "Goodwill and intangible assets — often reflects acquisition premiums; high intangibles relative to total assets can impair if the business deteriorates.",
-    ratioRow: {
+    ratioRows: [{
       label: "INTANGIBLES / ASSETS",
       compute: (row) => {
         const i = row.intangibles;
@@ -236,7 +280,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       fmt: "pct",
       hib: false,
       neutral: true,
-    },
+    }],
   }],
   ["debt payoff", {
     fields: [
@@ -244,7 +288,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       { key: "net_income", label: "NET INCOME", fmt: "bn", hib: true,  lowerIsBetter: false },
     ],
     description: "How long it would take to pay off all debt using net income alone — under 4 years of earnings is considered healthy.",
-    ratioRow: {
+    ratioRows: [{
       label: "YEARS TO PAY OFF",
       compute: (row) => {
         const debt = row.total_debt;
@@ -255,7 +299,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       fmt: "x",
       hib: false,
       neutral: true,
-    },
+    }],
   }],
   ["retained test", {
     fields: [
@@ -502,24 +546,21 @@ function DetailPanel({ detail, rows }: { detail: CheckDetail; rows: FundRow[] })
                 })}
               </tr>
             ))}
-            {detail.ratioRow && (() => {
-              const rr = detail.ratioRow;
-              return (
-                <tr style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
-                  <td className="text-[9px] font-mono font-bold tracking-wider" style={{ color: "rgba(0,255,65,0.4)", paddingRight: 12, whiteSpace: "nowrap", paddingTop: 5, paddingBottom: 3 }}>
-                    {rr.label}
-                  </td>
-                  {rows.map(r => {
-                    const v = rr.compute(r);
-                    return (
-                      <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, rr.hib, rr.neutral), paddingTop: 5, paddingBottom: 3, paddingLeft: 8 }}>
-                        {fmtVal(v, rr.fmt)}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })()}
+            {detail.ratioRows?.map((rr, rrIdx) => (
+              <tr key={rrIdx} style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
+                <td className="text-[9px] font-mono font-bold tracking-wider" style={{ color: "rgba(0,255,65,0.4)", paddingRight: 12, whiteSpace: "nowrap", paddingTop: 5, paddingBottom: 3 }}>
+                  {rr.label}
+                </td>
+                {rows.map(r => {
+                  const v = rr.compute(r);
+                  return (
+                    <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, rr.hib, rr.neutral), paddingTop: 5, paddingBottom: 3, paddingLeft: 8 }}>
+                      {fmtVal(v, rr.fmt)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

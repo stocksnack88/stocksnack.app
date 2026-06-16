@@ -77,7 +77,13 @@ def _shorten(name: str, max_len: int = 40) -> str:
     if m:
         short = name[:m.start()].strip().rstrip('.,;:')
         if short:
-            return short[:max_len].strip()
+            if len(short) <= max_len:
+                return short
+            # split point was itself past max_len — word-boundary cap
+            clipped = short[:max_len]
+            last_space = clipped.rfind(' ')
+            return (clipped[:last_space] if last_space > 0 else clipped).strip()
+    # no verb/preposition match — word-boundary hard cap
     truncated = name[:max_len]
     last_space = truncated.rfind(' ')
     return (truncated[:last_space] if last_space > 0 else truncated).strip()

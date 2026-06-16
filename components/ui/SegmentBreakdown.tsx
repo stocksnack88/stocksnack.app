@@ -14,12 +14,19 @@ export default function SegmentBreakdown({
   title,
   segs,
   borderedBottom,
+  open: controlledOpen,
+  onToggle,
 }: {
   title: string;
   segs: Seg[];
   borderedBottom?: boolean;
+  open?: boolean;
+  onToggle?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : localOpen;
+  const toggle = isControlled ? (onToggle ?? (() => {})) : () => setLocalOpen((v) => !v);
   return (
     <div
       className="px-5 py-4"
@@ -31,7 +38,7 @@ export default function SegmentBreakdown({
         </p>
         <button
           className="text-[10px] font-mono border border-[rgba(0,255,65,0.3)] text-[rgba(0,255,65,0.6)] px-1.5 py-0.5 rounded hover:border-[rgba(0,255,65,0.6)]"
-          onClick={() => setOpen((v) => !v)}
+          onClick={toggle}
         >
           {open ? "−" : "+"}
         </button>

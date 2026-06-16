@@ -11,7 +11,7 @@ import SegmentBreakdown from "@/components/ui/SegmentBreakdown";
 import HazardTooltip from "@/components/ui/HazardTooltip";
 import ShareButton from "@/components/ui/ShareButton";
 import BlockShareButton from "@/components/ui/BlockShareButton";
-import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer } from "@/components/ui/LayersAccordion";
+import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer, ConnectedSegmentBreakdown } from "@/components/ui/LayersAccordion";
 import { getDailyFreeTickers } from "@/lib/free-stocks";
 
 const FREE_LIMIT = 5;
@@ -277,7 +277,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
         </div>
 
         {/* ── Overview + Layers 1–5 ───────────────────────────────────────────── */}
-        <LayerProvider count={12} briefExpand={{ startMs: 400, durationMs: 800 }} defaultOpenIds={[5]} childMap={{ 0: [6, 7, 8], 1: [9, 10, 11] }}>
+        <LayerProvider count={14} briefExpand={{ startMs: 400, durationMs: 800 }} defaultOpenIds={[5]} childMap={{ 0: [6, 7, 8, 12, 13], 1: [9, 10, 11] }}>
           <div className="flex items-center justify-end gap-2">
             <ShareButton
               ticker={ticker}
@@ -442,7 +442,8 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {/* Product Revenue */}
               {productSegs.length > 0 && (
                 <div id="capture-8-product">
-                  <SegmentBreakdown
+                  <ConnectedSegmentBreakdown
+                    id={12}
                     title="PRODUCT BREAKDOWN"
                     segs={productSegs}
                     borderedBottom={geoSegs.length > 0}
@@ -453,7 +454,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               {/* Geographic Revenue */}
               {geoSegs.length > 0 && (
                 <div id="capture-8-geo">
-                  <SegmentBreakdown title="GEOGRAPHIC BREAKDOWN" segs={geoSegs} />
+                  <ConnectedSegmentBreakdown id={13} title="GEOGRAPHIC BREAKDOWN" segs={geoSegs} />
                 </div>
               )}
             </>

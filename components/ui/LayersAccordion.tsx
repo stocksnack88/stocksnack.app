@@ -1,5 +1,8 @@
 'use client'
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import SegmentBreakdown from '@/components/ui/SegmentBreakdown'
+
+type Seg = { name: string; pct: number; cagr: number | null; value: number }
 
 type Ctx = {
   opens: boolean[]
@@ -216,5 +219,28 @@ export function ChildCollapsibleLayer({
         </div>
       </div>
     </section>
+  )
+}
+
+export function ConnectedSegmentBreakdown({
+  id,
+  title,
+  segs,
+  borderedBottom,
+}: {
+  id: number
+  title: string
+  segs: Seg[]
+  borderedBottom?: boolean
+}) {
+  const { opens, toggle } = useLayerCtx()
+  return (
+    <SegmentBreakdown
+      title={title}
+      segs={segs}
+      borderedBottom={borderedBottom}
+      open={opens[id] ?? false}
+      onToggle={() => toggle(id)}
+    />
   )
 }

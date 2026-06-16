@@ -789,10 +789,7 @@ export default function ScreenerTable({
                     </td>
                   )}
                   <td className="px-1 py-3 text-center bg-[#001a00]/40">
-                    <span className="inline-flex items-center gap-1.5">
-                      <SignalBadge signal={stock.signal} />
-                      <span className="font-mono text-[#00ff41]/40 text-xs">→</span>
-                    </span>
+                    <SignalBadge signal={stock.signal} />
                   </td>
                   <td className="px-1 py-3 text-center bg-[#001a00]/40">
                     <span className="text-[#00ff41]/40 font-mono text-[10px]">#{i + 1}</span>

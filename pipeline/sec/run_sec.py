@@ -28,6 +28,7 @@ for _p in [str(_PIPELINE_DIR), str(_SEC_DIR)]:
 
 from normalizer        import normalise
 from yf_client         import get_profile, get_market_cap, get_historical_market_cap
+from fx_rates          import get_historical_fx_rate
 from sec_client        import ticker_to_cik
 from segment_extractor import get_segments
 
@@ -278,12 +279,15 @@ def _resolve_sector_mode(ticker: str, client=None) -> dict:
 # ── Data dict builder ─────────────────────────────────────────────────────────
 
 # Tickers whose SEC EDGAR filings are denominated in a non-USD currency.
-# All monetary flat_years fields are divided by the rate before list building
-# so that scoring layers and stock_fundamentals always see USD values.
-# epsdiluted is excluded here — the EPS sanity check handles it separately.
-_TWD_TICKERS   = frozenset({"TSM"})
-_TWD_RATE      = 31.5
-_TWD_SKIP_KEYS = frozenset({"symbol", "date", "weightedAverageShsOutDil", "epsdiluted"})
+# Maps ticker -> ISO 4217 currency code.  All monetary flat_years fields are
+# divided by the per-year average FX rate (foreign units per 1 USD) before any
+# list or metric building so scoring layers always see USD values.
+# epsdiluted is excluded — the EPS sanity check handles it separately.
+# To add a new non-USD filer: insert ticker -> currency here; no other change needed.
+_TICKER_CURRENCY: dict[str, str] = {
+    "TSM": "TWD",   # Taiwan Semiconductor — reports in New Taiwan Dollar
+}
+_FX_SKIP_KEYS = frozenset({"symbol", "date", "weightedAverageShsOutDil", "epsdiluted"})
 
 _INCOME_FIELDS = {
     "symbol", "date",
@@ -344,15 +348,21 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
     if not flat_years:
         raise ValueError(f"No SEC data returned for {ticker}")
 
-    # TWD → USD: divide all monetary fields before any list or metric building
-    if ticker in _TWD_TICKERS:
+    # FX → USD: per-fiscal-year conversion for non-USD filers.
+    # Uses historical annual-average rates from yfinance (cached in Supabase fx_rates).
+    # Each year gets its own rate rather than a flat constant, so multi-year
+    # trends reflect true currency movements rather than a snapshot rate.
+    ticker_currency = _TICKER_CURRENCY.get(ticker)
+    if ticker_currency:
         for yr in flat_years:
+            fy   = int(yr["date"][:4])
+            rate = get_historical_fx_rate(ticker_currency, fy, client=client, fallback=31.5)
             for k in list(yr.keys()):
-                if k not in _TWD_SKIP_KEYS:
+                if k not in _FX_SKIP_KEYS:
                     v = yr[k]
                     if isinstance(v, (int, float)) and v != 0:
-                        yr[k] = round(v / _TWD_RATE, 4)
-        log.info("[%s] TWD→USD: divided all monetary fields by %.1f", ticker, _TWD_RATE)
+                        yr[k] = round(v / rate, 4)
+            log.info("[%s] FY%d %s→USD: rate %.4f", ticker, fy, ticker_currency, rate)
 
     log.info("[%s] Fetching profile from yfinance…", ticker)
     profile       = get_profile(ticker)

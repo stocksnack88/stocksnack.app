@@ -25,6 +25,7 @@ from scoring.layer3_health    import score_health
 from scoring.layer4_final     import score_final
 from scoring.spy_benchmark    import compute_spy_benchmark
 from scoring.segment_analysis import compute_segments
+from scoring.pe_ratios        import compute_pe_ratios
 
 logging.basicConfig(
     level=logging.INFO,
@@ -96,6 +97,9 @@ def main() -> None:
         ok = process(ticker, fmp, writer, spy)
         (processed if ok else failed).append(ticker)
         time.sleep(2)
+
+    log.info("Computing P/E ratios across all tickers…")
+    compute_pe_ratios(writer.client)
 
     writer.complete_pipeline_run(run_id, processed, failed)
 

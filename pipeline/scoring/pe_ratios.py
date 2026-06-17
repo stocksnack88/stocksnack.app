@@ -60,8 +60,10 @@ def compute_pe_ratios(client) -> None:
     # ── Lookup maps ───────────────────────────────────────────────────────────
     price_map  = {r["ticker"]: r["current_price"] for r in price_rows if r.get("current_price")}
     mktcap_map = {r["ticker"]: r["market_cap"]    for r in price_rows if r.get("market_cap")}
-    # Exclude foreign-listed ADRs (country IS NOT NULL) from sector averages;
-    # their financials are in foreign currencies and distort weighted means.
+    # Exclude foreign-listed ADRs (country IS NOT NULL) from sector averages
+    # AND from per-ticker ratios: their financials are in foreign currencies and
+    # produce currency-mismatched P/E values (e.g. TSM EPS in TWD vs price in USD).
+    foreign_tickers = {r["ticker"] for r in sector_rows if r.get("country") is not None}
     sector_map = {
         r["ticker"]: r["sector"]
         for r in sector_rows
@@ -94,14 +96,22 @@ def compute_pe_ratios(client) -> None:
             "div_yield_5y_avg": None,
         }
 
-        # pe_ratio: current price / most recent positive EPS
-        if price and price > 0:
-            most_recent_eps = next(
-                (r["eps"] for r in rows if r.get("eps") and float(r["eps"]) > 0),
+        # Foreign ADRs report financials in non-USD currencies — skip all ratios.
+        if ticker in foreign_tickers:
+            ticker_metrics[ticker] = result
+            continue
+
+        # pe_ratio: current market cap / most recent positive net income.
+        # Using absolute values (not price/EPS) makes this split-neutral: stock
+        # splits change price and EPS by the same factor but leave mktcap and
+        # net_income unchanged, so the ratio stays correct across splits.
+        if mktcap and mktcap > 0:
+            most_recent_ni = next(
+                (r["net_income"] for r in rows if r.get("net_income") and float(r["net_income"]) > 0),
                 None,
             )
-            if most_recent_eps:
-                result["pe_ratio"] = round(price / float(most_recent_eps), 2)
+            if most_recent_ni:
+                result["pe_ratio"] = round(mktcap / float(most_recent_ni), 2)
 
         # pe_5y_avg: true historical P/E = avg(market_cap_at_year / net_income)
         # over last 5 fiscal years where both values are positive

@@ -6,6 +6,7 @@ import { getCachedUser } from '@/lib/server-auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import RefreshButton from './RefreshButton'
 import CopyReportButton from './CopyReportButton'
+import SampleValidation from '@/components/ui/SampleValidation'
 
 const ADMIN_EMAIL = 'stocksnack88@gmail.com'
 const STALE_DAYS  = 14
@@ -683,6 +684,15 @@ export default async function AdminHealthPage() {
               </tbody>
             </table>
           )}
+        </div>
+
+        {/* ── 7. Sample Validation ── */}
+        <div style={S.section}>
+          <p style={S.head}>07 — SAMPLE PRICE VALIDATION  ·  15 RANDOM TICKERS vs FMP LIVE</p>
+          <p style={{ fontSize: 9, color: DIM, margin: '0 0 10px' }}>
+            MANUAL TRIGGER ONLY — CONSUMES FMP API CALLS. FLAGS STORED PRICE OR P/E DEVIATING &gt;10% FROM FMP.
+          </p>
+          <SampleValidation />
         </div>
 
         <div style={{ marginTop: '3rem', paddingTop: '1rem', borderTop: `1px solid ${FAINT}`, fontSize: 9, color: 'rgba(0,255,136,0.15)' }}>

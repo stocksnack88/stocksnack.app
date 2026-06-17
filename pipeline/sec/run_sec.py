@@ -335,8 +335,10 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
         raise ValueError(f"No SEC data returned for {ticker}")
 
     log.info("[%s] Fetching profile from yfinance…", ticker)
-    profile    = get_profile(ticker)
-    market_cap = _safe(profile.get("marketCap"))
+    profile       = get_profile(ticker)
+    market_cap    = _safe(profile.get("marketCap"))
+    price_raw     = _safe(profile.get("price"))
+    implied_shares = market_cap / price_raw if (market_cap and price_raw and price_raw > 0) else None
 
     # ── Split flat year dicts into statement sub-lists ────────────────────────
     income_list:   list[dict] = []
@@ -397,6 +399,26 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
                 ticker, eb, rv, corrected,
             )
             inc["ebitda"] = corrected
+
+    # ── EPS sanity check ─────────────────────────────────────────────────────
+    # SEC EDGAR 10-K EPS values are pre-split: a stock split after fiscal year end
+    # leaves the stored epsdiluted far above the market-implied per-share value.
+    # Use yfinance's post-split market_cap/price to derive implied shares; if the
+    # ratio exceeds 5× recalculate from net_income / implied_shares.
+    if implied_shares and implied_shares > 0:
+        for inc in income_list:
+            raw_eps = _safe(inc.get("epsdiluted"))
+            ni      = _safe(inc.get("netIncome"))
+            if raw_eps > 0 and ni > 0:
+                computed_eps = ni / implied_shares
+                if computed_eps > 0 and raw_eps / computed_eps > 5:
+                    corrected_eps = round(ni / implied_shares, 4)
+                    log.warning(
+                        "[%s] EPS split mismatch: XBRL=%.2f  NI/implied_shares=%.4f "
+                        "(factor %.1f×) — correcting to %.4f",
+                        ticker, raw_eps, computed_eps, raw_eps / computed_eps, corrected_eps,
+                    )
+                    inc["epsdiluted"] = corrected_eps
 
     # ── Metrics list (one per year, using historical market cap) ─────────────
     fiscal_year_ints = [int(yr["date"][:4]) for yr in flat_years]

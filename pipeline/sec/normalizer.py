@@ -99,11 +99,21 @@ def load_extracted_data(ticker: str, years: int = 5) -> dict[int, dict[str, floa
     # a row for the same fiscal year (audit trail design). Deduplicate by year
     # first — keeping the highest value — so duplicate tag rows don't consume
     # extra slots in the top-N window and push out older genuine years.
+    # For eps_diluted, prefer the lower of the two tags (EarningsPerShareDiluted
+    # ≤ EarningsPerShareBasic by definition). Using max would pick the basic value
+    # over the diluted value, which is wrong.
+    _PREFER_MIN = {"eps_diluted"}
+
     result: dict[int, dict[str, float]] = {}
     for name, pairs in by_field.items():
         by_yr: dict[int, float] = {}
+        prefer_min = name in _PREFER_MIN
         for yr, value in pairs:
-            if yr not in by_yr or value > by_yr[yr]:
+            if yr not in by_yr:
+                by_yr[yr] = value
+            elif prefer_min and value < by_yr[yr]:
+                by_yr[yr] = value
+            elif not prefer_min and value > by_yr[yr]:
                 by_yr[yr] = value
         deduped = sorted(by_yr.items(), key=lambda p: p[0], reverse=True)[:years]
         for yr, value in deduped:

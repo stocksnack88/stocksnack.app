@@ -679,6 +679,15 @@ def extract_all(ticker: str, years: int = 5) -> dict[str, list[dict]]:
         series = extract_computed(facts, name, ticker, years)
         results[name] = series
 
+    # ── Extension-namespace tags (company-custom XBRL, e.g. pcg:...) ──────────
+    # Must run after us-gaap extraction so it only fills fields still missing.
+    from extension_tag_mapper import _EXTENSION_TAGS, extract_extension_tags
+    if ticker.upper() in _EXTENSION_TAGS:
+        print(f"[{ticker}] Running extension tag mapper…", file=sys.stderr)
+        extract_extension_tags(ticker.upper(), years)
+        # Reload results for any field that was still empty after US-GAAP pass
+        # (extension data lands directly in extracted_data.csv — normalizer picks it up)
+
     print()
     print(f"{'─'*55}")
     print(f"  {ticker}  —  SEC EDGAR extraction summary")

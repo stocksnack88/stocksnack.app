@@ -89,6 +89,12 @@ _IFRS_SUM_FIELDS: dict[str, list[tuple[str, str]]] = {
         ("LongtermBorrowings",                    "USD"),
         ("CurrentPortionOfLongtermBorrowings",     "USD"),
     ],
+    # ebitda = operating_income + D&A (same three tags as above, summed together)
+    "ebitda": [
+        ("ProfitLossFromOperatingActivities", "USD"),
+        ("DepreciationExpense",               "USD"),
+        ("AmortisationExpense",               "USD"),
+    ],
 }
 
 # Annual form types for foreign private issuers (20-F = annual; 6-K = interim)

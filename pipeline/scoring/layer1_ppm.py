@@ -29,7 +29,7 @@ _YEARS               = 5
 # P/E multiple derived from year-end market caps in the metrics list).
 # PYPL: customer funds awaiting settlement (~$30–40B) show as a liability.
 # HOOD: custodied user assets similarly distort the balance sheet.
-FLOAT_DISTORTED_TICKERS = frozenset({"PYPL"})
+FLOAT_DISTORTED_TICKERS = frozenset({"PYPL", "HOOD"})
 
 
 def _fx_to_usd(currency: str, ticker: str = "") -> float:

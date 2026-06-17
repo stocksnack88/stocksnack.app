@@ -284,7 +284,20 @@ def score_ppm(data: dict, ticker: str = "", sp500_cagr: float | None = None) -> 
     # intentionally left None to signal that EV/EBITDA was not used.
     r_pe = None
     if ticker in FLOAT_DISTORTED_TICKERS:
-        r_pe = _pe_intrinsic(data, shares or 0, fx_rate, _sp500) if shares else None
+        # Use actual diluted shares from SEC XBRL rather than mktcap/price.
+        # mktcap/price fluctuates with today's stock price, making pe_price
+        # circular (it anchors partly to the very price it is trying to project).
+        _balance = data.get("balance", [])
+        _sec_shares = safe_float((_balance[0] if _balance else {}).get("weightedAverageShsOutDil"))
+        if _sec_shares > 0:
+            pe_shares = _sec_shares
+            log.info(
+                "[%s] P/E intrinsic: SEC diluted shares %.0fM (mktcap/price would have been %.0fM)",
+                ticker, _sec_shares / 1e6, (shares or 0) / 1e6,
+            )
+        else:
+            pe_shares = shares or 0
+        r_pe = _pe_intrinsic(data, pe_shares, fx_rate, _sp500) if pe_shares else None
         r1   = None
         log.info(
             "[%s] M1 EV/EBITDA excluded (float-distorted) — P/E intrinsic: price=%.2f, pe_mult=%.1f×",

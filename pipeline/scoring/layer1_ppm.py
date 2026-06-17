@@ -19,7 +19,17 @@ log = logging.getLogger(__name__)
 _EV_EBITDA_FALLBACK  = 16.0   # sector-neutral EV/EBITDA fallback
 _P_FCF_FALLBACK      = 25.0   # P/FCF fallback (≈ 4% FCF yield)
 _P_GIVEBACK_FALLBACK = 22.0   # P/giveback fallback for M3
+_PE_MULTIPLE_FALLBACK = 20.0  # P/E fallback for float-distorted tickers
 _YEARS               = 5
+
+# Tickers where M1 EV/EBITDA cannot be reliably computed because customer float
+# or custody assets appear as balance-sheet liabilities in XBRL data, inflating
+# net_debt and therefore overstating EV.  For these tickers M1 is replaced with
+# a P/E-based intrinsic price (net income projected forward × median historical
+# P/E multiple derived from year-end market caps in the metrics list).
+# PYPL: customer funds awaiting settlement (~$30–40B) show as a liability.
+# HOOD: custodied user assets similarly distort the balance sheet.
+FLOAT_DISTORTED_TICKERS = frozenset({"PYPL"})
 
 
 def _fx_to_usd(currency: str, ticker: str = "") -> float:
@@ -45,6 +55,51 @@ def _shares(profile: dict) -> float | None:
     if price > 0 and mkt > 0:
         return mkt / price
     return None
+
+
+# ── M1 substitute: P/E Intrinsic (float-distorted tickers only) ───────────────
+
+def _pe_intrinsic(data: dict, shares: float, fx_rate: float = 1.0, sp500_cagr: float = 0.10) -> dict | None:
+    """Project net income forward via compute_gq, apply median historical P/E.
+
+    Used in place of M1 EV/EBITDA for tickers in FLOAT_DISTORTED_TICKERS where
+    XBRL-derived net_debt is unreliable (customer float inflates liabilities,
+    overstating EV and making EV/EBITDA meaningless).
+    """
+    income  = data.get("income",  [])
+    metrics = data.get("metrics", [])
+
+    ni_vals = [safe_float(r.get("netIncome")) * fx_rate for r in income]
+    if not ni_vals or ni_vals[0] <= 0:
+        return None
+
+    gq         = compute_gq(list(reversed(ni_vals[:5])), sp500_cagr)
+    adj_growth = gq["weightedCAGR"]
+
+    # Historical P/E: year-end market cap (from metrics) ÷ net income
+    pe_hist = []
+    for inc_row, m in zip(income, metrics):
+        ni     = safe_float(inc_row.get("netIncome")) * fx_rate
+        mktcap = safe_float(m.get("marketCap"))
+        if ni > 0 and mktcap > 0:
+            pe_hist.append(mktcap / ni)
+    pe_median = trimmed_median(pe_hist) if pe_hist else None
+    pe_mult   = clamp(pe_median, 8.0, 60.0) if pe_median and pe_median > 0 else _PE_MULTIPLE_FALLBACK
+
+    cur_ni = ni_vals[0]
+    for _ in range(_YEARS):
+        cur_ni *= (1 + adj_growth)
+    ni_5y = cur_ni
+
+    if shares <= 0:
+        return None
+    return {
+        "price":        (ni_5y * pe_mult) / shares,
+        "ni_current":   ni_vals[0],
+        "ni_projected": ni_5y,
+        "growth_rate":  adj_growth,
+        "pe_multiple":  pe_mult,
+    }
 
 
 # ── M1: EBITDA Multiple ────────────────────────────────────────────────────────
@@ -220,6 +275,24 @@ def score_ppm(data: dict, ticker: str = "", sp500_cagr: float | None = None) -> 
     _sp500   = sp500_cagr or 0.10
     financial = is_financial(profile)
     r1 = _m1_ebitda(data, shares or 0, fx_rate, _sp500) if shares else None
+
+    # Float-distorted tickers: customer float or custody assets appear as XBRL
+    # liabilities, inflating net_debt and making EV — and therefore EV/EBITDA —
+    # unreliable.  Null out M1 and substitute a P/E intrinsic price instead so
+    # the blended price anchors to (pe_price, m2_price) rather than a distorted
+    # EV/EBITDA result.  M1 intermediates (ebitda_current, net_debt, etc.) are
+    # intentionally left None to signal that EV/EBITDA was not used.
+    r_pe = None
+    if ticker in FLOAT_DISTORTED_TICKERS:
+        r_pe = _pe_intrinsic(data, shares or 0, fx_rate, _sp500) if shares else None
+        r1   = None
+        log.info(
+            "[%s] M1 EV/EBITDA excluded (float-distorted) — P/E intrinsic: price=%.2f, pe_mult=%.1f×",
+            ticker,
+            r_pe["price"]   if r_pe else float("nan"),
+            r_pe["pe_multiple"] if r_pe else float("nan"),
+        )
+
     if financial:
         if ticker:
             log.info("[%s] M2 skipped — financial sector", ticker)
@@ -228,7 +301,9 @@ def score_ppm(data: dict, ticker: str = "", sp500_cagr: float | None = None) -> 
         r2 = _m2_fcf(data, shares or 0, fx_rate, _sp500) if shares else None
     r3 = _m3_shareholder_return(data, current_price, shares or 0, fx_rate, _sp500)
 
-    m1 = r1["price"] if r1 else None
+    # For float-distorted tickers, pe_price fills the m1 slot so the blended
+    # average naturally becomes (pe_price + m2_price) / 2.
+    m1 = r_pe["price"] if r_pe else (r1["price"] if r1 else None)
     m2 = r2["price"] if r2 else None
     m3 = r3["price"] if r3 else None
 

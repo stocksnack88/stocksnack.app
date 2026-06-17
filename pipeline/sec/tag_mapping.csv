@@ -40,6 +40,7 @@ PaymentsToExploreAndDevelopOilAndGasProperties,capital_expenditure,7,2026-05-25,
 PaymentsToAcquireOtherPropertyPlantAndEquipment,capital_expenditure,8,2026-05-25,pharma/industrials fallback — fixes LLY/IP/EA/ADP
 PaymentsForSoftware,capital_expenditure,9,2026-06-15,tech/platform fallback — asset-light companies (e.g. ABNB) that capitalise software spend
 PaymentsToAcquireInternalUseSoftware,capital_expenditure,10,2026-06-15,internal-use software capitalisation — alternative tag for same concept as PaymentsForSoftware
+PaymentsToDevelopSoftware,capital_expenditure,11,2026-06-17,fintech/software-company fallback — HOOD primary capex tag (capitalised software development costs)
 AllocatedShareBasedCompensationExpense,stock_based_compensation,1,2026-05-16,confirmed AAPL
 ShareBasedCompensation,stock_based_compensation,2,2026-05-16,
 PaymentsOfDividends,dividends_paid,1,2026-05-16,confirmed AAPL

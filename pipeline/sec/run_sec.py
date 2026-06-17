@@ -277,6 +277,14 @@ def _resolve_sector_mode(ticker: str, client=None) -> dict:
 
 # ── Data dict builder ─────────────────────────────────────────────────────────
 
+# Tickers whose SEC EDGAR filings are denominated in a non-USD currency.
+# All monetary flat_years fields are divided by the rate before list building
+# so that scoring layers and stock_fundamentals always see USD values.
+# epsdiluted is excluded here — the EPS sanity check handles it separately.
+_TWD_TICKERS   = frozenset({"TSM"})
+_TWD_RATE      = 31.5
+_TWD_SKIP_KEYS = frozenset({"symbol", "date", "weightedAverageShsOutDil", "epsdiluted"})
+
 _INCOME_FIELDS = {
     "symbol", "date",
     "revenue", "grossProfit", "operatingIncome", "netIncome", "epsdiluted",
@@ -335,6 +343,16 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
 
     if not flat_years:
         raise ValueError(f"No SEC data returned for {ticker}")
+
+    # TWD → USD: divide all monetary fields before any list or metric building
+    if ticker in _TWD_TICKERS:
+        for yr in flat_years:
+            for k in list(yr.keys()):
+                if k not in _TWD_SKIP_KEYS:
+                    v = yr[k]
+                    if isinstance(v, (int, float)) and v != 0:
+                        yr[k] = round(v / _TWD_RATE, 4)
+        log.info("[%s] TWD→USD: divided all monetary fields by %.1f", ticker, _TWD_RATE)
 
     log.info("[%s] Fetching profile from yfinance…", ticker)
     profile       = get_profile(ticker)

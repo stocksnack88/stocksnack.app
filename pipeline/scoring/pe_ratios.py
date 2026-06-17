@@ -60,14 +60,20 @@ def compute_pe_ratios(client) -> None:
     # ── Lookup maps ───────────────────────────────────────────────────────────
     price_map  = {r["ticker"]: r["current_price"] for r in price_rows if r.get("current_price")}
     mktcap_map = {r["ticker"]: r["market_cap"]    for r in price_rows if r.get("market_cap")}
+    # ADRs whose stock_fundamentals have been normalized to USD by the pipeline.
+    # These are exempt from the foreign-currency exclusion and can compute P/E normally.
+    _CURRENCY_NORMALIZED_ADRS = frozenset({"TSM"})
     # Exclude foreign-listed ADRs (country IS NOT NULL) from sector averages
-    # AND from per-ticker ratios: their financials are in foreign currencies and
-    # produce currency-mismatched P/E values (e.g. TSM EPS in TWD vs price in USD).
-    foreign_tickers = {r["ticker"] for r in sector_rows if r.get("country") is not None}
+    # AND from per-ticker ratios — unless their fundamentals have been USD-normalized.
+    foreign_tickers = {
+        r["ticker"] for r in sector_rows
+        if r.get("country") is not None
+        and r["ticker"] not in _CURRENCY_NORMALIZED_ADRS
+    }
     sector_map = {
         r["ticker"]: r["sector"]
         for r in sector_rows
-        if r.get("sector") and r.get("country") is None
+        if r.get("sector") and (r.get("country") is None or r["ticker"] in _CURRENCY_NORMALIZED_ADRS)
     }
 
     # Group fundamentals by ticker, sorted newest fiscal year first

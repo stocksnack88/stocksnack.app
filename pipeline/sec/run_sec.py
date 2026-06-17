@@ -285,7 +285,10 @@ def _resolve_sector_mode(ticker: str, client=None) -> dict:
 # epsdiluted is excluded — the EPS sanity check handles it separately.
 # To add a new non-USD filer: insert ticker -> currency here; no other change needed.
 _TICKER_CURRENCY: dict[str, str] = {
-    "TSM": "TWD",   # Taiwan Semiconductor — reports in New Taiwan Dollar
+    # TSM is NOT listed here: it files 20-F via IFRS and the ifrs_field_mapper
+    # extracts USD values directly from the ifrs-full namespace.  Only add a
+    # ticker here when the SEC normalizer returns non-USD values that need
+    # dividing by a per-year exchange rate before scoring.
 }
 _FX_SKIP_KEYS = frozenset({"symbol", "date", "weightedAverageShsOutDil", "epsdiluted"})
 

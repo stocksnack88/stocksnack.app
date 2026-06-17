@@ -633,6 +633,11 @@ def extract_all(ticker: str, years: int = 5) -> dict[str, list[dict]]:
     """
     Fetch SEC facts for ticker, run all fields, print summary.
     Returns {standardised_name: series}.
+
+    For foreign private issuers that file 20-F under IFRS (e.g. TSM) the
+    us-gaap namespace is empty.  In that case we delegate to ifrs_field_mapper
+    which extracts USD-denominated values from the ifrs-full namespace and
+    writes them to extracted_data.csv in the same format.
     """
     import os
     sys.path.insert(0, os.path.dirname(__file__))
@@ -640,6 +645,21 @@ def extract_all(ticker: str, years: int = 5) -> dict[str, list[dict]]:
 
     print(f"Fetching SEC facts for {ticker}…", file=sys.stderr)
     facts = get_facts(ticker)
+
+    # ── IFRS fallback for 20-F filers ─────────────────────────────────────────
+    usgaap_facts = _get_usgaap(facts)
+    if not usgaap_facts:
+        ifrs_facts = facts.get("facts", {}).get("ifrs-full", {})
+        if ifrs_facts:
+            from ifrs_field_mapper import extract_ifrs_all
+            print(f"[{ticker}] No us-gaap facts — trying ifrs-full namespace (20-F filer)", file=sys.stderr)
+            extracted = extract_ifrs_all(ticker, facts, years)
+            if extracted:
+                print(f"[{ticker}] IFRS extraction complete — returning empty results dict "
+                      f"(normalizer reads from extracted_data.csv)", file=sys.stderr)
+                return {}   # normalizer.py reads extracted_data.csv directly
+            print(f"[{ticker}] IFRS extraction found nothing — no data available", file=sys.stderr)
+            return {}
 
     mapping = load_tag_mapping()
     all_names = list(mapping.keys())

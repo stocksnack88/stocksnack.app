@@ -413,12 +413,25 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
                 computed_eps = ni / implied_shares
                 if computed_eps > 0 and raw_eps / computed_eps > 5:
                     corrected_eps = round(ni / implied_shares, 4)
+                    factor = raw_eps / computed_eps
                     log.warning(
                         "[%s] EPS split mismatch: XBRL=%.2f  NI/implied_shares=%.4f "
                         "(factor %.1f×) — correcting to %.4f",
-                        ticker, raw_eps, computed_eps, raw_eps / computed_eps, corrected_eps,
+                        ticker, raw_eps, computed_eps, factor, corrected_eps,
                     )
                     inc["epsdiluted"] = corrected_eps
+                    if client is not None:
+                        try:
+                            client.table("fix_log").insert({
+                                "ticker":           ticker,
+                                "issue":            "auto-corrected split mismatch",
+                                "fix_description":  (
+                                    f"EPS XBRL={raw_eps:.2f} → {corrected_eps:.4f} "
+                                    f"(factor {factor:.1f}× — likely post-split filing)"
+                                ),
+                            }).execute()
+                        except Exception as _fix_log_exc:
+                            log.warning("[%s] fix_log insert failed: %s", ticker, _fix_log_exc)
 
     # ── Metrics list (one per year, using historical market cap) ─────────────
     fiscal_year_ints = [int(yr["date"][:4]) for yr in flat_years]

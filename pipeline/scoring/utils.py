@@ -63,10 +63,18 @@ def clamp(value: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, value))
 
 
+# Payment processors / card networks are classified as "Financial Services" by data
+# providers but have clean, bank-like FCF from pure fee income — not balance-sheet
+# lending/insurance noise.  Exempt them so M2 (FCF yield) runs normally.
+_PAYMENT_NETWORKS = frozenset({"credit services", "payment processing"})
+
+
 def is_financial(profile: dict) -> bool:
     """FCF is structurally noisy for banks/insurers — exclude it from scoring."""
     sector   = (profile.get("sector")   or "").strip()
     industry = (profile.get("industry") or "").strip().lower()
+    if any(kw in industry for kw in _PAYMENT_NETWORKS):
+        return False   # V, MA, PYPL: capital-light networks, FCF is clean
     return sector in ("Financials", "Financial Services") or "bank" in industry
 
 

@@ -65,6 +65,7 @@ type ScoreRow = {
 type PriceRow = {
   ticker: string
   market_cap: number | null
+  shares_outstanding: number | null
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -151,7 +152,7 @@ export default async function AdminHealthPage() {
       .order('fiscal_year', { ascending: false }),
     supabaseAdmin
       .from('stock_prices')
-      .select('ticker, market_cap'),
+      .select('ticker, market_cap, shares_outstanding'),
     supabaseAdmin
       .from('fix_log')
       .select('id, ticker, issue, fix_description, run_id, created_at')
@@ -175,7 +176,8 @@ export default async function AdminHealthPage() {
     }
   }
 
-  const priceMap = new Map(prices.map(p => [p.ticker, p.market_cap]))
+  const priceMap      = new Map(prices.map(p => [p.ticker, p.market_cap]))
+  const priceShareMap = new Map(prices.map(p => [p.ticker, p.shares_outstanding]))
 
   // ── 1. Summary ──────────────────────────────────────────────────────────────
   const totalTickers    = scores.length
@@ -325,6 +327,29 @@ export default async function AdminHealthPage() {
     }
   }
   ebitdaMissing.sort((a, b) => a.ticker.localeCompare(b.ticker))
+
+  // 6e: Split mismatch — filing EPS vs net_income / current shares diverge > 3×
+  // Signature of pre-split EPS still in DB while stock_prices reflects post-split shares
+  type SplitMismatchRow = {
+    ticker: string; filingEps: number; impliedEps: number
+    ratio: number; netIncome: number; shares: number
+  }
+  const splitMismatches: SplitMismatchRow[] = []
+  for (const [ticker, fund] of Array.from(latestFund.entries())) {
+    const filingEps = fund.eps
+    const ni        = fund.net_income
+    const shares    = priceShareMap.get(ticker) ?? null
+    if (filingEps != null && ni != null && shares != null && ni > 0 && shares > 0) {
+      const impliedEps = ni / shares
+      if (impliedEps > 0) {
+        const ratio = filingEps / impliedEps
+        if (ratio > 3 || ratio < 0.33) {
+          splitMismatches.push({ ticker, filingEps, impliedEps, ratio, netIncome: ni, shares })
+        }
+      }
+    }
+  }
+  splitMismatches.sort((a, b) => Math.abs(b.ratio) - Math.abs(a.ratio))
 
   // ── report string ───────────────────────────────────────────────────────────
   const hr = '─'.repeat(60)
@@ -660,7 +685,37 @@ export default async function AdminHealthPage() {
             </table>
           )}
 
-          {/* 6e: Fix log */}
+          {/* 6e: Split mismatch */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            SPLIT MISMATCH DETECTOR — filing EPS / (net_income / live shares) &gt;3× or &lt;0.33× ({splitMismatches.length} flagged)
+          </p>
+          <p style={{ fontSize: 9, color: 'rgba(0,255,136,0.2)', margin: '0 0 6px' }}>
+            Ratio &gt;3× → pre-split EPS in DB, post-split shares from yfinance (e.g. BKNG 25:1).
+            Ratio &lt;0.33× → opposite direction. Pipeline auto-corrects on next single-ticker run.
+          </p>
+          {splitMismatches.length === 0 ? (
+            <p style={S.none}>✓ None</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER','FILING EPS','IMPLIED EPS','RATIO','NET INCOME','LIVE SHARES'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {splitMismatches.map(r => (
+                  <tr key={r.ticker}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ef4444' }}>${r.filingEps.toFixed(2)}</td>
+                    <td style={{ ...S.td, color: '#00ff88' }}>${r.impliedEps.toFixed(2)}</td>
+                    <td style={{ ...S.td, color: '#ef4444', fontWeight: 'bold' }}>{r.ratio.toFixed(1)}×</td>
+                    <td style={S.td}>{fmtB(r.netIncome)}</td>
+                    <td style={{ ...S.td, color: DIM }}>{(r.shares / 1e6).toFixed(1)}M</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 6f: Fix log */}
           <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
             SINGLE-TICKER RUN LOG — LAST 20 ENTRIES
           </p>

@@ -685,8 +685,50 @@ def extract_all(ticker: str, years: int = 5) -> dict[str, list[dict]]:
     if ticker.upper() in _EXTENSION_TAGS:
         print(f"[{ticker}] Running extension tag mapper…", file=sys.stderr)
         extract_extension_tags(ticker.upper(), years)
-        # Reload results for any field that was still empty after US-GAAP pass
-        # (extension data lands directly in extracted_data.csv — normalizer picks it up)
+
+        # Re-attempt computed fields whose components may now be in extracted_data.csv.
+        # extract_computed() reads from the SEC API response, so we must re-derive them
+        # by reading from extracted_data.csv directly for the fields that were missing.
+        for computed_name in _COMPUTED_FIELDS:
+            if results.get(computed_name):
+                continue  # already computed earlier
+            comp_a, comp_b, formula = _COMPUTED_FIELDS[computed_name]
+            # Load each component from extracted_data.csv (covers extension-tag values)
+            from normalizer import load_extracted_data as _led
+            csv_data = _led(ticker, years=years)
+            if not csv_data:
+                continue
+            pulled_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            rows_to_add = []
+            for yr in sorted(csv_data):
+                year_data = csv_data[yr]
+                a = year_data.get(comp_a)
+                b = year_data.get(comp_b)
+                if a is None or b is None:
+                    continue
+                if formula == "a_minus_abs_b":
+                    value = a - abs(b)
+                elif formula == "a_minus_b":
+                    value = a - b
+                else:
+                    value = a + abs(b)
+                rows_to_add.append({
+                    "ticker":            ticker,
+                    "fiscal_year":       yr,
+                    "standardised_name": computed_name,
+                    "original_tag":      f"computed: {comp_a} + {comp_b} (extension fallback)",
+                    "value":             value,
+                    "unit":              "USD",
+                    "pulled_at":         pulled_at,
+                    "period_of_report":  f"{yr}-12-31",
+                })
+            if rows_to_add:
+                _append_extracted(rows_to_add)
+                print(
+                    f"[field_mapper] {computed_name}: computed from {comp_a} & {comp_b} "
+                    f"(extension fallback, {len(rows_to_add)} pts)",
+                    file=sys.stderr,
+                )
 
     print()
     print(f"{'─'*55}")

@@ -248,9 +248,11 @@ def _resolve_sector_mode(ticker: str, client=None) -> dict:
         log.warning("[%s] Sector lookup failed (%s) — using standard mode", ticker, exc)
         return _default
 
-    bank_mode      = "Banks" in industry or "Credit Services" in industry
+    _industry_lower = industry.lower()
+    _is_payment_network = any(kw in _industry_lower for kw in ("credit services", "payment processing"))
+    bank_mode      = ("Banks" in industry or "Credit Services" in industry) and not _is_payment_network
     reit_mode      = "REIT" in industry
-    financial_mode = sector == "Financial Services" and not bank_mode
+    financial_mode = sector == "Financial Services" and not bank_mode and not _is_payment_network
 
     if bank_mode:
         sector_override = "Bank"

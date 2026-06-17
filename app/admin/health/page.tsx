@@ -34,6 +34,20 @@ type FundRow = {
   revenue: number | null
   total_assets: number | null
   updated_at: string | null
+  // Section 6 fields
+  ebitda: number | null
+  net_income: number | null
+  cash_and_equivalents: number | null
+  current_liabilities: number | null
+}
+
+type FixLogRow = {
+  id: number
+  ticker: string
+  issue: string
+  fix_description: string | null
+  run_id: number | null
+  created_at: string
 }
 
 type ScoreRow = {
@@ -44,6 +58,7 @@ type ScoreRow = {
   product_segments: Array<{ name: string; pct: number }> | null
   geo_segments: Array<{ name: string; pct: number }> | null
   m1_ev_ebitda_multiple: number | null
+  m1_ebitda_current: number | null
 }
 
 type PriceRow = {
@@ -125,22 +140,28 @@ export default async function AdminHealthPage() {
   const refreshedAt = new Date().toUTCString()
 
   // ── parallel fetch ──────────────────────────────────────────────────────────
-  const [{ data: scoresRaw }, { data: fundRaw }, { data: priceRaw }] = await Promise.all([
+  const [{ data: scoresRaw }, { data: fundRaw }, { data: priceRaw }, { data: fixLogRaw }] = await Promise.all([
     supabaseAdmin
       .from('stock_scores')
-      .select('ticker, final_score, has_anomaly, updated_at, product_segments, geo_segments, m1_ev_ebitda_multiple'),
+      .select('ticker, final_score, has_anomaly, updated_at, product_segments, geo_segments, m1_ev_ebitda_multiple, m1_ebitda_current'),
     supabaseAdmin
       .from('stock_fundamentals')
-      .select('ticker, fiscal_year, eps, rd_expense, roe, roic, gross_margin, net_margin, operating_margin, free_cash_flow, total_debt, total_equity, sga, sbc, tax_rate, capex, shares_outstanding, intangibles, revenue, total_assets, updated_at')
+      .select('ticker, fiscal_year, eps, rd_expense, roe, roic, gross_margin, net_margin, operating_margin, free_cash_flow, total_debt, total_equity, sga, sbc, tax_rate, capex, shares_outstanding, intangibles, revenue, total_assets, updated_at, ebitda, net_income, cash_and_equivalents, current_liabilities')
       .order('fiscal_year', { ascending: false }),
     supabaseAdmin
       .from('stock_prices')
       .select('ticker, market_cap'),
+    supabaseAdmin
+      .from('fix_log')
+      .select('id, ticker, issue, fix_description, run_id, created_at')
+      .order('created_at', { ascending: false })
+      .limit(20),
   ])
 
-  const scores = (scoresRaw ?? []) as ScoreRow[]
-  const fundAll = (fundRaw ?? []) as FundRow[]
-  const prices  = (priceRaw ?? []) as PriceRow[]
+  const scores  = (scoresRaw  ?? []) as ScoreRow[]
+  const fundAll = (fundRaw   ?? []) as FundRow[]
+  const prices  = (priceRaw  ?? []) as PriceRow[]
+  const fixLog  = (fixLogRaw ?? []) as FixLogRow[]
 
   // most-recent fundamentals row per ticker (fundAll is ordered DESC already)
   const latestFund = new Map<string, FundRow>()
@@ -248,6 +269,61 @@ export default async function AdminHealthPage() {
   }).sort((a, b) => b.days - a.days)
 
   const staleCount = stalenessRows.filter(r => r.days > STALE_DAYS).length
+
+  // ── 6. Systemic risk flags ──────────────────────────────────────────────────
+  const scoreMap = new Map(scores.map(s => [s.ticker, s]))
+
+  // 6a: EBITDA sanity — m1_ebitda_current > revenue * 5
+  type EbitdaSanityRow = { ticker: string; m1_ebitda: number; revenue: number; ratio: number }
+  const ebitdaSanity: EbitdaSanityRow[] = []
+  for (const [ticker, fund] of Array.from(latestFund.entries())) {
+    const score = scoreMap.get(ticker)
+    const ebitda = score?.m1_ebitda_current
+    const rev    = fund.revenue
+    if (ebitda != null && rev != null && rev > 0 && Math.abs(ebitda) > rev * 5) {
+      ebitdaSanity.push({ ticker, m1_ebitda: ebitda, revenue: rev, ratio: ebitda / rev })
+    }
+  }
+  ebitdaSanity.sort((a, b) => Math.abs(b.ratio) - Math.abs(a.ratio))
+
+  // 6b: EPS null but computable (net_income + shares_outstanding available)
+  type EpsComputeRow = { ticker: string; net_income: number; shares: number }
+  const epsComputable: EpsComputeRow[] = []
+  for (const [ticker, fund] of Array.from(latestFund.entries())) {
+    if (fund.eps == null && fund.net_income != null && fund.shares_outstanding != null && fund.shares_outstanding > 0) {
+      epsComputable.push({ ticker, net_income: fund.net_income, shares: fund.shares_outstanding })
+    }
+  }
+  epsComputable.sort((a, b) => a.ticker.localeCompare(b.ticker))
+
+  // 6c: Balance sheet float flag — cash/revenue > 2x AND current_liabilities/cash > 1.5x
+  type FloatFlagRow = { ticker: string; cash: number; revenue: number; currLiab: number; cashRev: number; liabCash: number }
+  const floatFlags: FloatFlagRow[] = []
+  for (const [ticker, fund] of Array.from(latestFund.entries())) {
+    const cash     = fund.cash_and_equivalents
+    const rev      = fund.revenue
+    const currLiab = fund.current_liabilities
+    if (cash != null && rev != null && currLiab != null && rev > 0 && cash > 0) {
+      const cashRev  = cash / rev
+      const liabCash = currLiab / cash
+      if (cashRev > 2 && liabCash > 1.5) {
+        floatFlags.push({ ticker, cash, revenue: rev, currLiab, cashRev, liabCash })
+      }
+    }
+  }
+  floatFlags.sort((a, b) => b.liabCash - a.liabCash)
+
+  // 6d: Zero/null EBITDA but positive net income
+  type EbitdaMissingRow = { ticker: string; ebitda: number | null; net_income: number }
+  const ebitdaMissing: EbitdaMissingRow[] = []
+  for (const [ticker, fund] of Array.from(latestFund.entries())) {
+    const ebitda = fund.ebitda
+    const ni     = fund.net_income
+    if (ni != null && ni > 0 && (ebitda == null || ebitda === 0)) {
+      ebitdaMissing.push({ ticker, ebitda, net_income: ni })
+    }
+  }
+  ebitdaMissing.sort((a, b) => a.ticker.localeCompare(b.ticker))
 
   // ── report string ───────────────────────────────────────────────────────────
   const hr = '─'.repeat(60)
@@ -480,6 +556,133 @@ export default async function AdminHealthPage() {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* ── 6. Systemic risk flags ── */}
+        <div style={S.section}>
+          <p style={S.head}>06 — SYSTEMIC RISK FLAGS</p>
+
+          {/* 6a: EBITDA sanity */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '0 0 6px' }}>
+            EBITDA SANITY — m1_ebitda_current &gt; 5× REVENUE ({ebitdaSanity.length} flagged)
+          </p>
+          {ebitdaSanity.length === 0 ? (
+            <p style={S.none}>✓ None</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER','M1 EBITDA','REVENUE','RATIO'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {ebitdaSanity.map(r => (
+                  <tr key={r.ticker}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ef4444' }}>{fmtB(r.m1_ebitda)}</td>
+                    <td style={S.td}>{fmtB(r.revenue)}</td>
+                    <td style={{ ...S.td, color: '#ef4444', fontWeight: 'bold' }}>{r.ratio.toFixed(1)}×</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 6b: EPS null but computable */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            EPS NULL BUT COMPUTABLE — net_income + shares available ({epsComputable.length} tickers)
+          </p>
+          {epsComputable.length === 0 ? (
+            <p style={S.none}>✓ None</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER','NET INCOME','SHARES OUT','IMPLIED EPS'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {epsComputable.map(r => (
+                  <tr key={r.ticker}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={S.td}>{fmtB(r.net_income)}</td>
+                    <td style={S.td}>{(r.shares / 1e6).toFixed(1)}M</td>
+                    <td style={{ ...S.td, color: '#ffcc00' }}>${(r.net_income / r.shares).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 6c: Balance sheet float flag */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            BALANCE SHEET FLOAT FLAG — cash/revenue &gt; 2× AND curr.liab/cash &gt; 1.5× ({floatFlags.length} tickers)
+          </p>
+          {floatFlags.length === 0 ? (
+            <p style={S.none}>✓ None</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER','CASH','REVENUE','CURR LIAB','CASH/REV','LIAB/CASH'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {floatFlags.map(r => (
+                  <tr key={r.ticker}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={S.td}>{fmtB(r.cash)}</td>
+                    <td style={S.td}>{fmtB(r.revenue)}</td>
+                    <td style={S.td}>{fmtB(r.currLiab)}</td>
+                    <td style={{ ...S.td, color: '#ffcc00' }}>{r.cashRev.toFixed(1)}×</td>
+                    <td style={{ ...S.td, color: '#ef4444', fontWeight: 'bold' }}>{r.liabCash.toFixed(1)}×</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 6d: Zero/null EBITDA but positive NI */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            EBITDA NULL/ZERO WITH POSITIVE NET INCOME — D&amp;A extraction likely failed ({ebitdaMissing.length} tickers)
+          </p>
+          {ebitdaMissing.length === 0 ? (
+            <p style={S.none}>✓ None</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER','EBITDA','NET INCOME'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {ebitdaMissing.map(r => (
+                  <tr key={r.ticker}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ef4444' }}>{r.ebitda == null ? 'NULL' : '0'}</td>
+                    <td style={S.td}>{fmtB(r.net_income)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 6e: Fix log */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            SINGLE-TICKER RUN LOG — LAST 20 ENTRIES
+          </p>
+          {fixLog.length === 0 ? (
+            <p style={S.none}>No entries yet</p>
+          ) : (
+            <table style={S.table}>
+              <thead>
+                <tr>{(['TICKER','ISSUE','FIX DESCRIPTION','RUN ID','DATE'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {fixLog.map(r => (
+                  <tr key={r.id}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ffcc00' }}>{r.issue}</td>
+                    <td style={{ ...S.td, color: DIM, maxWidth: 320 }}>{r.fix_description ?? '—'}</td>
+                    <td style={{ ...S.td, color: DIM }}>{r.run_id ?? '—'}</td>
+                    <td style={{ ...S.td, color: DIM }}>{fmtDate(r.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         <div style={{ marginTop: '3rem', paddingTop: '1rem', borderTop: `1px solid ${FAINT}`, fontSize: 9, color: 'rgba(0,255,136,0.15)' }}>

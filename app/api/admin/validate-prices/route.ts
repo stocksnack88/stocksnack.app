@@ -27,7 +27,7 @@ export type ValidateResponse = {
   error?:     string
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   // Auth — admin only
   const cookieStore = cookies()
   const supabase = createServerClient(
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
 
   // FMP bulk quote
   const tickerStr = tickers.join(',')
-  let fmpMap = new Map<string, { price: number | null; pe: number | null }>()
+  const fmpMap = new Map<string, { price: number | null; pe: number | null }>()
   try {
     const fmpRes  = await fetch(`${FMP_BASE}/quote/${tickerStr}?apikey=${fmpKey}`, { cache: 'no-store' })
     const fmpData = await fmpRes.json()

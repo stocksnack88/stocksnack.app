@@ -479,24 +479,30 @@ def extract_annual_series(
                 file=sys.stderr,
             )
 
-        # Phase B: backfill missing years from lower-priority tags when primary
-        # has fewer than `years` entries (e.g. a tag switch mid-history).
-        # Only applies to fields with multiple priority tags.
-        if len(tags) > 1 and len(primary_result) < years:
+        # Phase B: backfill missing years from lower-priority tags.
+        # Runs when either:
+        #   1. Primary has fewer than `years` entries (historical backfill).
+        #   2. A fallback tag has data for a year NEWER than the primary's most
+        #      recent year (forward extension — catches companies that drop or
+        #      switch their primary tag for the latest fiscal year, e.g.
+        #      OperatingIncomeLoss stops at FY2024 but a fallback covers FY2025).
+        if len(tags) > 1:
+            primary_max_year = max(d["year"] for d in primary_result) if primary_result else 0
             covered = {d["year"] for d in primary_result}
             merged  = list(primary_result)
             for idx2, tag2 in enumerate(tags):
                 if idx2 <= primary_idx:
                     continue
-                if len(merged) >= years:
-                    break
                 if tag2 not in tag_data:
                     continue
                 series2, _ = tag_data[tag2]
                 for d2 in sorted(series2, key=lambda x: x["year"]):
-                    if len(merged) >= years:
-                        break
                     if d2["year"] in covered:
+                        continue
+                    # When budget is full, only add years newer than the primary's
+                    # range (forward extension).  Older years are skipped to avoid
+                    # displacing the primary's historical data.
+                    if len(merged) >= years and d2["year"] <= primary_max_year:
                         continue
                     covered.add(d2["year"])
                     merged.append(d2)

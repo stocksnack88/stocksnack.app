@@ -50,6 +50,7 @@ PaymentsForRepurchaseOfCommonStock,common_stock_repurchased,1,2026-05-16,confirm
 PaymentsForRepurchaseOfEquity,common_stock_repurchased,2,2026-05-16,
 DepreciationDepletionAndAmortization,depreciation_amortization,1,2026-05-16,confirmed AAPL — complete total
 DepreciationAndAmortization,depreciation_amortization,2,2026-05-17,partial (PP&E + intangibles; component for sum)
+OtherDepreciationAndAmortization,depreciation_amortization,2,2026-06-19,VEEV/SaaS total D&A (nonproduction) — complete substitute when DepreciationDepletionAndAmortization absent
 Depreciation,depreciation_amortization,3,2026-05-17,partial (PP&E only; component for sum)
 AmortizationOfIntangibleAssets,depreciation_amortization,4,2026-05-17,partial (intangibles only; component for sum)
 DepreciationAmortizationAndAccretionNet,depreciation_amortization,5,2026-05-17,alternative complete — last resort

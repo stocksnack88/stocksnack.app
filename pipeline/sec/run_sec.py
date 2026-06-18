@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import csv
 import logging
+import os
 import sys
 import time
 from pathlib import Path
@@ -553,6 +554,117 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
     }
 
 
+# ── Failure email ─────────────────────────────────────────────────────────────
+
+_ADMIN_EMAIL = "stocksnack88@gmail.com"
+
+
+def _send_failure_email(
+    failures: dict[str, str],
+    tickers_arg: list[str] | None,
+    offset: int,
+    limit: int | None,
+) -> None:
+    """
+    Send a Resend email listing every ticker that failed and its error message.
+    Does nothing if failures is empty or RESEND_API_KEY is not set.
+    """
+    if not failures:
+        return
+
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    if not api_key:
+        log.warning("RESEND_API_KEY not set — skipping failure email (failures: %s)",
+                    ", ".join(failures))
+        return
+
+    n = len(failures)
+
+    # Build a human-readable job label for the email subject
+    if tickers_arg:
+        job_label = "tickers=" + " ".join(tickers_arg)
+    else:
+        job_label = f"offset={offset}" + (f" limit={limit}" if limit else "")
+
+    subject = (
+        f"Pipeline failure: {n} ticker{'s' if n > 1 else ''} failed "
+        f"({job_label})"
+    )
+
+    rows_html = "".join(
+        f"<tr>"
+        f"<td style='padding:5px 16px 5px 0;color:#ffcc00;font-family:monospace;white-space:nowrap'>{t}</td>"
+        f"<td style='padding:5px 0;color:#ff9999;font-family:monospace;font-size:11px'>{msg[:220]}</td>"
+        f"</tr>"
+        for t, msg in sorted(failures.items())
+    )
+
+    html = f"""<html>
+<body bgcolor="#000000" style="background:#000;font-family:'Courier New',monospace;margin:0;padding:0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+    <tr><td align="center">
+      <table width="620" cellpadding="0" cellspacing="0"
+             style="background:#000;border:1px solid #ff4444;border-radius:8px;padding:36px 36px 28px;">
+        <tr><td style="padding-bottom:8px;">
+          <p style="color:#00ff41;font-size:14px;letter-spacing:6px;font-weight:bold;margin:0;">STOCKSNACK</p>
+        </td></tr>
+        <tr><td style="padding-bottom:24px;">
+          <p style="color:#ff4444;font-size:20px;font-weight:bold;margin:0;">
+            ⚠ Pipeline failures
+          </p>
+        </td></tr>
+        <tr><td style="padding-bottom:8px;">
+          <p style="color:#888;font-size:12px;margin:0;">
+            Job: <span style="color:#ccc">{job_label}</span>
+            &nbsp;·&nbsp;
+            {n} ticker{'s' if n != 1 else ''} failed
+          </p>
+        </td></tr>
+        <tr><td style="padding-top:16px;padding-bottom:24px;">
+          <table cellpadding="0" cellspacing="0"
+                 style="width:100%;border-collapse:collapse;border-top:1px solid #222;">
+            <tr>
+              <th style="text-align:left;color:#555;font-size:9px;letter-spacing:.12em;
+                         padding:10px 16px 8px 0;">TICKER</th>
+              <th style="text-align:left;color:#555;font-size:9px;letter-spacing:.12em;
+                         padding:10px 0 8px 0;">ERROR</th>
+            </tr>
+            {rows_html}
+          </table>
+        </td></tr>
+        <tr><td style="border-top:1px solid #111;padding-top:20px;">
+          <p style="color:#333;font-size:10px;margin:0;">
+            stocksnack.app pipeline · {job_label}
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+    try:
+        import requests as _req
+        resp = _req.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type":  "application/json",
+            },
+            json={
+                "from":    "StockSnack Pipeline <hello@stocksnack.app>",
+                "to":      [_ADMIN_EMAIL],
+                "subject": subject,
+                "html":    html,
+            },
+            timeout=15,
+        )
+        resp.raise_for_status()
+        log.info("Failure email sent → %s (%d tickers)", _ADMIN_EMAIL, n)
+    except Exception as exc:
+        log.error("Could not send failure email: %s", exc)
+
+
 # ── Per-ticker processor ──────────────────────────────────────────────────────
 
 def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool) -> bool:
@@ -613,11 +725,11 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
             writer.upsert_scores(ticker, ppm, growth, health, final, spy, segments, hazard, sector_override)
 
         log.info("[%s] ✓ Done", ticker)
-        return True, len(prod) if prod else None, len(geo) if geo else None
+        return True, len(prod) if prod else None, len(geo) if geo else None, None
 
     except Exception as exc:
         log.error("[%s] FAILED: %s", ticker, exc, exc_info=True)
-        return False, None, None
+        return False, None, None, str(exc)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -676,11 +788,16 @@ def main() -> None:
 
     processed:       list[str]          = []
     failed:          list[str]          = []
+    failed_errors:   dict[str, str]     = {}  # ticker -> first error line
     segment_results: dict[str, tuple]   = {}  # ticker -> (prod_count, geo_count)
 
     for ticker in tickers:
-        ok, prod_cnt, geo_cnt = process(ticker, writer, spy, dry_run)
-        (processed if ok else failed).append(ticker)
+        ok, prod_cnt, geo_cnt, err_msg = process(ticker, writer, spy, dry_run)
+        if ok:
+            processed.append(ticker)
+        else:
+            failed.append(ticker)
+            failed_errors[ticker] = (err_msg or "unknown error")
         segment_results[ticker] = (prod_cnt, geo_cnt)
         if len(tickers) > 1:
             time.sleep(1)
@@ -692,6 +809,10 @@ def main() -> None:
     log.info("Done — processed: %d  failed: %d", len(processed), len(failed))
     if failed:
         log.warning("Failed: %s", ", ".join(failed))
+
+    # Per-job failure email — fires for any failure count, dry-run excluded.
+    if not dry_run:
+        _send_failure_email(failed_errors, args.tickers, args.offset, args.limit)
 
     log.info("─" * 52)
     log.info("SEGMENT COVERAGE SUMMARY")

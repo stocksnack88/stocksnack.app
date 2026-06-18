@@ -68,6 +68,30 @@ _SPLIT_RE = re.compile(
     r'\b(are|is|were|from|derived|based|include)\b', re.IGNORECASE
 )
 
+# Hard overrides: XBRL member code → clean display name.
+# Used when the label file returns a generic description instead of a terse name
+# (e.g. QCOM's label file maps all segment members to the same documentation
+# text; GLW's labels are description sentences rather than short segment names).
+_MEMBER_OVERRIDES: dict[str, str] = {
+    # QCOM — label file returns the same generic "A component of the entity
+    # for which there is an accounting requirement to report…" for all members
+    "qcom:QctMember": "QCT",
+    "qcom:QtlMember": "QTL",
+    "qcom:QsiMember": "QSI",
+    # TXN — label file appends trailing period and/or the word "member"
+    "txn:AnalogMember":             "Analog",
+    "txn:EmbeddedProcessingMember": "Embedded Processing",
+    # GLW — label file stores description sentences ("Represents …", "Related to …")
+    "glw:OpticalCommunicationsMember":       "Optical Communications",
+    "glw:DisplayProductsMember":             "Display Technologies",
+    "glw:SpecialtyMaterialsProductsMember":  "Specialty Materials",
+    "glw:LifeScienceProductsMember":         "Life Sciences",
+    "glw:PolycrystallineSiliconProductsMember": "Polycrystalline Silicon",
+    # Standard XBRL members — replace generic taxonomy labels with clean names
+    "us-gaap:ProductAndServiceOtherMember":  "Other",
+    "us-gaap:AllOtherSegmentsMember":        "Other",
+}
+
 
 def _shorten(name: str, max_len: int = 40) -> str:
     """Truncate a verbose segment name at the first verb/preposition, max 40 chars."""
@@ -253,8 +277,11 @@ def parse_labels(lab_xml_url: str) -> dict[str, str]:
 def _clean_member_name(member: str, labels: dict[str, str]) -> str:
     """
     Convert a prefixed member code to a human-readable name.
-    Priority: labels lookup → strip prefix+"Member" → camelCase split.
+    Priority: _MEMBER_OVERRIDES → labels lookup → strip prefix+"Member" → camelCase split.
     """
+    if member in _MEMBER_OVERRIDES:
+        return _MEMBER_OVERRIDES[member]
+
     if member in labels:
         name = labels[member]
         name = re.sub(r"\s*\[Member\]\.?$", "", name).strip()

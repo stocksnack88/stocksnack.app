@@ -1,0 +1,1 @@
+ALTER TABLE stock_scores ADD COLUMN IF NOT EXISTS m_cumulative_div_ps NUMERIC DEFAULT 0;

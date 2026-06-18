@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 
 const MONO: React.CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }
@@ -179,8 +180,8 @@ export default function NavDropdown({ userEmail }: Props) {
         )}
       </div>
 
-      {/* Feedback modal — fixed overlay, outside the dropdown div */}
-      {feedbackOpen && (
+      {/* Feedback modal — portalled to document.body so it escapes the nav's z-50 stacking context */}
+      {feedbackOpen && typeof document !== 'undefined' && createPortal(
         <div
           style={{
             position: 'fixed',
@@ -318,7 +319,8 @@ export default function NavDropdown({ userEmail }: Props) {
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

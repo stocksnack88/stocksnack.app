@@ -348,15 +348,18 @@ export default function BlockShareButton({
       overlay.appendChild(contentWrap)
       document.body.appendChild(overlay)
 
-      // Wait two frames for the browser to lay out and paint the cloned content
-      await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+      let canvas: HTMLCanvasElement
+      try {
+        // Wait two frames for the browser to lay out and paint the cloned content
+        await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
-      // Screenshot the content wrapper (not the overlay, so we get tight bounds)
-      const canvas = await captureDiv(contentWrap)
-      console.log('[BlockShareButton] capture complete — canvas size:', canvas.width, 'x', canvas.height)
-
-      // Remove overlay immediately after capture
-      document.body.removeChild(overlay)
+        // Screenshot the content wrapper (not the overlay, so we get tight bounds)
+        canvas = await captureDiv(contentWrap)
+        console.log('[BlockShareButton] capture complete — canvas size:', canvas.width, 'x', canvas.height)
+      } finally {
+        // Always remove overlay — even if captureDiv throws — so it never blocks the UI
+        if (document.body.contains(overlay)) document.body.removeChild(overlay)
+      }
 
       const blob = await toBlob(canvas)
       const dataUrl = canvas.toDataURL('image/png')

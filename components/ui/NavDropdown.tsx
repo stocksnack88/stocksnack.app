@@ -13,7 +13,6 @@ export default function NavDropdown({ userEmail }: Props) {
   const [open, setOpen]             = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [message, setMessage]       = useState('')
-  const [email, setEmail]           = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted]   = useState(false)
   const [error, setError]           = useState('')
@@ -47,7 +46,6 @@ export default function NavDropdown({ userEmail }: Props) {
   function openFeedback() {
     setOpen(false)
     setMessage('')
-    setEmail('')
     setSubmitted(false)
     setError('')
     setFeedbackOpen(true)
@@ -68,7 +66,7 @@ export default function NavDropdown({ userEmail }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: message.trim(),
-          email:   userEmail ?? email.trim() ?? undefined,
+          email:   userEmail ?? undefined,
           page_url: window.location.href,
         }),
       })
@@ -225,9 +223,7 @@ export default function NavDropdown({ userEmail }: Props) {
               <div>
                 <p style={{ color: '#00ff41', fontSize: 14, marginBottom: 8, ...MONO }}>✓ Got it.</p>
                 <p style={{ color: 'rgba(0,255,65,0.55)', fontSize: 12, lineHeight: 1.7, marginBottom: 24, ...MONO }}>
-                  {userEmail || email
-                    ? "We'll email you if we ship a fix based on this."
-                    : "Thanks — we'll look into it."}
+                  We&apos;ll email you if we ship a fix based on this.
                 </p>
                 <button
                   onClick={closeFeedback}
@@ -246,8 +242,53 @@ export default function NavDropdown({ userEmail }: Props) {
                   CLOSE
                 </button>
               </div>
+            ) : !userEmail ? (
+              /* logged-out gate */
+              <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
+                <p style={{ color: 'rgba(0,255,65,0.55)', fontSize: 12, lineHeight: 1.7, marginBottom: 20, ...MONO }}>
+                  Sign up to submit feedback.
+                </p>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={closeFeedback}
+                    style={{
+                      background: 'none',
+                      border: '1px solid rgba(0,255,65,0.15)',
+                      borderRadius: 4,
+                      color: 'rgba(0,255,65,0.4)',
+                      padding: '8px 16px',
+                      fontSize: 11,
+                      letterSpacing: '0.1em',
+                      cursor: 'pointer',
+                      ...MONO,
+                    }}
+                  >
+                    CANCEL
+                  </button>
+                  <Link
+                    href="/signup"
+                    onClick={closeFeedback}
+                    style={{
+                      background: '#00ff41',
+                      border: 'none',
+                      borderRadius: 4,
+                      color: '#000',
+                      padding: '8px 20px',
+                      fontSize: 11,
+                      fontWeight: 'bold',
+                      letterSpacing: '0.1em',
+                      textDecoration: 'none',
+                      display: 'inline-block',
+                      ...MONO,
+                    }}
+                  >
+                    SIGN UP →
+                  </Link>
+                </div>
+              </div>
             ) : (
-              /* form */
+              /* form — logged-in users only */
               <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: 16 }}>
                   <label style={labelStyle}>WHAT&apos;S ON YOUR MIND?</label>
@@ -260,20 +301,6 @@ export default function NavDropdown({ userEmail }: Props) {
                     style={inputStyle}
                   />
                 </div>
-
-                {/* email field only for logged-out users */}
-                {!userEmail && (
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={labelStyle}>EMAIL (OPTIONAL — SO WE CAN REPLY)</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      style={inputStyle}
-                    />
-                  </div>
-                )}
 
                 {error && (
                   <p style={{ color: '#ef4444', fontSize: 11, marginBottom: 12, ...MONO }}>{error}</p>

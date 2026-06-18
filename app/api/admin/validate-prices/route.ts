@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -27,7 +27,7 @@ export type ValidateResponse = {
   error?:     string
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   // Auth — admin only
   const cookieStore = cookies()
   const supabase = createServerClient(

@@ -23,8 +23,42 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-# 1 TSM ADR = 5 ordinary NTD shares; SEC reports ordinary shares, yfinance price is ADR price.
-_ADR_SHARE_RATIO: dict[str, int] = {"TSM": 5}
+# Explicit override for edge cases where auto-detection snaps incorrectly.
+# Auto-detection via detect_adr_ratio() is tried first for all tickers.
+_ADR_SHARE_RATIO: dict[str, int] = {}
+
+_ADR_VALID_RATIOS: tuple[int, ...] = (1, 2, 4, 5, 8, 10, 20)
+
+
+def detect_adr_ratio(symbol: str, most_recent_edgar_shares: float) -> int:
+    """
+    Infer ADR ratio by comparing SEC EDGAR ordinary share count against
+    yfinance's share count (which reflects ADR shares for foreign tickers).
+    Snaps to nearest value in _ADR_VALID_RATIOS. Returns 1 on any failure.
+    """
+    try:
+        yf_shares = None
+        try:
+            yf_shares = getattr(_ticker(symbol).fast_info, "shares", None)
+        except Exception:
+            pass
+        if not yf_shares:
+            info = _info(symbol)
+            yf_shares = info.get("sharesOutstanding") or info.get("impliedSharesOutstanding")
+        if not yf_shares or float(yf_shares) <= 0:
+            return 1
+
+        implied = most_recent_edgar_shares / float(yf_shares)
+        ratio   = min(_ADR_VALID_RATIOS, key=lambda r: abs(r - implied))
+        if ratio > 1:
+            log.info(
+                "[%s] ADR auto-detected: edgar=%.0f / yf=%.0f → implied=%.2fx → ratio=%d",
+                symbol, most_recent_edgar_shares, float(yf_shares), implied, ratio,
+            )
+        return ratio
+    except Exception as exc:
+        log.warning("[%s] detect_adr_ratio failed: %s", symbol, exc)
+        return 1
 
 
 def _ticker(symbol: str):
@@ -264,13 +298,21 @@ def get_historical_market_cap(
         # ── Step 2 & 3: Identify most-recent shares as post-split baseline ─────
         # get_shares_per_year() is the single authoritative source; shares_by_year
         # parameter is kept for backward compatibility but is superseded here.
-        shares_map = get_shares_per_year(
+        shares_map     = get_shares_per_year(
             symbol,
             list(fiscal_year_dates.keys()),
             Path(__file__).parent / "extracted_data.csv",
         )
-        _adr_ratio         = _ADR_SHARE_RATIO.get(symbol.upper(), 1)
-        most_recent_yr     = max(shares_map.keys()) if shares_map else None
+        most_recent_yr = max(shares_map.keys()) if shares_map else None
+
+        # Explicit override wins; otherwise auto-detect from EDGAR vs yfinance share counts.
+        if symbol.upper() in _ADR_SHARE_RATIO:
+            _adr_ratio = _ADR_SHARE_RATIO[symbol.upper()]
+        elif most_recent_yr:
+            _adr_ratio = detect_adr_ratio(symbol, shares_map[most_recent_yr])
+        else:
+            _adr_ratio = 1
+
         most_recent_shares = float(shares_map[most_recent_yr]) / _adr_ratio if most_recent_yr else None
 
         result: dict[int, float] = {}

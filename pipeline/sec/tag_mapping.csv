@@ -84,3 +84,4 @@ AssetsCurrent,current_assets,1,2026-06-15,confirmed AAPL — balance sheet curre
 LiabilitiesCurrent,current_liabilities,1,2026-06-15,confirmed AAPL — balance sheet current liabilities
 InterestAndDividendIncomeOperating,bank_interest_income,1,2026-06-19,bank total net interest income
 NoninterestIncome,bank_noninterest_income,1,2026-06-19,bank non-interest fees and trading revenue
+OperatingLeaseLeaseIncome,reit_lease_income,1,2026-06-19,apartment/property REIT total rental income (ASC 842 lessor income)

@@ -54,6 +54,7 @@ _FIELD_MAP: list[tuple[str, str]] = [
     ("current_liabilities",       "currentLiabilities"),
     ("bank_interest_income",      "interestAndDividendIncome"),
     ("bank_noninterest_income",   "noninterestIncome"),
+    ("reit_lease_income",         "operatingLeaseLeaseIncome"),
 ]
 
 # SEC stores these as positive outflows; FMP expects negative

@@ -360,6 +360,7 @@ _INCOME_FIELDS = {
     "sellingGeneralAndAdministrativeExpenses", "researchAndDevelopmentExpenses",
     "interestExpense", "incomeTaxExpense", "ebitda", "depreciationAndAmortization",
     "interestAndDividendIncome", "noninterestIncome",
+    "operatingLeaseLeaseIncome",
 }
 
 _BALANCE_FIELDS = {
@@ -621,6 +622,24 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
             inc["ebitda"] = ni + da  # FFO proxy
         for bal in balance_list:
             bal["netDebt"] = 0.0
+
+    # REITs: apartment/property REITs (e.g. CPT, AVB) file
+    # RevenueFromContractWithCustomerExcludingAssessedTax for a tiny fee component
+    # ($3–13M) while actual rental income lives in OperatingLeaseLeaseIncome ($1–3B).
+    # Revenue < EBITDA is impossible; when it occurs replace with ASC 842 lease income.
+    if _sm.get("reit_mode"):
+        for inc in income_list:
+            lease_income_ = _safe(inc.get("operatingLeaseLeaseIncome"))
+            rev_          = _safe(inc.get("revenue"))
+            ebitda_       = _safe(inc.get("ebitda"))
+            if rev_ < ebitda_ and lease_income_ > 0:
+                yr_label = inc.get("date", "?")[:4]
+                log.warning(
+                    "[%s] FY%s REIT revenue ($%.0fM) < EBITDA ($%.0fM) — "
+                    "replacing with OperatingLeaseLeaseIncome ($%.0fM)",
+                    ticker, yr_label, rev_ / 1e6, ebitda_ / 1e6, lease_income_ / 1e6,
+                )
+                inc["revenue"] = lease_income_
 
     log.info("[%s] Building data dict…", ticker)
     return {

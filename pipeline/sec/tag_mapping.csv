@@ -7,7 +7,6 @@ GrossProfit,gross_profit,1,2026-05-16,confirmed AAPL
 CostOfRevenue,cost_of_revenue,1,2026-05-17,used by META AMZN and others who don't file GrossProfit directly
 CostOfGoodsSold,cost_of_revenue,2,2026-05-17,older tag name for same concept
 CostOfGoodsAndServicesSold,cost_of_revenue,3,2026-05-17,alternative combined tag
-FloorBrokerageExchangeAndClearanceFees,cost_of_revenue,4,2026-06-19,HOOD broker-dealer transaction costs — cost of revenue equivalent for broker/fintech
 OperatingIncomeLoss,operating_income,1,2026-05-16,confirmed AAPL
 IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest,operating_income,2,2026-05-17,JNJ substitute — pre-tax income from continuing ops. OperatingIncomeLoss stopped being filed by JNJ after FY2012.
 IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments,operating_income,3,2026-05-19,CVX substitute — pre-tax income including equity method investments. CVX does not file OperatingIncomeLoss.

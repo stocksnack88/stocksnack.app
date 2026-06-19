@@ -38,6 +38,7 @@ _COMPUTED_FIELDS: dict[str, tuple[str, str, str]] = {
 # field, sum these us-gaap component tags instead. Used for banks and broker-
 # dealers whose income statements don't file standard GrossProfit / SGA tags.
 _TICKER_SUM_FIELDS: dict[str, dict[str, list[str]]] = {
+    # ── Retail banks (no GrossProfit; SGA = named non-labor P&L lines) ──────────
     "JPM": {
         "sga_expense": [
             "OccupancyNet",
@@ -46,12 +47,120 @@ _TICKER_SUM_FIELDS: dict[str, dict[str, list[str]]] = {
             "CommunicationsAndInformationTechnology",
         ],
     },
+    "BAC": {
+        # NE = Labor + OtherNoninterestExpense exactly — named sub-tags are
+        # disclosure footnotes within OtherNE, not separate P&L lines.
+        "sga_expense": ["OtherNoninterestExpense"],
+    },
+    "WFC": {
+        # WFC waterfall: NE = Labor + these 5 items exactly.
+        # Uses EquipmentExpense (not CommTech) for technology costs.
+        "sga_expense": [
+            "OccupancyNet",
+            "ProfessionalAndContractServicesExpense",
+            "MarketingAndAdvertisingExpense",
+            "EquipmentExpense",
+            "OtherNoninterestExpense",
+        ],
+    },
+    "C": {
+        # C files D&A as a separate NE line (~$4.3B); excluded from SGA intentionally.
+        "sga_expense": [
+            "OccupancyNet",
+            "ProfessionalFees",
+            "MarketingAndAdvertisingExpense",
+            "CommunicationsAndInformationTechnology",
+            "OtherNoninterestExpense",
+        ],
+    },
+    "USB": {
+        # USB uses EmployeeBenefitsAndShareBasedCompensation instead of
+        # LaborAndRelatedExpense; $0.7B gap is likely intangible amortization.
+        "sga_expense": [
+            "OccupancyNet",
+            "ProfessionalFees",
+            "MarketingAndAdvertisingExpense",
+            "CommunicationsAndInformationTechnology",
+            "OtherNoninterestExpense",
+        ],
+    },
+    "COF": {
+        # COF uses MarketingExpense (not MarketingAndAdvertisingExpense).
+        # Formula ≈ NE-Labor within $0.077B (rounding).
+        "sga_expense": [
+            "OccupancyNet",
+            "ProfessionalAndContractServicesExpense",
+            "CommunicationsAndInformationTechnology",
+            "MarketingExpense",
+            "OtherNoninterestExpense",
+        ],
+    },
+    # ── Investment / custody banks ───────────────────────────────────────────────
+    "GS": {
+        # Excludes ~$6.7B untagged brokerage/clearing fees (execution cost, not SGA)
+        # and D&A ($2.4B). Captures the pure SGA-type operating expenses only.
+        "sga_expense": [
+            "OccupancyNet",
+            "ProfessionalFees",
+            "CommunicationsAndInformationTechnology",
+            "BusinessDevelopment",
+            "OtherNoninterestExpense",
+        ],
+    },
+    "MS": {
+        # Excludes FloorBrokerageExchangeAndClearanceFees ($4.14B execution cost).
+        # Formula = NE - Labor - FloorBrokerage exactly.
+        "sga_expense": [
+            "OccupancyNet",
+            "ProfessionalFees",
+            "MarketingAndAdvertisingExpense",
+            "CommunicationsAndInformationTechnology",
+            "OtherNoninterestExpense",
+        ],
+    },
+    "BK": {
+        # BK uses InformationTechnologyAndDataProcessing (not CommunicationsAndInformationTechnology).
+        # $1.1B gap remains unresolvable from standard XBRL tags.
+        "sga_expense": [
+            "OccupancyNet",
+            "ProfessionalFees",
+            "InformationTechnologyAndDataProcessing",
+            "OtherNoninterestExpense",
+        ],
+    },
+    "STT": {
+        # STT uses OtherExpenses + OtherGeneralExpense (not OtherNoninterestExpense).
+        # FloorBrokerageExchangeAndClearanceFees is a sub-item of OtherExpenses — not added separately.
+        # Formula ≈ NE-Labor within $0.042B (rounding).
+        "sga_expense": [
+            "OccupancyNet",
+            "ProfessionalFees",
+            "MarketingAndAdvertisingExpense",
+            "CommunicationsAndInformationTechnology",
+            "OtherExpenses",
+            "OtherGeneralExpense",
+        ],
+    },
+    # ── Broker-dealer / fintech ──────────────────────────────────────────────────
     "HOOD": {
         "sga_expense": [
             "GeneralAndAdministrativeExpense",
             "MarketingExpense",
             "OtherCostAndExpenseOperating",
         ],
+    },
+}
+
+# Ticker-specific difference fields: standardised_name = tag_a − tag_b.
+# Used for broker-dealers where gross_profit = revenue − specific_cost_tag,
+# but those tags must NOT enter the global cost_of_revenue mapping (which
+# would cause spurious gross_profit values on unrelated tickers that happen
+# to file the same XBRL tag — e.g. STT files FloorBrokerageExchangeAndClearanceFees
+# as a custody/servicing cost, not as cost-of-revenue).
+_TICKER_DIFF_FIELDS: dict[str, dict[str, tuple[str, str]]] = {
+    "HOOD": {
+        # gross_profit = total revenue − floor brokerage/clearing fees (cost of revenue)
+        "gross_profit": ("Revenues", "FloorBrokerageExchangeAndClearanceFees"),
     },
 }
 
@@ -721,6 +830,63 @@ def _extract_ticker_sum(
     return result
 
 
+def _extract_ticker_diff(
+    ticker: str,
+    standardised_name: str,
+    tag_a: str,
+    tag_b: str,
+    facts_json: dict,
+    years: int,
+) -> list[dict[str, Any]]:
+    """
+    Compute standardised_name = tag_a − tag_b per fiscal year for one ticker.
+    Writes a single row per year to extracted_data.csv.
+    Returns [{"year": int, "value": float, "end": str}, ...] or [].
+    """
+    usgaap = _get_usgaap(facts_json)
+    series_a, _ = _extract_tag(usgaap, tag_a, years)
+    series_b, _ = _extract_tag(usgaap, tag_b, years)
+
+    if not series_a or not series_b:
+        _append_missing(ticker, standardised_name,
+                        notes=f"diff components missing: {tag_a}={bool(series_a)}, {tag_b}={bool(series_b)}")
+        return []
+
+    map_a = {pt["year"]: pt for pt in series_a}
+    map_b = {pt["year"]: pt for pt in series_b}
+    shared = sorted(set(map_a) & set(map_b))[-years:]
+    if not shared:
+        _append_missing(ticker, standardised_name, notes=f"no overlapping years: {tag_a} vs {tag_b}")
+        return []
+
+    pulled_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    tag_label = f"computed: {tag_a} - {tag_b}"
+    result = []
+    rows = []
+    for yr in shared:
+        value = map_a[yr]["value"] - map_b[yr]["value"]
+        end = map_a[yr].get("end", "")
+        result.append({"year": yr, "value": value, "end": end})
+        rows.append({
+            "ticker":            ticker,
+            "fiscal_year":       yr,
+            "standardised_name": standardised_name,
+            "original_tag":      tag_label,
+            "value":             value,
+            "unit":              "USD",
+            "pulled_at":         pulled_at,
+            "period_of_report":  end,
+        })
+        print(
+            f"[field_mapper] {ticker} {standardised_name} {yr}: "
+            f"{tag_a}(${map_a[yr]['value']/1e6:.0f}M) - {tag_b}(${map_b[yr]['value']/1e6:.0f}M)"
+            f" = ${value/1e6:.0f}M",
+            file=sys.stderr,
+        )
+    _append_extracted(rows)
+    return result
+
+
 def extract_all(ticker: str, years: int = 5) -> dict[str, list[dict]]:
     """
     Fetch SEC facts for ticker, run all fields, print summary.
@@ -830,6 +996,16 @@ def extract_all(ticker: str, years: int = 5) -> dict[str, list[dict]]:
                 continue
             series = _extract_ticker_sum(ticker.upper(), sum_name, sum_tags, facts, years)
             results[sum_name] = series
+
+    # ── Ticker-specific diff fields (tag_a − tag_b) ───────────────────────────
+    # Used for broker-dealers whose gross_profit = revenue_tag - cost_tag
+    # but where those tags shouldn't be in the global cost_of_revenue mapping.
+    if ticker.upper() in _TICKER_DIFF_FIELDS:
+        for diff_name, (tag_a, tag_b) in _TICKER_DIFF_FIELDS[ticker.upper()].items():
+            if results.get(diff_name):
+                continue
+            series = _extract_ticker_diff(ticker.upper(), diff_name, tag_a, tag_b, facts, years)
+            results[diff_name] = series
 
     print()
     print(f"{'─'*55}")

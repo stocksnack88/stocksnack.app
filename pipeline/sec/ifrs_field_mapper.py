@@ -76,6 +76,21 @@ _IFRS_TAGS: list[tuple[str, list[tuple[str, str]]]] = [
         ("WeightedAverageShares",         "shares"),
         ("AdjustedWeightedAverageShares", "shares"),
     ]),
+    ("rd_expense", [
+        ("ResearchAndDevelopmentExpense", "USD"),
+    ]),
+    ("interest_expense", [
+        ("FinanceCosts", "USD"),
+    ]),
+    ("goodwill_and_intangibles", [
+        ("IntangibleAssetsAndGoodwill", "USD"),
+    ]),
+    ("current_assets", [
+        ("CurrentAssets", "USD"),
+    ]),
+    ("current_liabilities", [
+        ("CurrentLiabilities", "USD"),
+    ]),
 ]
 
 # Fields built by summing multiple IFRS tags (first wins per tag — never double-counts).
@@ -88,6 +103,10 @@ _IFRS_SUM_FIELDS: dict[str, list[tuple[str, str]]] = {
     "total_debt": [
         ("LongtermBorrowings",                    "USD"),
         ("CurrentPortionOfLongtermBorrowings",     "USD"),
+    ],
+    "sga_expense": [
+        ("SalesAndMarketingExpense",       "USD"),
+        ("GeneralAndAdministrativeExpense", "USD"),
     ],
     # ebitda = operating_income + D&A (same three tags as above, summed together)
     "ebitda": [

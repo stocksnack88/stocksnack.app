@@ -57,6 +57,7 @@ type FixLogRow = {
 type ScoreRow = {
   ticker: string
   final_score: number | null
+  signal: string | null
   has_anomaly: boolean | null
   updated_at: string | null
   product_segments: Array<{ name: string; pct: number }> | null
@@ -71,6 +72,13 @@ type PriceRow = {
   shares_outstanding: number | null
 }
 
+type ConfirmedException = {
+  ticker: string
+  field: string
+  reason: string
+  confirmed_date: string
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function pct(n: number, total: number): number {
@@ -82,6 +90,16 @@ function median(arr: number[]): number {
   const s = [...arr].sort((a, b) => a - b)
   const m = Math.floor(s.length / 2)
   return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m]
+}
+
+function mean(arr: number[]): number {
+  return arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr.length
+}
+
+function stddev(arr: number[]): number {
+  if (arr.length < 2) return 0
+  const mu = mean(arr)
+  return Math.sqrt(arr.reduce((s, v) => s + (v - mu) ** 2, 0) / arr.length)
 }
 
 function fmtB(v: number | null): string {
@@ -145,10 +163,16 @@ export default async function AdminHealthPage() {
   const refreshedAt = new Date().toUTCString()
 
   // ── parallel fetch ──────────────────────────────────────────────────────────
-  const [{ data: scoresRaw }, { data: fundRaw }, { data: priceRaw }, { data: fixLogRaw }] = await Promise.all([
+  const [
+    { data: scoresRaw },
+    { data: fundRaw },
+    { data: priceRaw },
+    { data: fixLogRaw },
+    { data: exceptionsRaw },
+  ] = await Promise.all([
     supabaseAdmin
       .from('stock_scores')
-      .select('ticker, final_score, has_anomaly, updated_at, product_segments, geo_segments, m1_ev_ebitda_multiple, m1_ebitda_current'),
+      .select('ticker, final_score, signal, has_anomaly, updated_at, product_segments, geo_segments, m1_ev_ebitda_multiple, m1_ebitda_current'),
     supabaseAdmin
       .from('stock_fundamentals')
       .select('ticker, fiscal_year, eps, rd_expense, roe, roic, gross_margin, net_margin, operating_margin, free_cash_flow, total_debt, total_equity, sga, sbc, tax_rate, capex, shares_outstanding, intangibles, revenue, total_assets, updated_at, ebitda, net_income, cash_and_equivalents, current_liabilities, gross_profit, operating_income, dividends_paid')
@@ -161,12 +185,17 @@ export default async function AdminHealthPage() {
       .select('id, ticker, issue, fix_description, run_id, created_at')
       .order('created_at', { ascending: false })
       .limit(20),
+    supabaseAdmin
+      .from('confirmed_exceptions')
+      .select('ticker, field, reason, confirmed_date'),
   ])
 
-  const scores  = (scoresRaw  ?? []) as ScoreRow[]
-  const fundAll = (fundRaw   ?? []) as FundRow[]
-  const prices  = (priceRaw  ?? []) as PriceRow[]
-  const fixLog  = (fixLogRaw ?? []) as FixLogRow[]
+  const scores              = (scoresRaw     ?? []) as ScoreRow[]
+  const fundAll             = (fundRaw        ?? []) as FundRow[]
+  const prices              = (priceRaw       ?? []) as PriceRow[]
+  const fixLog              = (fixLogRaw      ?? []) as FixLogRow[]
+  const confirmedExceptions = (exceptionsRaw  ?? []) as ConfirmedException[]
+  const confirmedSet        = new Set(confirmedExceptions.map(e => `${e.ticker}:${e.field}`))
 
   // most-recent fundamentals row per ticker (fundAll is ordered DESC already)
   const latestFund = new Map<string, FundRow>()
@@ -177,6 +206,14 @@ export default async function AdminHealthPage() {
     if (row.updated_at && (!cur || row.updated_at > cur)) {
       latestUpdated.set(row.ticker, row.updated_at)
     }
+  }
+
+  // byTicker — used in sections 7 and 9
+  const byTicker = new Map<string, FundRow[]>()
+  for (const row of fundAll) {
+    const arr = byTicker.get(row.ticker) ?? []
+    arr.push(row)
+    byTicker.set(row.ticker, arr)
   }
 
   const priceMap      = new Map(prices.map(p => [p.ticker, p.market_cap]))
@@ -355,9 +392,6 @@ export default async function AdminHealthPage() {
   splitMismatches.sort((a, b) => Math.abs(b.ratio) - Math.abs(a.ratio))
 
   // ── 7. Missing data gaps ────────────────────────────────────────────────────
-  // Flag fields that are NULL inside an otherwise-populated 5-year run.
-  // A gap = NULL for year Y while at least one earlier AND one later year in
-  // the same ticker's rows has a non-NULL value for that field.
   const GAP_FIELDS: Array<{ key: string; label: string }> = [
     { key: 'revenue',          label: 'revenue' },
     { key: 'gross_profit',     label: 'gross_profit' },
@@ -373,15 +407,11 @@ export default async function AdminHealthPage() {
   ]
 
   type DataGapRow = { ticker: string; field: string; missingYears: number[] }
+  type AllNullRow  = { ticker: string; field: string }
 
-  const byTicker = new Map<string, FundRow[]>()
-  for (const row of fundAll) {
-    const arr = byTicker.get(row.ticker) ?? []
-    arr.push(row)
-    byTicker.set(row.ticker, arr)
-  }
+  const dataGaps: DataGapRow[]    = []
+  const allNullFlags: AllNullRow[] = []
 
-  const dataGaps: DataGapRow[] = []
   for (const [ticker, rows] of Array.from(byTicker.entries())) {
     const sorted = [...rows].sort((a, b) => a.fiscal_year - b.fiscal_year)
     for (const { key, label } of GAP_FIELDS) {
@@ -398,12 +428,161 @@ export default async function AdminHealthPage() {
           lastValid = yr
         }
       }
-      if (firstValid === -1 || firstValid === lastValid) continue
+      if (firstValid === -1) {
+        allNullFlags.push({ ticker, field: label })
+        continue
+      }
+      if (firstValid === lastValid) continue
       const gaps = years.filter(yr => yr > firstValid && yr < lastValid && yearMap.get(yr) == null)
       if (gaps.length > 0) dataGaps.push({ ticker, field: label, missingYears: gaps })
     }
   }
   dataGaps.sort((a, b) => a.ticker.localeCompare(b.ticker) || a.field.localeCompare(b.field))
+  allNullFlags.sort((a, b) => a.ticker.localeCompare(b.ticker) || a.field.localeCompare(b.field))
+
+  const allNullActive    = allNullFlags.filter(f => !confirmedSet.has(`${f.ticker}:${f.field}`))
+  const allNullConfirmed = allNullFlags.filter(f =>  confirmedSet.has(`${f.ticker}:${f.field}`))
+
+  // ── 9. Data integrity checks ────────────────────────────────────────────────
+
+  // 9a: Balance sheet sanity — total_debt ≥ total_assets (debt alone equals or exceeds all assets)
+  type BalanceSanityRow = { ticker: string; total_debt: number; total_assets: number; ratio: number }
+  const balanceSanity: BalanceSanityRow[] = []
+  for (const [ticker, fund] of Array.from(latestFund.entries())) {
+    const d = fund.total_debt
+    const a = fund.total_assets
+    if (d != null && a != null && a > 0 && d >= a * 0.98) {
+      balanceSanity.push({ ticker, total_debt: d, total_assets: a, ratio: d / a })
+    }
+  }
+  balanceSanity.sort((a, b) => b.ratio - a.ratio)
+
+  // 9b: Frozen values — identical non-zero value across 3+ consecutive years
+  const FREEZE_FIELDS: Array<{ key: string; label: string }> = [
+    { key: 'revenue',          label: 'revenue' },
+    { key: 'net_income',       label: 'net_income' },
+    { key: 'total_assets',     label: 'total_assets' },
+    { key: 'operating_income', label: 'operating_income' },
+  ]
+  type FrozenRow = { ticker: string; field: string; value: number; years: number[] }
+  const frozenValues: FrozenRow[] = []
+  for (const [ticker, rows] of Array.from(byTicker.entries())) {
+    const sorted = [...rows].sort((a, b) => a.fiscal_year - b.fiscal_year)
+    for (const { key, label } of FREEZE_FIELDS) {
+      const pts: Array<{ year: number; value: number }> = []
+      for (const row of sorted) {
+        const v = (row as Record<string, unknown>)[key]
+        if (typeof v === 'number' && v !== 0) pts.push({ year: row.fiscal_year, value: v })
+      }
+      let i = 0
+      while (i < pts.length) {
+        let j = i + 1
+        while (j < pts.length && pts[j].value === pts[i].value) j++
+        if (j - i >= 3) frozenValues.push({ ticker, field: label, value: pts[i].value, years: pts.slice(i, j).map(p => p.year) })
+        i = j
+      }
+    }
+  }
+  frozenValues.sort((a, b) => a.ticker.localeCompare(b.ticker))
+
+  // 9c: Scale/magnitude errors — |YoY ratio| > 100× for revenue, ebitda, total_assets
+  const SCALE_FIELDS: Array<{ key: string; label: string }> = [
+    { key: 'revenue',      label: 'revenue' },
+    { key: 'ebitda',       label: 'ebitda' },
+    { key: 'total_assets', label: 'total_assets' },
+  ]
+  type ScaleErrorRow = { ticker: string; field: string; year: number; prev: number; curr: number; ratio: number }
+  const scaleErrors: ScaleErrorRow[] = []
+  for (const [ticker, rows] of Array.from(byTicker.entries())) {
+    const sorted = [...rows].sort((a, b) => a.fiscal_year - b.fiscal_year)
+    for (const { key, label } of SCALE_FIELDS) {
+      let prevVal: number | null = null
+      for (const row of sorted) {
+        const v = (row as Record<string, unknown>)[key]
+        const curr = typeof v === 'number' ? v : null
+        if (curr != null && prevVal != null && prevVal !== 0) {
+          const ratio = Math.abs(curr / prevVal)
+          if (ratio > 100 || ratio < 0.01) {
+            scaleErrors.push({ ticker, field: label, year: row.fiscal_year, prev: prevVal, curr, ratio })
+          }
+        }
+        if (curr != null) prevVal = curr
+      }
+    }
+  }
+  scaleErrors.sort((a, b) => b.ratio - a.ratio)
+
+  // 9d: Negative sign errors — fields that must always be ≥ 0
+  const NONNEG_FIELDS: Array<{ key: string; label: string }> = [
+    { key: 'total_debt',         label: 'total_debt' },
+    { key: 'revenue',            label: 'revenue' },
+    { key: 'total_assets',       label: 'total_assets' },
+    { key: 'shares_outstanding', label: 'shares_outstanding' },
+  ]
+  type NegativeRow = { ticker: string; field: string; value: number; year: number }
+  const negativeErrors: NegativeRow[] = []
+  for (const [ticker, rows] of Array.from(byTicker.entries())) {
+    for (const { key, label } of NONNEG_FIELDS) {
+      for (const row of rows) {
+        const v = (row as Record<string, unknown>)[key]
+        if (typeof v === 'number' && v < 0) negativeErrors.push({ ticker, field: label, value: v, year: row.fiscal_year })
+      }
+    }
+  }
+  negativeErrors.sort((a, b) => a.ticker.localeCompare(b.ticker))
+
+  // 9e: Peer outliers — >3 std dev from universe mean on net_margin and debt/equity
+  type PeerOutlierRow = { ticker: string; metric: string; value: number; mu: number; sd: number; z: number }
+  const peerOutliers: PeerOutlierRow[] = []
+
+  const nmVals = latestFundValues.map(r => r.net_margin).filter((v): v is number => v != null)
+  const nmMu   = mean(nmVals)
+  const nmSd   = stddev(nmVals)
+
+  const deVals = latestFundValues
+    .map(r => r.total_debt != null && r.total_equity != null && r.total_equity !== 0 ? r.total_debt / r.total_equity : null)
+    .filter((v): v is number => v != null)
+  const deMu = mean(deVals)
+  const deSd = stddev(deVals)
+
+  for (const [ticker, fund] of Array.from(latestFund.entries())) {
+    if (fund.net_margin != null && nmSd > 0) {
+      const z = (fund.net_margin - nmMu) / nmSd
+      if (Math.abs(z) > 3) peerOutliers.push({ ticker, metric: 'net_margin', value: fund.net_margin, mu: nmMu, sd: nmSd, z })
+    }
+    if (fund.total_debt != null && fund.total_equity != null && fund.total_equity !== 0 && deSd > 0) {
+      const de = fund.total_debt / fund.total_equity
+      const z  = (de - deMu) / deSd
+      if (Math.abs(z) > 3) peerOutliers.push({ ticker, metric: 'debt/equity', value: de, mu: deMu, sd: deSd, z })
+    }
+  }
+  peerOutliers.sort((a, b) => Math.abs(b.z) - Math.abs(a.z))
+
+  // 9f: Stale freshness — tickers whose most recent fiscal year is behind the universe median
+  const freshnessRows: Array<{ ticker: string; maxYear: number }> = []
+  for (const [ticker, rows] of Array.from(byTicker.entries())) {
+    freshnessRows.push({ ticker, maxYear: Math.max(...rows.map(r => r.fiscal_year)) })
+  }
+  const medianYear    = median(freshnessRows.map(r => r.maxYear))
+  const staleYearRows = freshnessRows
+    .filter(r => r.maxYear < medianYear)
+    .sort((a, b) => a.maxYear - b.maxYear)
+
+  // 9g: Signal distribution sanity — flag if >80% single-signal or >30% no-signal
+  const sigCounts: Record<string, number> = { BUY: 0, HOLD: 0, SELL: 0, NONE: 0 }
+  for (const s of scores) {
+    const sig = s.signal?.toUpperCase() ?? ''
+    if (sig.includes('BUY'))       sigCounts['BUY']++
+    else if (sig.includes('HOLD')) sigCounts['HOLD']++
+    else if (sig.includes('SELL')) sigCounts['SELL']++
+    else                           sigCounts['NONE']++
+  }
+  const sigTotal  = scores.length
+  const sigSkewed = sigTotal > 0 && (
+    sigCounts['BUY']  / sigTotal > 0.80 ||
+    sigCounts['SELL'] / sigTotal > 0.80 ||
+    sigCounts['NONE'] / sigTotal > 0.30
+  )
 
   // ── report string ───────────────────────────────────────────────────────────
   const hr = '─'.repeat(60)
@@ -459,11 +638,22 @@ export default async function AdminHealthPage() {
       return `  ${r.ticker.padEnd(6)} ${fmtDate(r.lastUpdated).padEnd(12)} ${days.padStart(4)} ${status}`
     }),
     '',
-    `07 — MISSING DATA GAPS (${dataGaps.length} gaps detected)`,
-    ...(dataGaps.length === 0
-      ? ['  ✓ No gaps detected']
-      : dataGaps.map(r => `  ${r.ticker.padEnd(6)} ${r.field.padEnd(22)} missing: ${r.missingYears.join(', ')}`)
-    ),
+    `07 — MISSING DATA GAPS`,
+    `  INTERIOR GAPS (${dataGaps.length})`,
+    ...(dataGaps.length === 0 ? ['  ✓ None'] : dataGaps.map(r => `  ${r.ticker.padEnd(6)} ${r.field.padEnd(22)} missing: ${r.missingYears.join(', ')}`)),
+    `  ALL-NULL FIELDS · ACTIVE (${allNullActive.length})`,
+    ...(allNullActive.length === 0 ? ['  ✓ None'] : allNullActive.map(r => `  ${r.ticker.padEnd(6)} ${r.field}`)),
+    `  ALL-NULL FIELDS · CONFIRMED OK (${allNullConfirmed.length})`,
+    ...(allNullConfirmed.length === 0 ? ['  ✓ None'] : allNullConfirmed.map(r => `  ${r.ticker.padEnd(6)} ${r.field}`)),
+    '',
+    `09 — DATA INTEGRITY CHECKS`,
+    `  9a BALANCE SHEET SANITY   ${balanceSanity.length} flagged`,
+    `  9b FROZEN VALUES          ${frozenValues.length} flagged`,
+    `  9c SCALE ERRORS           ${scaleErrors.length} flagged`,
+    `  9d NEGATIVE SIGN ERRORS   ${negativeErrors.length} flagged`,
+    `  9e PEER OUTLIERS          ${peerOutliers.length} flagged`,
+    `  9f STALE FISCAL YEAR      ${staleYearRows.length} flagged  (median year: ${medianYear})`,
+    `  9g SIGNAL DISTRIBUTION    ${sigSkewed ? 'SKEWED ⚠' : 'OK'}  BUY ${sigCounts['BUY']} · HOLD ${sigCounts['HOLD']} · SELL ${sigCounts['SELL']} · NONE ${sigCounts['NONE']}`,
     hr,
   ]
   const report = reportLines.join('\n')
@@ -803,14 +993,16 @@ export default async function AdminHealthPage() {
 
         {/* ── 7. Missing data gaps ── */}
         <div style={S.section}>
-          <p style={S.head}>07 — MISSING DATA GAPS  ·  NULL inside populated 5-year run  ({dataGaps.length} gaps)</p>
-          <p style={{ fontSize: 9, color: DIM, margin: '0 0 10px' }}>
-            Only flags fields that are NULL for a year while adjacent years have data. Fields NULL across all years (e.g. total_debt for debt-free companies) are excluded.
+          <p style={S.head}>07 — MISSING DATA GAPS  ·  {dataGaps.length} interior gaps · {allNullActive.length} all-null active · {allNullConfirmed.length} confirmed OK</p>
+
+          {/* 7a: interior gaps */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '0 0 6px' }}>
+            INTERIOR GAPS — NULL inside populated run ({dataGaps.length})
           </p>
           {dataGaps.length === 0 ? (
-            <p style={S.none}>✓ No gaps detected</p>
+            <p style={S.none}>✓ None</p>
           ) : (
-            <table style={S.table}>
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
               <thead>
                 <tr>{(['TICKER', 'FIELD', 'MISSING YEARS'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
               </thead>
@@ -825,6 +1017,235 @@ export default async function AdminHealthPage() {
               </tbody>
             </table>
           )}
+
+          {/* 7b: all-null (unconfirmed) */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            FIELDS NULL ALL YEARS — NEEDS REVIEW ({allNullActive.length})
+          </p>
+          <p style={{ fontSize: 9, color: 'rgba(0,255,136,0.2)', margin: '0 0 8px' }}>
+            Add to confirmed_exceptions table once verified OK (e.g. debt-free company, bank with no gross-profit concept).
+          </p>
+          {allNullActive.length === 0 ? (
+            <p style={S.none}>✓ None</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER', 'FIELD'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {allNullActive.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ef4444' }}>{r.field}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 7c: confirmed OK */}
+          <p style={{ fontSize: 9, color: 'rgba(0,255,136,0.2)', letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            CONFIRMED OK — NO ACTION NEEDED ({allNullConfirmed.length})
+          </p>
+          {allNullConfirmed.length === 0 ? (
+            <p style={{ fontSize: 11, color: 'rgba(0,255,136,0.18)', padding: '6px 0' }}>—</p>
+          ) : (
+            <table style={S.table}>
+              <thead>
+                <tr>{(['TICKER', 'FIELD', 'REASON', 'CONFIRMED'] as const).map(h => <th key={h} style={{ ...S.th, color: 'rgba(0,255,136,0.2)' }}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {allNullConfirmed.map((r, i) => {
+                  const ex = confirmedExceptions.find(e => e.ticker === r.ticker && e.field === r.field)
+                  return (
+                    <tr key={i}>
+                      <td style={{ ...S.td, color: 'rgba(0,255,136,0.25)', whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                      <td style={{ ...S.td, color: 'rgba(0,255,136,0.25)' }}>{r.field}</td>
+                      <td style={{ ...S.td, color: 'rgba(0,255,136,0.2)', maxWidth: 420 }}>{ex?.reason ?? '—'}</td>
+                      <td style={{ ...S.td, color: 'rgba(0,255,136,0.2)' }}>{ex?.confirmed_date ?? '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* ── 9. Data integrity checks ── */}
+        <div style={S.section}>
+          <p style={S.head}>09 — DATA INTEGRITY CHECKS</p>
+
+          {/* 9a: balance sheet sanity */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '0 0 6px' }}>
+            9a — BALANCE SHEET SANITY — total_debt ≥ 98% total_assets ({balanceSanity.length} flagged)
+          </p>
+          <p style={{ fontSize: 9, color: 'rgba(0,255,136,0.2)', margin: '0 0 8px' }}>
+            Proxy check: debt alone can&apos;t equal or exceed total assets. full_liabilities column not yet in DB.
+          </p>
+          {balanceSanity.length === 0 ? (
+            <p style={S.none}>✓ None</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER', 'TOTAL DEBT', 'TOTAL ASSETS', 'DEBT/ASSETS'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {balanceSanity.map(r => (
+                  <tr key={r.ticker}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ef4444' }}>{fmtB(r.total_debt)}</td>
+                    <td style={S.td}>{fmtB(r.total_assets)}</td>
+                    <td style={{ ...S.td, color: '#ef4444', fontWeight: 'bold' }}>{r.ratio.toFixed(2)}×</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 9b: frozen values */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            9b — FROZEN VALUES — identical non-zero across 3+ consecutive years ({frozenValues.length} flagged)
+          </p>
+          {frozenValues.length === 0 ? (
+            <p style={S.none}>✓ None</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER', 'FIELD', 'VALUE', 'YEARS'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {frozenValues.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ffcc00' }}>{r.field}</td>
+                    <td style={{ ...S.td, color: '#ef4444' }}>{fmtB(r.value)}</td>
+                    <td style={{ ...S.td, color: DIM }}>{r.years.join(', ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 9c: scale errors */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            9c — SCALE/MAGNITUDE ERRORS — YoY ratio &gt;100× or &lt;0.01× ({scaleErrors.length} flagged)
+          </p>
+          {scaleErrors.length === 0 ? (
+            <p style={S.none}>✓ None</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER', 'FIELD', 'YEAR', 'PREV', 'CURR', 'RATIO'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {scaleErrors.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ffcc00' }}>{r.field}</td>
+                    <td style={{ ...S.td, color: DIM }}>{r.year}</td>
+                    <td style={S.td}>{fmtB(r.prev)}</td>
+                    <td style={{ ...S.td, color: '#ef4444' }}>{fmtB(r.curr)}</td>
+                    <td style={{ ...S.td, color: '#ef4444', fontWeight: 'bold' }}>{r.ratio.toFixed(0)}×</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 9d: negative sign errors */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            9d — NEGATIVE SIGN ERRORS — fields that must be ≥ 0 ({negativeErrors.length} flagged)
+          </p>
+          {negativeErrors.length === 0 ? (
+            <p style={S.none}>✓ None</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER', 'FIELD', 'VALUE', 'YEAR'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {negativeErrors.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ffcc00' }}>{r.field}</td>
+                    <td style={{ ...S.td, color: '#ef4444', fontWeight: 'bold' }}>{fmtB(r.value)}</td>
+                    <td style={{ ...S.td, color: DIM }}>{r.year}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 9e: peer outliers */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            9e — PEER OUTLIERS — &gt;3σ from universe mean on net_margin or debt/equity ({peerOutliers.length} flagged)
+          </p>
+          <p style={{ fontSize: 9, color: 'rgba(0,255,136,0.2)', margin: '0 0 8px' }}>
+            Note: banks naturally have high D/E (10–30×) — these are expected outliers, not data errors.
+          </p>
+          {peerOutliers.length === 0 ? (
+            <p style={S.none}>✓ None</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER', 'METRIC', 'VALUE', 'UNIVERSE MEAN', 'STD DEV', 'Z-SCORE'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {peerOutliers.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ffcc00' }}>{r.metric}</td>
+                    <td style={{ ...S.td, color: '#ef4444' }}>{r.value.toFixed(2)}</td>
+                    <td style={{ ...S.td, color: DIM }}>{r.mu.toFixed(2)}</td>
+                    <td style={{ ...S.td, color: DIM }}>{r.sd.toFixed(2)}</td>
+                    <td style={{ ...S.td, color: Math.abs(r.z) > 5 ? '#ef4444' : '#ffcc00', fontWeight: 'bold' }}>{r.z.toFixed(1)}σ</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 9f: stale freshness */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            9f — STALE FISCAL YEAR — most recent year below universe median {medianYear} ({staleYearRows.length} flagged)
+          </p>
+          {staleYearRows.length === 0 ? (
+            <p style={S.none}>✓ All tickers at or above median year</p>
+          ) : (
+            <table style={{ ...S.table, marginBottom: '1.5rem' }}>
+              <thead>
+                <tr>{(['TICKER', 'MAX FISCAL YEAR'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {staleYearRows.map(r => (
+                  <tr key={r.ticker}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ef4444', fontWeight: 'bold' }}>{r.maxYear}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {/* 9g: signal distribution */}
+          <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '1rem 0 6px' }}>
+            9g — SIGNAL DISTRIBUTION SANITY — {sigSkewed ? '⚠ SKEWED' : '✓ NORMAL'} ({sigTotal} tickers)
+          </p>
+          <div style={{ display: 'flex', gap: '2rem', marginTop: 8 }}>
+            {(['BUY', 'HOLD', 'SELL', 'NONE'] as const).map(sig => {
+              const n   = sigCounts[sig] ?? 0
+              const pct_ = sigTotal > 0 ? Math.round((n / sigTotal) * 100) : 0
+              const col  = sig === 'BUY' ? '#00ff88' : sig === 'SELL' ? '#ef4444' : sig === 'HOLD' ? '#ffcc00' : DIM
+              const warn = (sig === 'BUY' && pct_ > 80) || (sig === 'SELL' && pct_ > 80) || (sig === 'NONE' && pct_ > 30)
+              return (
+                <div key={sig} style={{ border: `1px solid ${warn ? '#ef4444' : FAINT}`, borderRadius: 4, padding: '0.75rem 1.25rem', minWidth: 100 }}>
+                  <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.12em', margin: '0 0 6px' }}>{sig}</p>
+                  <p style={{ fontSize: 22, fontWeight: 'bold', margin: 0, color: warn ? '#ef4444' : col }}>{n}</p>
+                  <p style={{ fontSize: 9, color: DIM, marginTop: 4 }}>{pct_}%</p>
+                </div>
+              )
+            })}
+          </div>
         </div>
 
         {/* ── 8. Sample Validation ── */}
@@ -837,7 +1258,7 @@ export default async function AdminHealthPage() {
         </div>
 
         <div style={{ marginTop: '3rem', paddingTop: '1rem', borderTop: `1px solid ${FAINT}`, fontSize: 9, color: 'rgba(0,255,136,0.15)' }}>
-          STOCKSNACK ADMIN · /admin/health · INTERNAL USE ONLY · 8 SECTIONS
+          STOCKSNACK ADMIN · /admin/health · INTERNAL USE ONLY · 9 SECTIONS
         </div>
       </div>
     </div>

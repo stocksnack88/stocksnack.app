@@ -126,14 +126,10 @@ def _extract_ifrs_tag(
     if not units:
         return []
 
-    # Prefer the requested unit; fall back to any available unit.
-    entries: list[dict] | None = None
-    if preferred_unit in units:
-        entries = units[preferred_unit]
-    else:
-        for unit_key, unit_entries in units.items():
-            entries = unit_entries
-            break
+    # Strict unit check — never fall back to a different currency (e.g. TWD instead of USD).
+    if preferred_unit not in units:
+        return []
+    entries = units[preferred_unit]
     if not entries:
         return []
 
@@ -263,6 +259,26 @@ def extract_ifrs_all(ticker: str, facts_json: dict, years: int = 5) -> bool:
             any_found = True
         else:
             _log_missing(ticker, std_name, "no IFRS components found")
+
+    # ── Computed fields: FCF = operating_cash_flow − capital_expenditure ────────
+    # IFRS capex tag is stored as a positive outflow magnitude (normalizer negates
+    # it when writing to DB), so FCF = OCF − capex (both positive in extracted_data).
+    _ocf_map   = {r["fiscal_year"]: r["value"] for r in rows_to_write if r["standardised_name"] == "operating_cash_flow"}
+    _capex_map = {r["fiscal_year"]: r["value"] for r in rows_to_write if r["standardised_name"] == "capital_expenditure"}
+    for yr in sorted(set(_ocf_map) & set(_capex_map)):
+        fcf = _ocf_map[yr] - _capex_map[yr]
+        rows_to_write.append({
+            "ticker":            ticker,
+            "fiscal_year":       yr,
+            "standardised_name": "free_cash_flow",
+            "original_tag":      "computed: operating_cash_flow - capital_expenditure",
+            "value":             fcf,
+            "unit":              "USD",
+            "source":            "ifrs",
+            "pulled_at":         pulled_at,
+        })
+    if _ocf_map and _capex_map:
+        any_found = True
 
     if rows_to_write:
         _write_extracted(rows_to_write)

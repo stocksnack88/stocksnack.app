@@ -23,6 +23,9 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
+# 1 TSM ADR = 5 ordinary NTD shares; SEC reports ordinary shares, yfinance price is ADR price.
+_ADR_SHARE_RATIO: dict[str, int] = {"TSM": 5}
+
 
 def _ticker(symbol: str):
     import yfinance as yf
@@ -266,8 +269,9 @@ def get_historical_market_cap(
             list(fiscal_year_dates.keys()),
             Path(__file__).parent / "extracted_data.csv",
         )
+        _adr_ratio         = _ADR_SHARE_RATIO.get(symbol.upper(), 1)
         most_recent_yr     = max(shares_map.keys()) if shares_map else None
-        most_recent_shares = float(shares_map[most_recent_yr]) if most_recent_yr else None
+        most_recent_shares = float(shares_map[most_recent_yr]) / _adr_ratio if most_recent_yr else None
 
         result: dict[int, float] = {}
 
@@ -285,7 +289,7 @@ def get_historical_market_cap(
                     continue
 
                 avg_price  = float(yr_prices.mean())
-                raw_shares = float(shares_map.get(yr) or 0)
+                raw_shares = float(shares_map.get(yr) or 0) / _adr_ratio
                 if not raw_shares:
                     continue
 

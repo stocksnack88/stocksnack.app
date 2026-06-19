@@ -14,6 +14,8 @@ def _load_env_file(path: Path) -> None:
             os.environ.setdefault(key.strip(), value.strip())
 
 
+# pipeline/.env takes precedence — isolated from vercel env pull overwrites
+_load_env_file(Path(__file__).parent / ".env")
 _load_env_file(Path(__file__).parent.parent / ".env.local")
 
 SUPABASE_URL: str = os.environ["NEXT_PUBLIC_SUPABASE_URL"]

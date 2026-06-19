@@ -322,12 +322,15 @@ def score_ppm(data: dict, ticker: str = "", sp500_cagr: float | None = None) -> 
 
     valid = [p for p in [m1, m2, m3] if p and p > 0]
 
+    # For float-distorted tickers, r_pe fills the M1 slot. Reuse the m1_ebitda_*
+    # fields for P/E equivalents so the frontend can display them — ni_current in
+    # place of ebitda_current, pe_multiple in place of ev_ebitda_multiple, etc.
     intermediates = {
-        "m1_ebitda_current":     round(r1["ebitda_current"],   2) if r1 else None,
-        "m1_ebitda_projected":   round(r1["ebitda_projected"], 2) if r1 else None,
-        "m1_growth_rate":        round(r1["growth_rate"],      4) if r1 else None,
-        "m1_ev_ebitda_multiple": round(r1["ev_ebitda"],        2) if r1 else None,
-        "m1_net_debt":           round(r1["net_debt"],         2) if r1 else None,
+        "m1_ebitda_current":     round(r_pe["ni_current"],   2) if r_pe else (round(r1["ebitda_current"],   2) if r1 else None),
+        "m1_ebitda_projected":   round(r_pe["ni_projected"], 2) if r_pe else (round(r1["ebitda_projected"], 2) if r1 else None),
+        "m1_growth_rate":        round(r_pe["growth_rate"],  4) if r_pe else (round(r1["growth_rate"],      4) if r1 else None),
+        "m1_ev_ebitda_multiple": round(r_pe["pe_multiple"],  2) if r_pe else (round(r1["ev_ebitda"],        2) if r1 else None),
+        "m1_net_debt":           round(r1["net_debt"],       2) if r1 else None,
         "m1_shares":             round(shares,                 2) if shares else None,
         "m2_fcf_current":        round(r2["fcf_current"],      2) if r2 else None,
         "m2_fcf_projected":      round(r2["fcf_projected"],    2) if r2 else None,

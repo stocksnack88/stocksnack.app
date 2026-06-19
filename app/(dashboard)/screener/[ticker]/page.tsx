@@ -841,6 +841,9 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             const m3GrowthRate     = scoreEx?.m3_growth_rate != null ? Number(scoreEx.m3_growth_rate) : null;
             const m3Proj5yTotalDiv = m3CurTotalDiv != null && m3GrowthRate != null
               ? m3CurTotalDiv * Math.pow(1 + m3GrowthRate, 5) : null;
+            // Float-distorted tickers use P/E intrinsic instead of EV/EBITDA for M1.
+            // m1_ebitda_current/projected store net income equivalents for these tickers.
+            const isPeMode = ["PYPL", "HOOD"].includes(ticker);
 
             return (
               <div className="grid grid-cols-3 items-start" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
@@ -894,7 +897,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
                 {/* ── ROW 3: Step [2] ── */}
                 <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
-                  <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[2]</span> CURRENT EBITDA</p>
+                  <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[2]</span> {isPeMode ? "CURRENT NET INCOME" : "CURRENT EBITDA"}</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_current)}</p>
                 </div></div>
                 <div className={`px-3 py-1 ${cb}`}>
@@ -934,7 +937,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
 
                 {/* ── ROW 4: Step [3] ── */}
                 <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
-                  <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[3]</span> PROJECT 5Y EBITDA</p>
+                  <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[3]</span> {isPeMode ? "PROJECT 5Y NET INCOME" : "PROJECT 5Y EBITDA"}</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(scoreEx?.m1_ebitda_projected)}</p>
                 </div></div>
                 <div className={`px-3 py-1 ${cb}`}>
@@ -953,7 +956,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
                 {/* ── ROW 4.5: "At Xx" multiple annotation ── */}
                 <div className={`px-3 py-0.5 text-center ${cb}`}>
                   <p className="text-[9px] italic" style={{ color: "rgba(0,255,65,0.35)" }}>
-                    At {scoreEx?.m1_ev_ebitda_multiple != null ? `${Number(scoreEx.m1_ev_ebitda_multiple).toFixed(0)}x` : "—"} earnings multiple
+                    At {scoreEx?.m1_ev_ebitda_multiple != null ? `${Number(scoreEx.m1_ev_ebitda_multiple).toFixed(0)}x` : "—"} {isPeMode ? "P/E multiple" : "EV/EBITDA multiple"}
                   </p>
                 </div>
                 <div className={`px-3 py-0.5 text-center ${cb}`}>

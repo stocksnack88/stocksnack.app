@@ -577,7 +577,7 @@ function DetailPanel({ detail, rows }: { detail: CheckDetail; rows: FundRow[] })
                 {rows.map(r => {
                   const v = getVal(r, field);
                   return (
-                    <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, field.hib, field.neutral), paddingBottom: 4, paddingLeft: 8 }}>
+                    <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, field.hib, field.neutral), paddingBottom: 4, paddingLeft: 8, whiteSpace: "nowrap" }}>
                       {fmtVal(v, field.fmt)}
                     </td>
                   );
@@ -592,7 +592,7 @@ function DetailPanel({ detail, rows }: { detail: CheckDetail; rows: FundRow[] })
                 {rows.map(r => {
                   const v = rr.compute(r);
                   return (
-                    <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, rr.hib, rr.neutral), paddingTop: 5, paddingBottom: 3, paddingLeft: 8 }}>
+                    <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, rr.hib, rr.neutral), paddingTop: 5, paddingBottom: 3, paddingLeft: 8, whiteSpace: "nowrap" }}>
                       {fmtVal(v, rr.fmt)}
                     </td>
                   );

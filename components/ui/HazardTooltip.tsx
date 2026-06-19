@@ -11,7 +11,7 @@ export default function HazardTooltip({ reasons }: { reasons: string[] }) {
         onPointerEnter={(e) => { if (e.pointerType === "mouse") setOpen(true); }}
         onPointerLeave={(e) => { if (e.pointerType === "mouse") setOpen(false); }}
         onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
-        className="text-amber-400/80 hover:text-amber-400 transition-colors leading-none text-xs"
+        className="text-amber-400/80 hover:text-amber-400 transition-colors leading-none text-lg"
         aria-label="Data anomaly warning"
       >
         ⚠

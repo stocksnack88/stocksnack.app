@@ -10,7 +10,7 @@ import HealthCategories, { type FundRow as HealthFundRow } from "@/components/ui
 import HazardTooltip from "@/components/ui/HazardTooltip";
 import ShareButton from "@/components/ui/ShareButton";
 import BlockShareButton from "@/components/ui/BlockShareButton";
-import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer, ConnectedSegmentBreakdown } from "@/components/ui/LayersAccordion";
+import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer, ConnectedSegmentBreakdown, MethodologyToggle } from "@/components/ui/LayersAccordion";
 import { getDailyFreeTickers } from "@/lib/free-stocks";
 
 const FREE_LIMIT = 5;
@@ -814,6 +814,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             {currentPrice && blendedPrice ? `~${(blendedPrice / currentPrice).toFixed(1)}x RETURN` : "—"}
           </p>
 
+          <MethodologyToggle>
           {/* 3 method cards — flat CSS grid: each step is a shared row across all 3 columns */}
           {(() => {
             const m3na = scoreEx?.m3_applicable === false || !score?.ppm_m3_price || Number(score.ppm_m3_price) === 0 || (scoreEx?.m3_div_yield != null && Number(scoreEx.m3_div_yield) < 0.04);
@@ -1032,6 +1033,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
               </div>
             );
           })()}
+          </MethodologyToggle>
 
           {/* Blended projection */}
           <div className="px-5 py-6 text-center" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>

@@ -222,6 +222,31 @@ export function ChildCollapsibleLayer({
   )
 }
 
+export function MethodologyToggle({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <div
+        className="flex items-center justify-center py-2"
+        style={{ borderBottom: '1px solid rgba(0,255,65,0.1)' }}
+      >
+        <button
+          className="text-[10px] font-mono px-2 py-0.5 rounded border"
+          style={{ borderColor: 'rgba(0,255,65,0.25)', color: 'rgba(0,255,65,0.4)' }}
+          onClick={() => setOpen(v => !v)}
+        >
+          {open ? '[-]' : '[+]'}
+        </button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 300ms ease-in-out' }}>
+        <div style={{ overflow: 'hidden', minHeight: 0 }}>
+          {children}
+        </div>
+      </div>
+    </>
+  )
+}
+
 export function ConnectedSegmentBreakdown({
   id,
   title,

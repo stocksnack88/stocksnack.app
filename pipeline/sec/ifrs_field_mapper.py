@@ -91,6 +91,9 @@ _IFRS_TAGS: list[tuple[str, list[tuple[str, str]]]] = [
     ("current_liabilities", [
         ("CurrentLiabilities", "USD"),
     ]),
+    ("total_liabilities", [
+        ("Liabilities", "USD"),
+    ]),
 ]
 
 # Fields built by summing multiple IFRS tags (first wins per tag — never double-counts).

@@ -103,7 +103,7 @@ def _load_sp500_tickers() -> list[str]:
 _ANOMALY_MIN_BASE = 1e8   # $100M — skip comparisons where prior year < this
 
 
-def check_hazard(data: dict) -> dict:
+def check_hazard(data: dict, skip_years: set[int] | None = None) -> dict:
     """
     Detect sudden large movements in key financial metrics year-over-year.
 
@@ -112,6 +112,8 @@ def check_hazard(data: dict) -> dict:
       revenue     — flag if YoY > +50% or < -50%
       ebitda      — flag if YoY > +100% or < -50%
       totalAssets — flag only drops > -30% (spinoffs, divestitures)
+
+    skip_years: years excluded from flagging (e.g. FY2026 before enough peers report).
 
     Consecutive-year anomalies for the same metric+direction are consolidated:
       "Revenue spiked 3 consecutive years (FY2024, FY2025, FY2026)"
@@ -122,6 +124,7 @@ def check_hazard(data: dict) -> dict:
     try:
         income  = data.get("income",  [])
         balance = data.get("balance", [])
+        _skip   = skip_years or set()
 
         def year_of(row: dict) -> int:
             d = str(row.get("date", ""))
@@ -143,6 +146,8 @@ def check_hazard(data: dict) -> dict:
             for i in range(1, len(pairs)):
                 prev_y, prev_v = pairs[i - 1]
                 curr_y, curr_v = pairs[i]
+                if curr_y in _skip:
+                    continue
                 if prev_v <= 0 or prev_v < _ANOMALY_MIN_BASE:
                     continue
                 pct = (curr_v - prev_v) / prev_v
@@ -274,7 +279,63 @@ def _resolve_sector_mode(ticker: str, client=None) -> dict:
         "reit_mode":       reit_mode,
         "financial_mode":  financial_mode,
         "sector_override": sector_override,
+        "sector":          sector,
     }
+
+
+# ── Sparsity helper ───────────────────────────────────────────────────────────
+
+def _sparse_years(sector: str, data_years: list[int], client=None, threshold: float = 0.30) -> set[int]:
+    """
+    Return fiscal years where fewer than `threshold` fraction of the sector's
+    tickers have reported data yet.  Early filers (e.g. NVDA FY2026 in Jan)
+    should not trigger anomaly flags just because peers haven't caught up.
+    Returns empty set if the query fails or sector is unknown.
+    """
+    if not sector or not data_years:
+        return set()
+    try:
+        from collections import Counter
+        if client is None:
+            from supabase import create_client
+            client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+        # All tickers in this sector
+        resp = client.table("stocks").select("ticker").eq("sector", sector).execute()
+        sector_tickers = [r["ticker"] for r in (resp.data or [])]
+        total = len(sector_tickers)
+        if total == 0:
+            return set()
+
+        # Fundamentals rows for those tickers in the years we care about
+        min_year = min(data_years)
+        resp2 = (
+            client.table("stock_fundamentals")
+            .select("fiscal_year")
+            .in_("ticker", sector_tickers)
+            .gte("fiscal_year", min_year)
+            .execute()
+        )
+
+        year_counts: Counter = Counter()
+        for row in (resp2.data or []):
+            fy = row.get("fiscal_year")
+            if fy is not None:
+                year_counts[int(fy)] += 1
+
+        sparse: set[int] = set()
+        for fy in data_years:
+            pct = year_counts.get(fy, 0) / total
+            if pct < threshold:
+                sparse.add(fy)
+                log.info(
+                    "Sparsity filter: FY%d has %.0f%% sector coverage (%d/%d) — skipping anomaly check",
+                    fy, pct * 100, year_counts.get(fy, 0), total,
+                )
+        return sparse
+    except Exception as exc:
+        log.debug("Sparsity check skipped (%s)", exc)
+        return set()
 
 
 # ── Data dict builder ─────────────────────────────────────────────────────────
@@ -298,6 +359,7 @@ _INCOME_FIELDS = {
     "revenue", "grossProfit", "operatingIncome", "netIncome", "epsdiluted",
     "sellingGeneralAndAdministrativeExpenses", "researchAndDevelopmentExpenses",
     "interestExpense", "incomeTaxExpense", "ebitda", "depreciationAndAmortization",
+    "interestAndDividendIncome", "noninterestIncome",
 }
 
 _BALANCE_FIELDS = {
@@ -526,6 +588,26 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
         for bal in balance_list:
             bal["netDebt"] = 0.0
 
+    # Banks: the generic `Revenues` EDGAR tag can change meaning across years
+    # (e.g. MTB FY2024+ captures only NoninterestIncome instead of total revenue).
+    # Revenue < netIncome is physically impossible for any real bank; when it occurs
+    # reconstruct from component tags (interest income + non-interest income).
+    if _sm.get("bank_mode"):
+        for inc in income_list:
+            interest_ = _safe(inc.get("interestAndDividendIncome"))
+            nonint_   = _safe(inc.get("noninterestIncome"))
+            rev_      = _safe(inc.get("revenue"))
+            net_inc_  = _safe(inc.get("netIncome"))
+            if rev_ < net_inc_ and interest_ + nonint_ > 0:
+                yr_label = inc.get("date", "?")[:4]
+                log.warning(
+                    "[%s] FY%s bank revenue ($%.0fM) < net income ($%.0fM) — "
+                    "reconstructing from interest + non-interest income ($%.0fM)",
+                    ticker, yr_label, rev_ / 1e6, net_inc_ / 1e6,
+                    (interest_ + nonint_) / 1e6,
+                )
+                inc["revenue"] = interest_ + nonint_
+
     if _sm.get("financial_mode"):
         for inc in income_list:
             inc["ebitda"] = inc.get("pretax_income") or inc.get("netIncome", 0)
@@ -682,8 +764,14 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
             log.warning("[%s] No price from yfinance — skipped", ticker)
             return False
 
-        # Hazard check
-        hazard = check_hazard(data)
+        # Hazard check — exclude fiscal years with sparse sector coverage
+        _data_years = [
+            int(r["date"][:4]) for r in data.get("income", [])
+            if str(r.get("date", ""))[:4].isdigit()
+        ]
+        _client = writer.client if writer is not None else None
+        _skip   = _sparse_years(sector_mode.get("sector", ""), _data_years, client=_client)
+        hazard = check_hazard(data, skip_years=_skip)
         if hazard["has_anomaly"]:
             for reason in hazard["reasons"]:
                 log.warning("[%s] ⚠  Anomaly detected: %s", ticker, reason)

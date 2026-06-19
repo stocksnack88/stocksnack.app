@@ -3,7 +3,6 @@ RevenueFromContractWithCustomerExcludingAssessedTax,revenue,1,2026-05-16,confirm
 Revenues,revenue,2,2026-05-16,
 SalesRevenueNet,revenue,3,2026-05-16,
 SalesRevenueGoodsNet,revenue,4,2026-05-16,
-RevenueFromContractWithCustomerIncludingAssessedTax,revenue,5,2026-05-16,
 GrossProfit,gross_profit,1,2026-05-16,confirmed AAPL
 CostOfRevenue,cost_of_revenue,1,2026-05-17,used by META AMZN and others who don't file GrossProfit directly
 CostOfGoodsSold,cost_of_revenue,2,2026-05-17,older tag name for same concept
@@ -83,3 +82,5 @@ CommonStockSharesOutstanding,shares_outstanding,3,2026-05-17,point in time snaps
 CommonStockSharesIssued,shares_outstanding,4,2026-05-17,last resort, includes treasury shares.
 AssetsCurrent,current_assets,1,2026-06-15,confirmed AAPL — balance sheet current assets
 LiabilitiesCurrent,current_liabilities,1,2026-06-15,confirmed AAPL — balance sheet current liabilities
+InterestAndDividendIncomeOperating,bank_interest_income,1,2026-06-19,bank total net interest income
+NoninterestIncome,bank_noninterest_income,1,2026-06-19,bank non-interest fees and trading revenue

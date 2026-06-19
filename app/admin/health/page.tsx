@@ -40,6 +40,9 @@ type FundRow = {
   net_income: number | null
   cash_and_equivalents: number | null
   current_liabilities: number | null
+  gross_profit: number | null
+  operating_income: number | null
+  dividends_paid: number | null
 }
 
 type FixLogRow = {
@@ -148,7 +151,7 @@ export default async function AdminHealthPage() {
       .select('ticker, final_score, has_anomaly, updated_at, product_segments, geo_segments, m1_ev_ebitda_multiple, m1_ebitda_current'),
     supabaseAdmin
       .from('stock_fundamentals')
-      .select('ticker, fiscal_year, eps, rd_expense, roe, roic, gross_margin, net_margin, operating_margin, free_cash_flow, total_debt, total_equity, sga, sbc, tax_rate, capex, shares_outstanding, intangibles, revenue, total_assets, updated_at, ebitda, net_income, cash_and_equivalents, current_liabilities')
+      .select('ticker, fiscal_year, eps, rd_expense, roe, roic, gross_margin, net_margin, operating_margin, free_cash_flow, total_debt, total_equity, sga, sbc, tax_rate, capex, shares_outstanding, intangibles, revenue, total_assets, updated_at, ebitda, net_income, cash_and_equivalents, current_liabilities, gross_profit, operating_income, dividends_paid')
       .order('fiscal_year', { ascending: false }),
     supabaseAdmin
       .from('stock_prices')
@@ -351,6 +354,57 @@ export default async function AdminHealthPage() {
   }
   splitMismatches.sort((a, b) => Math.abs(b.ratio) - Math.abs(a.ratio))
 
+  // ── 7. Missing data gaps ────────────────────────────────────────────────────
+  // Flag fields that are NULL inside an otherwise-populated 5-year run.
+  // A gap = NULL for year Y while at least one earlier AND one later year in
+  // the same ticker's rows has a non-NULL value for that field.
+  const GAP_FIELDS: Array<{ key: string; label: string }> = [
+    { key: 'revenue',          label: 'revenue' },
+    { key: 'gross_profit',     label: 'gross_profit' },
+    { key: 'sga',              label: 'sga' },
+    { key: 'rd_expense',       label: 'rd_expense' },
+    { key: 'operating_income', label: 'operating_income' },
+    { key: 'net_income',       label: 'net_income' },
+    { key: 'ebitda',           label: 'ebitda' },
+    { key: 'free_cash_flow',   label: 'free_cash_flow' },
+    { key: 'total_debt',       label: 'total_debt' },
+    { key: 'eps',              label: 'eps' },
+    { key: 'dividends_paid',   label: 'dividends_paid' },
+  ]
+
+  type DataGapRow = { ticker: string; field: string; missingYears: number[] }
+
+  const byTicker = new Map<string, FundRow[]>()
+  for (const row of fundAll) {
+    const arr = byTicker.get(row.ticker) ?? []
+    arr.push(row)
+    byTicker.set(row.ticker, arr)
+  }
+
+  const dataGaps: DataGapRow[] = []
+  for (const [ticker, rows] of Array.from(byTicker.entries())) {
+    const sorted = [...rows].sort((a, b) => a.fiscal_year - b.fiscal_year)
+    for (const { key, label } of GAP_FIELDS) {
+      const yearMap = new Map<number, number | null>()
+      for (const row of sorted) {
+        const v = (row as Record<string, unknown>)[key]
+        yearMap.set(row.fiscal_year, typeof v === 'number' ? v : null)
+      }
+      const years = Array.from(yearMap.keys()).sort((a, b) => a - b)
+      let firstValid = -1, lastValid = -1
+      for (const yr of years) {
+        if (yearMap.get(yr) != null) {
+          if (firstValid === -1) firstValid = yr
+          lastValid = yr
+        }
+      }
+      if (firstValid === -1 || firstValid === lastValid) continue
+      const gaps = years.filter(yr => yr > firstValid && yr < lastValid && yearMap.get(yr) == null)
+      if (gaps.length > 0) dataGaps.push({ ticker, field: label, missingYears: gaps })
+    }
+  }
+  dataGaps.sort((a, b) => a.ticker.localeCompare(b.ticker) || a.field.localeCompare(b.field))
+
   // ── report string ───────────────────────────────────────────────────────────
   const hr = '─'.repeat(60)
   const reportLines: string[] = [
@@ -404,6 +458,12 @@ export default async function AdminHealthPage() {
       const days    = missing ? '—' : String(r.days)
       return `  ${r.ticker.padEnd(6)} ${fmtDate(r.lastUpdated).padEnd(12)} ${days.padStart(4)} ${status}`
     }),
+    '',
+    `07 — MISSING DATA GAPS (${dataGaps.length} gaps detected)`,
+    ...(dataGaps.length === 0
+      ? ['  ✓ No gaps detected']
+      : dataGaps.map(r => `  ${r.ticker.padEnd(6)} ${r.field.padEnd(22)} missing: ${r.missingYears.join(', ')}`)
+    ),
     hr,
   ]
   const report = reportLines.join('\n')
@@ -741,9 +801,35 @@ export default async function AdminHealthPage() {
           )}
         </div>
 
-        {/* ── 7. Sample Validation ── */}
+        {/* ── 7. Missing data gaps ── */}
         <div style={S.section}>
-          <p style={S.head}>07 — SAMPLE PRICE VALIDATION  ·  15 RANDOM TICKERS vs FMP LIVE</p>
+          <p style={S.head}>07 — MISSING DATA GAPS  ·  NULL inside populated 5-year run  ({dataGaps.length} gaps)</p>
+          <p style={{ fontSize: 9, color: DIM, margin: '0 0 10px' }}>
+            Only flags fields that are NULL for a year while adjacent years have data. Fields NULL across all years (e.g. total_debt for debt-free companies) are excluded.
+          </p>
+          {dataGaps.length === 0 ? (
+            <p style={S.none}>✓ No gaps detected</p>
+          ) : (
+            <table style={S.table}>
+              <thead>
+                <tr>{(['TICKER', 'FIELD', 'MISSING YEARS'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {dataGaps.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ ...S.td, whiteSpace: 'nowrap' as const }}>{r.ticker}</td>
+                    <td style={{ ...S.td, color: '#ffcc00' }}>{r.field}</td>
+                    <td style={{ ...S.td, color: '#ef4444', fontWeight: 'bold' }}>{r.missingYears.join(', ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* ── 8. Sample Validation ── */}
+        <div style={S.section}>
+          <p style={S.head}>08 — SAMPLE PRICE VALIDATION  ·  15 RANDOM TICKERS vs FMP LIVE</p>
           <p style={{ fontSize: 9, color: DIM, margin: '0 0 10px' }}>
             MANUAL TRIGGER ONLY — CONSUMES FMP API CALLS. FLAGS STORED PRICE OR P/E DEVIATING &gt;10% FROM FMP.
           </p>
@@ -751,7 +837,7 @@ export default async function AdminHealthPage() {
         </div>
 
         <div style={{ marginTop: '3rem', paddingTop: '1rem', borderTop: `1px solid ${FAINT}`, fontSize: 9, color: 'rgba(0,255,136,0.15)' }}>
-          STOCKSNACK ADMIN · /admin/health · INTERNAL USE ONLY
+          STOCKSNACK ADMIN · /admin/health · INTERNAL USE ONLY · 8 SECTIONS
         </div>
       </div>
     </div>

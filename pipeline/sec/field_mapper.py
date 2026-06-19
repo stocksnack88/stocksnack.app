@@ -34,6 +34,27 @@ _COMPUTED_FIELDS: dict[str, tuple[str, str, str]] = {
     "total_liabilities": ("total_assets",        "total_equity",             "a_minus_b"),
 }
 
+# Ticker-specific sum fields: when standard tag extraction yields nothing for a
+# field, sum these us-gaap component tags instead. Used for banks and broker-
+# dealers whose income statements don't file standard GrossProfit / SGA tags.
+_TICKER_SUM_FIELDS: dict[str, dict[str, list[str]]] = {
+    "JPM": {
+        "sga_expense": [
+            "OccupancyNet",
+            "ProfessionalAndContractServicesExpense",
+            "MarketingAndAdvertisingExpense",
+            "CommunicationsAndInformationTechnology",
+        ],
+    },
+    "HOOD": {
+        "sga_expense": [
+            "GeneralAndAdministrativeExpense",
+            "MarketingExpense",
+            "OtherCostAndExpenseOperating",
+        ],
+    },
+}
+
 
 # ── Tag mapping ───────────────────────────────────────────────────────────────
 
@@ -640,6 +661,66 @@ def extract_computed(
         return []
 
 
+def _extract_ticker_sum(
+    ticker: str,
+    standardised_name: str,
+    component_tags: list[str],
+    facts_json: dict,
+    years: int,
+) -> list[dict[str, Any]]:
+    """
+    Sum multiple us-gaap component tags per fiscal year for one standardised field.
+    Writes a single aggregated row per year to extracted_data.csv.
+    Returns [{"year": int, "value": float, "end": str}, ...] or [].
+    """
+    usgaap = _get_usgaap(facts_json)
+    per_year: dict[int, float] = {}
+    end_by_year: dict[int, str] = {}
+    tags_used: list[str] = []
+
+    for tag in component_tags:
+        series, _ = _extract_tag(usgaap, tag, years)
+        if not series:
+            continue
+        tags_used.append(tag)
+        for pt in series:
+            yr = pt["year"]
+            per_year[yr] = per_year.get(yr, 0.0) + pt["value"]
+            if yr not in end_by_year:
+                end_by_year[yr] = pt.get("end", "")
+
+    if not per_year:
+        _append_missing(ticker, standardised_name, notes=f"no sum components found: {component_tags}")
+        return []
+
+    tag_label = "+".join(tags_used)
+    pulled_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    top_years = sorted(per_year)[-years:]
+
+    _append_extracted([
+        {
+            "ticker":            ticker,
+            "fiscal_year":       yr,
+            "standardised_name": standardised_name,
+            "original_tag":      tag_label,
+            "value":             per_year[yr],
+            "unit":              "USD",
+            "pulled_at":         pulled_at,
+            "period_of_report":  end_by_year.get(yr, ""),
+        }
+        for yr in top_years
+    ])
+
+    result = [{"year": yr, "value": per_year[yr], "end": end_by_year.get(yr, "")} for yr in top_years]
+    for d in result:
+        print(
+            f"[field_mapper] {ticker} {standardised_name} {d['year']}: "
+            f"summed [{tag_label}] = ${d['value']/1e6:.0f}M",
+            file=sys.stderr,
+        )
+    return result
+
+
 def extract_all(ticker: str, years: int = 5) -> dict[str, list[dict]]:
     """
     Fetch SEC facts for ticker, run all fields, print summary.
@@ -740,6 +821,15 @@ def extract_all(ticker: str, years: int = 5) -> dict[str, list[dict]]:
                     f"(extension fallback, {len(rows_to_add)} pts)",
                     file=sys.stderr,
                 )
+
+    # ── Ticker-specific sum fields ────────────────────────────────────────────
+    # Runs after standard + extension extraction. Only fills fields still empty.
+    if ticker.upper() in _TICKER_SUM_FIELDS:
+        for sum_name, sum_tags in _TICKER_SUM_FIELDS[ticker.upper()].items():
+            if results.get(sum_name):
+                continue
+            series = _extract_ticker_sum(ticker.upper(), sum_name, sum_tags, facts, years)
+            results[sum_name] = series
 
     print()
     print(f"{'─'*55}")

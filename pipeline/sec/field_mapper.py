@@ -499,10 +499,15 @@ def extract_annual_series(
                 for d2 in sorted(series2, key=lambda x: x["year"]):
                     if d2["year"] in covered:
                         continue
-                    # When budget is full, only add years newer than the primary's
-                    # range (forward extension).  Older years are skipped to avoid
-                    # displacing the primary's historical data.
-                    if len(merged) >= years and d2["year"] <= primary_max_year:
+                    # When budget is full:
+                    #   - Forward extension (year > primary_max_year): always allow.
+                    #   - Gap-fill within analysis window (year >= cur_year - years): allow.
+                    #   - Old data outside window (year < cur_year - years): skip.
+                    # This lets fallback tags fill mid-range gaps left by a primary tag
+                    # that covers old history + recent years but skips years in between
+                    # (e.g. WTW PaymentsToAcquireProductiveAssets has FY17/18 + FY23-25
+                    # but not FY21/22; PaymentsToDevelopSoftware fills the gap).
+                    if len(merged) >= years and d2["year"] <= primary_max_year and d2["year"] < cur_year - years:
                         continue
                     covered.add(d2["year"])
                     merged.append(d2)

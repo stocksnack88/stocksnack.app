@@ -360,6 +360,7 @@ _INCOME_FIELDS = {
     "sellingGeneralAndAdministrativeExpenses", "researchAndDevelopmentExpenses",
     "interestExpense", "incomeTaxExpense", "ebitda", "depreciationAndAmortization",
     "interestAndDividendIncome", "noninterestIncome",
+    "interestIncomeExpenseNet", "revenuesNetOfInterestExpense",
     "operatingLeaseLeaseIncome",
 }
 
@@ -592,22 +593,40 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
     # Banks: the generic `Revenues` EDGAR tag can change meaning across years
     # (e.g. MTB FY2024+ captures only NoninterestIncome instead of total revenue).
     # Revenue < netIncome is physically impossible for any real bank; when it occurs
-    # reconstruct from component tags (interest income + non-interest income).
+    # reconstruct: prefer InterestIncomeExpenseNet (net interest income already net of
+    # funding costs) over gross InterestAndDividendIncomeOperating, plus NoninterestIncome.
     if _sm.get("bank_mode"):
         for inc in income_list:
-            interest_ = _safe(inc.get("interestAndDividendIncome"))
+            net_int_  = _safe(inc.get("interestIncomeExpenseNet"))
             nonint_   = _safe(inc.get("noninterestIncome"))
             rev_      = _safe(inc.get("revenue"))
             net_inc_  = _safe(inc.get("netIncome"))
-            if rev_ < net_inc_ and interest_ + nonint_ > 0:
+            if rev_ < net_inc_ and net_int_ + nonint_ > 0:
                 yr_label = inc.get("date", "?")[:4]
                 log.warning(
                     "[%s] FY%s bank revenue ($%.0fM) < net income ($%.0fM) — "
-                    "reconstructing from interest + non-interest income ($%.0fM)",
+                    "reconstructing from net interest + non-interest income ($%.0fM)",
                     ticker, yr_label, rev_ / 1e6, net_inc_ / 1e6,
-                    (interest_ + nonint_) / 1e6,
+                    (net_int_ + nonint_) / 1e6,
                 )
-                inc["revenue"] = interest_ + nonint_
+                inc["revenue"] = net_int_ + nonint_
+
+    # Broker-dealers (IBKR, etc.) in financial_mode report revenue as
+    # RevenuesNetOfInterestExpense — net of funding costs, analogous to NII+fees for banks.
+    # If this tag is available and revenue < netIncome (impossible), use it.
+    if _sm.get("financial_mode"):
+        for inc in income_list:
+            net_rev_  = _safe(inc.get("revenuesNetOfInterestExpense"))
+            rev_      = _safe(inc.get("revenue"))
+            net_inc_  = _safe(inc.get("netIncome"))
+            if rev_ < net_inc_ and net_rev_ > 0:
+                yr_label = inc.get("date", "?")[:4]
+                log.warning(
+                    "[%s] FY%s financial revenue ($%.0fM) < net income ($%.0fM) — "
+                    "replacing with RevenuesNetOfInterestExpense ($%.0fM)",
+                    ticker, yr_label, rev_ / 1e6, net_inc_ / 1e6, net_rev_ / 1e6,
+                )
+                inc["revenue"] = net_rev_
 
     if _sm.get("financial_mode"):
         for inc in income_list:

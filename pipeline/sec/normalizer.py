@@ -54,6 +54,8 @@ _FIELD_MAP: list[tuple[str, str]] = [
     ("current_liabilities",       "currentLiabilities"),
     ("bank_interest_income",      "interestAndDividendIncome"),
     ("bank_noninterest_income",   "noninterestIncome"),
+    ("bank_net_interest_income",  "interestIncomeExpenseNet"),
+    ("broker_revenues_net",       "revenuesNetOfInterestExpense"),
     ("reit_lease_income",         "operatingLeaseLeaseIncome"),
 ]
 

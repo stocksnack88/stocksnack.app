@@ -82,6 +82,8 @@ CommonStockSharesOutstanding,shares_outstanding,3,2026-05-17,point in time snaps
 CommonStockSharesIssued,shares_outstanding,4,2026-05-17,last resort, includes treasury shares.
 AssetsCurrent,current_assets,1,2026-06-15,confirmed AAPL — balance sheet current assets
 LiabilitiesCurrent,current_liabilities,1,2026-06-15,confirmed AAPL — balance sheet current liabilities
-InterestAndDividendIncomeOperating,bank_interest_income,1,2026-06-19,bank total net interest income
+InterestAndDividendIncomeOperating,bank_interest_income,1,2026-06-19,bank gross interest income (use InterestIncomeExpenseNet for net)
 NoninterestIncome,bank_noninterest_income,1,2026-06-19,bank non-interest fees and trading revenue
+InterestIncomeExpenseNet,bank_net_interest_income,1,2026-06-19,bank net interest income (gross interest minus interest expense)
+RevenuesNetOfInterestExpense,broker_revenues_net,1,2026-06-19,broker-dealer total revenue net of interest (IBKR-style)
 OperatingLeaseLeaseIncome,reit_lease_income,1,2026-06-19,apartment/property REIT total rental income (ASC 842 lessor income)

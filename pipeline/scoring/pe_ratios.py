@@ -29,6 +29,15 @@ log = logging.getLogger(__name__)
 
 _PAGE = 1000   # Supabase Python client hard-caps responses at 1,000 rows
 
+# P/E ratios above this threshold are excluded from sector-average calculations.
+# Near-zero earnings (loss-recovery years, pre-profit growth companies) produce
+# extreme individual P/E ratios (e.g. INTC 25,901x, TSLA 390x) that dominate
+# market-cap-weighted averages and make the sector figure meaningless for display.
+# 100x is chosen because the five "healthy" sectors (Energy, Financial Services,
+# Consumer Defensive, Basic Materials, Utilities) naturally max out below 80x;
+# anything higher signals a structurally unusual earnings situation.
+_PE_SECTOR_CAP = 100
+
 
 def _fetch_all(client, table: str, select: str, *, order_by: str | None = None) -> list[dict]:
     """Fetch every row from a table, paginating past the 1,000-row default cap."""
@@ -193,9 +202,9 @@ def compute_pe_ratios(client) -> None:
         mktcap = mktcap_map.get(ticker)
         if not sector or not mktcap or mktcap <= 0:
             continue
-        if m["pe_ratio"] is not None and m["pe_ratio"] > 0:
+        if m["pe_ratio"] is not None and 0 < m["pe_ratio"] <= _PE_SECTOR_CAP:
             sector_pe_pairs[sector].append((m["pe_ratio"], mktcap))
-        if m["pe_5y_avg"] is not None and m["pe_5y_avg"] > 0:
+        if m["pe_5y_avg"] is not None and 0 < m["pe_5y_avg"] <= _PE_SECTOR_CAP:
             sector_pe_5y_pairs[sector].append((m["pe_5y_avg"], mktcap))
         if m["fcf_yield"] is not None and m["fcf_yield"] > 0:
             sector_fcf_pairs[sector].append((m["fcf_yield"], mktcap))

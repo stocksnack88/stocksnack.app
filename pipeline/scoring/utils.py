@@ -83,8 +83,53 @@ def compute_gq(values: list, sp500_cagr: float = 0.10) -> dict:
     Recency-weighted YoY growth quality score.
 
     values: oldest-first list of financials (FMP data must be reversed before calling).
-    Returns dict with keys: weightedCAGR, signal, rates, rank.
+    Returns dict with keys: weightedCAGR, avg_dollar_change, signal, rates, rank.
+
+    Two paths depending on the sign of the input series:
+    - ALL non-negative → percentage-based weightedCAGR (existing behaviour, unchanged).
+      avg_dollar_change is None.
+    - ANY negative → dollar-based average YoY change.
+      avg_dollar_change is the mean annual dollar delta; weightedCAGR is 0.0 (unused).
+      Callers must switch to additive projection: projected = current + avg_dollar_change * N.
     """
+    _RANK = {"Freefall": 0, "Deteriorating": 1, "Decelerating": 2, "Slowing Growth": 3, "Solid Growth": 4}
+
+    # ── Dollar-based path: any negative value makes percentage growth meaningless ──
+    if any(v is not None and v < 0 for v in values):
+        deltas: list[float] = []
+        for i in range(1, len(values)):
+            prev, curr = values[i - 1], values[i]
+            if prev is not None and curr is not None:
+                deltas.append(curr - prev)
+
+        avg_delta = sum(deltas) / len(deltas) if deltas else 0.0
+
+        if not deltas:
+            signal = "Insufficient Data"
+        else:
+            recent_delta = sum(deltas[-2:]) / len(deltas[-2:])
+            early_deltas = deltas[:2]
+            early_delta  = sum(early_deltas) / len(early_deltas) if early_deltas else recent_delta
+            if len(deltas) >= 3 and all(d < 0 for d in deltas[-3:]):
+                signal = "Freefall"
+            elif recent_delta < 0:
+                signal = "Deteriorating"
+            elif early_delta != 0 and (recent_delta - early_delta) < -0.08 * abs(early_delta):
+                signal = "Decelerating"
+            elif recent_delta > early_delta:
+                signal = "Solid Growth"
+            else:
+                signal = "Slowing Growth"
+
+        return {
+            "weightedCAGR":    0.0,
+            "avg_dollar_change": avg_delta,
+            "signal":          signal,
+            "rates":           [None] * (len(values) - 1),
+            "rank":            _RANK.get(signal, -1),
+        }
+
+    # ── Percentage-based path: all values non-negative (existing behaviour) ───────
     rates: list[float | None] = []
     for i in range(1, len(values)):
         prev, curr = values[i - 1], values[i]
@@ -95,7 +140,7 @@ def compute_gq(values: list, sp500_cagr: float = 0.10) -> dict:
 
     valid = [r for r in rates if r is not None]
     if len(valid) < 2:
-        return {"weightedCAGR": 0.05, "signal": "Insufficient Data", "rates": rates, "rank": -1}
+        return {"weightedCAGR": 0.05, "avg_dollar_change": None, "signal": "Insufficient Data", "rates": rates, "rank": -1}
 
     weights = [0.5, 1.0, 1.5, 2.0, 3.0][-len(rates):]
     w_sum   = sum(r * w for r, w in zip(rates, weights) if r is not None)
@@ -120,8 +165,7 @@ def compute_gq(values: list, sp500_cagr: float = 0.10) -> dict:
     else:
         signal = "Slowing Growth"
 
-    _RANK = {"Freefall": 0, "Deteriorating": 1, "Decelerating": 2, "Slowing Growth": 3, "Solid Growth": 4}
-    return {"weightedCAGR": weighted_cagr, "signal": signal, "rates": rates, "rank": _RANK.get(signal, -1)}
+    return {"weightedCAGR": weighted_cagr, "avg_dollar_change": None, "signal": signal, "rates": rates, "rank": _RANK.get(signal, -1)}
 
 
 def trimmed_median(values: list) -> float:

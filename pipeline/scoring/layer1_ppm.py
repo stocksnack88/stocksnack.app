@@ -116,24 +116,34 @@ def _m1_ebitda(data: dict, shares: float, fx_rate: float = 1.0, sp500_cagr: floa
         ebitda_vals = ebitda_vals[1:]
     if not ebitda_vals:
         return None
-    # Guard: EV/EBITDA is undefined for negative EBITDA. Without this, a company
-    # with negative EBITDA but large net cash produces a positive future_equity
-    # (net_debt subtraction offsets the negative EV) — a phantom price that is
-    # mathematically valid but economically meaningless. Mirror M2's FCF gate.
-    if ebitda_vals[0] <= 0:
-        return None
 
-    gq         = compute_gq(list(reversed(ebitda_vals[:5])), sp500_cagr)
-    adj_growth = gq["weightedCAGR"]
+    gq                = compute_gq(list(reversed(ebitda_vals[:5])), sp500_cagr)
+    avg_dollar_change = gq.get("avg_dollar_change")  # non-None iff series contains negatives
+
+    if avg_dollar_change is not None:
+        # Dollar-based path: series contains at least one negative value.
+        # Project linearly: current + avg_annual_dollar_change × 5 years.
+        # Gate: if 5-year projection is still negative or zero, EV/EBITDA is still
+        # undefined and M1 stays excluded — same outcome as the old flat gate for
+        # tickers with deeply negative trajectories.
+        ebitda_5y = ebitda_vals[0] + avg_dollar_change * _YEARS
+        if ebitda_5y <= 0:
+            return None
+        growth_rate = avg_dollar_change  # stored as a dollar delta, not a ratio
+    else:
+        # Percentage-based path: all values non-negative (existing behaviour unchanged).
+        if ebitda_vals[0] <= 0:
+            return None
+        adj_growth = gq["weightedCAGR"]
+        cur_ebitda = ebitda_vals[0]
+        for _ in range(_YEARS):
+            cur_ebitda *= (1 + adj_growth)
+        ebitda_5y   = cur_ebitda
+        growth_rate = adj_growth
 
     ev_ebitda_hist = [safe_float(r.get("evToEBITDA")) for r in metrics]
     ev_ebitda_med  = trimmed_median(ev_ebitda_hist)
     ev_ebitda = clamp(ev_ebitda_med, 8.0, 50.0) if ev_ebitda_med > 0 else _EV_EBITDA_FALLBACK
-
-    cur_ebitda = ebitda_vals[0]
-    for _ in range(_YEARS):
-        cur_ebitda *= (1 + adj_growth)
-    ebitda_5y = cur_ebitda
 
     net_debt      = safe_float((balance[0] if balance else {}).get("netDebt")) * fx_rate
     future_equity = ebitda_5y * ev_ebitda - net_debt
@@ -144,7 +154,7 @@ def _m1_ebitda(data: dict, shares: float, fx_rate: float = 1.0, sp500_cagr: floa
         "price":            future_equity / shares,
         "ebitda_current":   ebitda_vals[0],
         "ebitda_projected": ebitda_5y,
-        "growth_rate":      adj_growth,
+        "growth_rate":      growth_rate,
         "ev_ebitda":        ev_ebitda,
         "net_debt":         net_debt,
     }

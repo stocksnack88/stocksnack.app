@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import csv
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -129,6 +130,108 @@ def load_extracted_data(ticker: str, years: int = 5) -> dict[int, dict[str, floa
     return {yr: result[yr] for yr in top_years}
 
 
+# ── EPS computed fallback ─────────────────────────────────────────────────────
+
+def _compute_eps_fallback(ticker: str, years: int = 5) -> None:
+    """
+    Post-extraction fallback: write eps_diluted = net_income / shares_outstanding
+    for any year where eps_diluted is absent after standard EDGAR extraction.
+
+    Only fires when net_income is present for a year but eps_diluted is not.
+    Uses yf_client.get_shares_per_year() which tries extracted_data.csv first
+    then yfinance — no extra network call for companies with shares in EDGAR.
+    Never raises.
+    """
+    try:
+        if not _EXTRACTED_CSV.exists():
+            return
+
+        by_name: dict[str, dict[int, float]] = {}
+        existing_computed: set[int] = set()
+        with _EXTRACTED_CSV.open(newline="") as f:
+            for row in csv.DictReader(f):
+                if row.get("ticker", "").upper() != ticker.upper():
+                    continue
+                name = row.get("standardised_name", "")
+                if name not in ("eps_diluted", "net_income"):
+                    continue
+                try:
+                    yr  = int(row["fiscal_year"])
+                    val = float(row["value"])
+                except (KeyError, ValueError):
+                    continue
+                if name == "eps_diluted" and row.get("original_tag", "") == "computed: net_income / shares_outstanding":
+                    existing_computed.add(yr)
+                by_yr = by_name.setdefault(name, {})
+                if name == "eps_diluted":
+                    if yr not in by_yr or val < by_yr[yr]:
+                        by_yr[yr] = val
+                else:
+                    if yr not in by_yr or val > by_yr[yr]:
+                        by_yr[yr] = val
+
+        net_income = by_name.get("net_income", {})
+        eps_years  = set(by_name.get("eps_diluted", {}).keys())
+
+        need_years = sorted(
+            (yr for yr in net_income if yr not in eps_years and yr not in existing_computed),
+            reverse=True,
+        )[:years]
+
+        if not need_years:
+            return
+
+        from yf_client import get_shares_per_year
+        shares = get_shares_per_year(ticker, need_years, _EXTRACTED_CSV)
+        if not shares:
+            return
+
+        pulled_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        new_rows: list[dict] = []
+        for yr in need_years:
+            ni = net_income.get(yr)
+            sh = shares.get(yr)
+            if ni is None or not sh or sh == 0:
+                continue
+            eps = ni / sh
+            if not (-10_000 < eps < 100_000):
+                print(
+                    f"[normalizer] {ticker} FY{yr}: computed EPS {eps:.4f} out of range — skipping",
+                    file=sys.stderr,
+                )
+                continue
+            new_rows.append({
+                "ticker":            ticker.upper(),
+                "fiscal_year":       yr,
+                "standardised_name": "eps_diluted",
+                "original_tag":      "computed: net_income / shares_outstanding",
+                "value":             eps,
+                "unit":              "USD/shares",
+                "pulled_at":         pulled_at,
+                "period_of_report":  f"{yr}-12-31",
+            })
+
+        if not new_rows:
+            return
+
+        with _EXTRACTED_CSV.open("a", newline="") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=["ticker", "fiscal_year", "standardised_name",
+                            "original_tag", "value", "unit", "pulled_at", "period_of_report"],
+                extrasaction="ignore",
+            )
+            writer.writerows(new_rows)
+
+        print(
+            f"[normalizer] {ticker}: eps_diluted fallback — computed {len(new_rows)} year(s) "
+            f"via net_income / shares_outstanding",
+            file=sys.stderr,
+        )
+    except Exception as exc:
+        print(f"[normalizer] {ticker}: _compute_eps_fallback error — {exc}", file=sys.stderr)
+
+
 # ── Normaliser ────────────────────────────────────────────────────────────────
 
 def normalise(ticker: str, years: int = 5) -> list[dict[str, Any]]:
@@ -141,6 +244,7 @@ def normalise(ticker: str, years: int = 5) -> list[dict[str, Any]]:
     from field_mapper import extract_all
 
     extract_all(ticker, years=years)
+    _compute_eps_fallback(ticker, years=years)
     by_year = load_extracted_data(ticker, years=years)
 
     if not by_year:

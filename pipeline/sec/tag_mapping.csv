@@ -18,6 +18,7 @@ ProfitLoss,net_income,3,2026-05-16,
 NetIncomeLossAvailableToCommonStockholdersBasic,net_income,4,2026-05-16,
 EarningsPerShareDiluted,eps_diluted,1,2026-05-16,confirmed AAPL
 EarningsPerShareBasic,eps_diluted,2,2026-05-16,
+IncomeLossFromContinuingOperationsPerDilutedShare,eps_diluted,3,2026-06-20,fallback for ABNB/HAL/KIM/MNST/REG — use continuing-ops EPS when EarningsPerShareDiluted absent
 SellingGeneralAndAdministrativeExpense,sga_expense,1,2026-05-16,confirmed AAPL
 SellingAndMarketingExpense,sga_expense,2,2026-05-16,
 ResearchAndDevelopmentExpense,rd_expense,1,2026-05-16,confirmed AAPL

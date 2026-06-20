@@ -27,35 +27,36 @@ from collections import defaultdict
 
 log = logging.getLogger(__name__)
 
+_PAGE = 1000   # Supabase Python client hard-caps responses at 1,000 rows
+
+
+def _fetch_all(client, table: str, select: str, *, order_by: str | None = None) -> list[dict]:
+    """Fetch every row from a table, paginating past the 1,000-row default cap."""
+    rows, offset = [], 0
+    while True:
+        q = client.table(table).select(select)
+        if order_by:
+            q = q.order(order_by)
+        batch = q.range(offset, offset + _PAGE - 1).execute().data or []
+        rows.extend(batch)
+        if len(batch) < _PAGE:
+            break
+        offset += _PAGE
+    return rows
+
 
 def compute_pe_ratios(client) -> None:
     """Read prices + fundamentals from Supabase, compute P/E + FCF + div metrics, write back."""
 
-    # ── Bulk fetches ──────────────────────────────────────────────────────────
-    fund_rows = (
-        client.table("stock_fundamentals")
-        .select("ticker, fiscal_year, eps, net_income, free_cash_flow, dividends_paid, market_cap_at_year")
-        .execute()
-        .data or []
+    # ── Bulk fetches (paginated — stock_fundamentals alone has 2,500+ rows) ──
+    fund_rows = _fetch_all(
+        client, "stock_fundamentals",
+        "ticker, fiscal_year, eps, net_income, free_cash_flow, dividends_paid, market_cap_at_year",
+        order_by="ticker",
     )
-    price_rows = (
-        client.table("stock_prices")
-        .select("ticker, current_price, market_cap")
-        .execute()
-        .data or []
-    )
-    sector_rows = (
-        client.table("stocks")
-        .select("ticker, sector, country")
-        .execute()
-        .data or []
-    )
-    scores_rows = (
-        client.table("stock_scores")
-        .select("ticker")
-        .execute()
-        .data or []
-    )
+    price_rows  = _fetch_all(client, "stock_prices",  "ticker, current_price, market_cap")
+    sector_rows = _fetch_all(client, "stocks",         "ticker, sector, country")
+    scores_rows = _fetch_all(client, "stock_scores",   "ticker")
 
     # ── Lookup maps ───────────────────────────────────────────────────────────
     price_map  = {r["ticker"]: r["current_price"] for r in price_rows if r.get("current_price")}

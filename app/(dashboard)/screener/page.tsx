@@ -86,7 +86,8 @@ export default async function ScreenerPage({
   const priceMap = new Map((priceRows).map((p: any) => [p.ticker, p.current_price as number]));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const stocks: ScreenerRow[] = (rows).map((r: any) => ({
+  // rows is already ordered final_score DESC from Supabase — index+1 is the true universe rank.
+  const stocks: ScreenerRow[] = (rows).map((r: any, i: number) => ({
     ticker: r.ticker,
     name: r.stocks?.name ?? null,
     ppm_cagr: r.ppm_cagr,
@@ -98,6 +99,7 @@ export default async function ScreenerPage({
     updated_at: r.updated_at,
     has_anomaly: r.has_anomaly ?? null,
     anomaly_reasons: r.anomaly_reasons ?? null,
+    rank: i + 1,
   }));
 
   const { visible: rawVisible } = effectivelyPro

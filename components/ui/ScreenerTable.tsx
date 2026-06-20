@@ -20,6 +20,7 @@ export type ScreenerRow = {
   updated_at: string | null;
   has_anomaly: boolean | null;
   anomaly_reasons: string | null;
+  rank: number;
 };
 
 // ── Filter types & config ─────────────────────────────────────────────────────
@@ -792,7 +793,7 @@ export default function ScreenerTable({
                     <SignalBadge signal={stock.signal} />
                   </td>
                   <td className="px-1 py-3 text-center bg-[#001a00]/40">
-                    <span className="text-[#00ff41]/40 font-mono text-[10px]">#{i + 1}</span>
+                    <span className="text-[#00ff41]/40 font-mono text-[10px]">#{stock.rank}</span>
                   </td>
                   <td className="px-1" />
                 </tr>
@@ -801,7 +802,7 @@ export default function ScreenerTable({
                   <tr>
                     <td colSpan={totalCols} className="px-2 pb-2.5 pt-0">
                       <span className="text-[10px] italic text-[#00ff41]/30 font-mono leading-snug">
-                        {stockSummary(stock, i + 1)}
+                        {stockSummary(stock, stock.rank)}
                       </span>
                     </td>
                   </tr>

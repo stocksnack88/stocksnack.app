@@ -85,8 +85,8 @@ export default async function ScreenerPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const priceMap = new Map((priceRows).map((p: any) => [p.ticker, p.current_price as number]));
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // rows is already ordered final_score DESC from Supabase — index+1 is the true universe rank.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stocks: ScreenerRow[] = (rows).map((r: any, i: number) => ({
     ticker: r.ticker,
     name: r.stocks?.name ?? null,

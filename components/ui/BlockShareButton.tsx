@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import Image from 'next/image'
 import { Share2 } from 'lucide-react'
 
 const SCALE = 2
@@ -161,11 +162,14 @@ function ShareModal({
 
         {/* Preview */}
         <div className="px-4 pt-4 pb-3">
-          <img
+          <Image
             src={first.dataUrl}
             alt="Preview"
+            width={600}
+            height={400}
+            unoptimized
             className="w-full rounded"
-            style={{ border: '1px solid rgba(0,255,65,0.1)', maxHeight: 220, objectFit: 'contain', background: '#000' }}
+            style={{ border: '1px solid rgba(0,255,65,0.1)', maxHeight: 220, objectFit: 'contain', background: '#000', height: 'auto' }}
           />
         </div>
 

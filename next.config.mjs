@@ -9,5 +9,7 @@ export default withSentryConfig(nextConfig, {
   silent: !process.env.CI,
   widenClientFileUpload: true,
   hideSourceMaps: true,
-  automaticVercelMonitors: true,
+  webpack: {
+    automaticVercelMonitors: true,
+  },
 });

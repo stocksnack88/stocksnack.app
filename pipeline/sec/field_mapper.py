@@ -296,7 +296,9 @@ def _extract_tag(usgaap: dict, tag: str, years: int) -> tuple[list[dict], str]:
         return [], ""
 
     unit_key = next(iter(units))
-    entries: list[dict] = units[unit_key]
+    entries: list[dict] = []
+    for _uk_entries in units.values():
+        entries.extend(_uk_entries)
 
     annual = [
         e for e in entries

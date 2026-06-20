@@ -116,6 +116,12 @@ def _m1_ebitda(data: dict, shares: float, fx_rate: float = 1.0, sp500_cagr: floa
         ebitda_vals = ebitda_vals[1:]
     if not ebitda_vals:
         return None
+    # Guard: EV/EBITDA is undefined for negative EBITDA. Without this, a company
+    # with negative EBITDA but large net cash produces a positive future_equity
+    # (net_debt subtraction offsets the negative EV) — a phantom price that is
+    # mathematically valid but economically meaningless. Mirror M2's FCF gate.
+    if ebitda_vals[0] <= 0:
+        return None
 
     gq         = compute_gq(list(reversed(ebitda_vals[:5])), sp500_cagr)
     adj_growth = gq["weightedCAGR"]

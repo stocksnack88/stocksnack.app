@@ -11,7 +11,7 @@ M3  Div + FCF floor  — project dividends per share with FCF ceiling, trimmed P
 from __future__ import annotations
 import logging
 import requests
-from scoring.utils import safe_float, compute_cagr, cagr_to_score, clamp, compute_gq, trimmed_median, is_financial
+from scoring.utils import safe_float, compute_cagr, cagr_to_score, clamp, compute_gq, project_series, tapered_project, trimmed_median, is_financial
 
 log = logging.getLogger(__name__)
 
@@ -117,29 +117,28 @@ def _m1_ebitda(data: dict, shares: float, fx_rate: float = 1.0, sp500_cagr: floa
     if not ebitda_vals:
         return None
 
-    gq                = compute_gq(list(reversed(ebitda_vals[:5])), sp500_cagr)
-    avg_dollar_change = gq.get("avg_dollar_change")  # non-None iff series contains negatives
+    pj = project_series(list(reversed(ebitda_vals[:5])), sp500_cagr)
 
-    if avg_dollar_change is not None:
-        # Dollar-based path: series contains at least one negative value.
-        # Project linearly: current + avg_annual_dollar_change × 5 years.
-        # Gate: if 5-year projection is still negative or zero, EV/EBITDA is still
-        # undefined and M1 stays excluded — same outcome as the old flat gate for
-        # tickers with deeply negative trajectories.
-        ebitda_5y = ebitda_vals[0] + avg_dollar_change * _YEARS
-        if ebitda_5y <= 0:
-            return None
-        growth_rate = avg_dollar_change  # stored as a dollar delta, not a ratio
+    # Dual gate 1: cumulative historical sum must be positive
+    if pj["cumulative_sum"] <= 0:
+        return None
+
+    if pj["avg_dollar_change"] is not None:
+        current     = ebitda_vals[0]
+        growth_rate = pj["avg_dollar_change"]
     else:
-        # Percentage-based path: all values non-negative (existing behaviour unchanged).
-        if ebitda_vals[0] <= 0:
-            return None
-        adj_growth = gq["weightedCAGR"]
-        cur_ebitda = ebitda_vals[0]
-        for _ in range(_YEARS):
-            cur_ebitda *= (1 + adj_growth)
-        ebitda_5y   = cur_ebitda
-        growth_rate = adj_growth
+        current = pj.get("projection_base")   # B2: use replacement, not dropped value
+        if current is None:
+            if ebitda_vals[0] <= 0:
+                return None
+            current = ebitda_vals[0]
+        growth_rate = pj["weighted_cagr"]
+
+    ebitda_5y = tapered_project(current, pj["weighted_cagr"], pj["avg_dollar_change"])
+
+    # Dual gate 2: tapered forward projection must be positive
+    if ebitda_5y <= 0:
+        return None
 
     ev_ebitda_hist = [safe_float(r.get("evToEBITDA")) for r in metrics]
     ev_ebitda_med  = trimmed_median(ev_ebitda_hist)
@@ -167,20 +166,35 @@ def _m2_fcf(data: dict, shares: float, fx_rate: float = 1.0, sp500_cagr: float =
     metrics  = data.get("metrics", [])
 
     fcf_vals = [safe_float(r.get("freeCashFlow")) * fx_rate for r in cashflow]
-    if not fcf_vals or fcf_vals[0] <= 0:
+    if not fcf_vals:
         return None
 
-    gq         = compute_gq(list(reversed(fcf_vals[:5])), sp500_cagr)
-    adj_growth = gq["weightedCAGR"]
+    pj = project_series(list(reversed(fcf_vals[:5])), sp500_cagr)
+
+    # Dual gate 1: cumulative historical sum must be positive
+    if pj["cumulative_sum"] <= 0:
+        return None
 
     p_fcf_hist = [safe_float(r.get("priceToFreeCashFlowsRatio")) for r in metrics]
     p_fcf_med  = trimmed_median(p_fcf_hist)
     p_fcf = clamp(p_fcf_med, 8.0, 60.0) if p_fcf_med > 0 else _P_FCF_FALLBACK
 
-    cur_fcf = fcf_vals[0]
-    for _ in range(_YEARS):
-        cur_fcf *= (1 + adj_growth)
-    fcf_5y = cur_fcf
+    if pj["avg_dollar_change"] is not None:
+        current     = fcf_vals[0]
+        growth_rate = pj["avg_dollar_change"]
+    else:
+        current = pj.get("projection_base")   # B2: use replacement, not dropped value
+        if current is None:
+            if fcf_vals[0] <= 0:
+                return None
+            current = fcf_vals[0]
+        growth_rate = pj["weighted_cagr"]
+
+    fcf_5y = tapered_project(current, pj["weighted_cagr"], pj["avg_dollar_change"])
+
+    # Dual gate 2: tapered forward projection must be positive
+    if fcf_5y <= 0:
+        return None
 
     if shares <= 0:
         return None
@@ -188,7 +202,7 @@ def _m2_fcf(data: dict, shares: float, fx_rate: float = 1.0, sp500_cagr: float =
         "price":         (fcf_5y * p_fcf) / shares,
         "fcf_current":   fcf_vals[0],
         "fcf_projected": fcf_5y,
-        "growth_rate":   adj_growth,
+        "growth_rate":   growth_rate,
         "fcf_yield":     1.0 / p_fcf,
     }
 
@@ -228,8 +242,13 @@ def _m3_shareholder_return(
 
     # FCF series for ceiling projection
     fcf_vals = [safe_float(r.get("freeCashFlow")) * fx_rate for r in cashflow]
-    gq_fcf         = compute_gq(list(reversed(fcf_vals[:5])), sp500_cagr) if fcf_vals else {"weightedCAGR": 0.05}
-    adj_fcf_growth = gq_fcf["weightedCAGR"]
+    _fcf_window = fcf_vals[:5]
+    gq_fcf                = compute_gq(list(reversed(_fcf_window)), sp500_cagr) if fcf_vals else {"weightedCAGR": 0.05, "avg_dollar_change": None}
+    adj_fcf_growth        = gq_fcf["weightedCAGR"]
+    avg_fcf_dollar_change = gq_fcf.get("avg_dollar_change")
+    # Cumulative-sum gate: if net-negative history, revert to flat ceiling (conservative).
+    if avg_fcf_dollar_change is not None and _fcf_window and sum(_fcf_window) <= 0:
+        avg_fcf_dollar_change = None  # adj_fcf_growth is already 0.0 on dollar path
 
     # Historical P/giveback multiple (1 / dividendYield)
     div_yields      = [safe_float(r.get("dividendYield")) for r in metrics]
@@ -246,13 +265,17 @@ def _m3_shareholder_return(
         return None
 
     # FIX 2: project total dividends forward; FCF ceiling stays in total dollars
+    fcf_start     = fcf_vals[0] if fcf_vals else 0.0
     cur_total_div = total_div_vals[0]   # most recent year total paid
-    cur_total_fcf = fcf_vals[0] if fcf_vals else 0.0
-    for _ in range(_YEARS):
-        cur_total_fcf  *= (1 + adj_fcf_growth)
-        target_total    = cur_total_div * (1 + adj_div_growth)
-        ceiling_total   = cur_total_fcf * 0.90
-        cur_total_div   = min(target_total, ceiling_total)
+    cur_total_fcf = fcf_start
+    for year_idx in range(1, _YEARS + 1):
+        if avg_fcf_dollar_change is not None:
+            cur_total_fcf = fcf_start + avg_fcf_dollar_change * year_idx
+        else:
+            cur_total_fcf *= (1 + adj_fcf_growth)
+        target_total  = cur_total_div * (1 + adj_div_growth)
+        ceiling_total = cur_total_fcf * 0.90
+        cur_total_div = min(target_total, ceiling_total)
 
     if cur_total_div <= 0:
         return None

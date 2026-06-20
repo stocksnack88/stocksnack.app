@@ -168,6 +168,171 @@ def compute_gq(values: list, sp500_cagr: float = 0.10) -> dict:
     return {"weightedCAGR": weighted_cagr, "avg_dollar_change": None, "signal": signal, "rates": rates, "rank": _RANK.get(signal, -1)}
 
 
+def _dollar_signal(deltas: list[float]) -> str:
+    """Signal classification for dollar-based growth paths."""
+    if not deltas:
+        return "Insufficient Data"
+    recent = sum(deltas[-2:]) / len(deltas[-2:])
+    early  = sum(deltas[:2]) / len(deltas[:2]) if len(deltas) >= 2 else recent
+    if len(deltas) >= 3 and all(d < 0 for d in deltas[-3:]):
+        return "Freefall"
+    if recent < 0:
+        return "Deteriorating"
+    if early != 0 and (recent - early) < -0.08 * abs(early):
+        return "Decelerating"
+    if recent > early:
+        return "Solid Growth"
+    return "Slowing Growth"
+
+
+def _is_steep_drop(prev: float, curr: float) -> bool:
+    """True if the transition prev→curr is a steep drop: goes negative, or falls >25% positive."""
+    if curr < 0:
+        return True
+    if prev > 0 and (curr - prev) / prev < -0.25:
+        return True
+    return False
+
+
+def tapered_project(
+    current: float,
+    weighted_cagr: float | None,
+    avg_dollar_change: float | None,
+    years: int = 5,
+    taper: float = 0.04,
+) -> float:
+    """
+    Project a metric forward with annual taper on growth rate / dollar-add.
+    Each year's growth or delta = base × (1 − taper)^(year − 1).
+    Year 1 uses the full base; each subsequent year shrinks by taper.
+    """
+    v = current
+    if avg_dollar_change is not None:
+        for yr in range(years):
+            v += avg_dollar_change * (1.0 - taper) ** yr
+    elif weighted_cagr is not None:
+        for yr in range(years):
+            v *= 1.0 + weighted_cagr * (1.0 - taper) ** yr
+    return v
+
+
+def project_series(values: list[float], sp500_cagr: float = 0.10) -> dict:
+    """
+    Classify a financial series into a growth bucket and return projection parameters.
+    values: oldest-first list.
+
+    Steep drop: a YoY move where the destination goes negative,
+    OR the value falls >25% while remaining positive.
+
+    Buckets
+    ───────
+    A   zero steep drops, oldest year positive   → standard recency-weighted % CAGR
+    B0  zero steep drops within window, but oldest year is negative
+          (the drop predates our window — no prior year to quantify or test recovery)
+          → plain dollar avg (same calculation as C)
+    B1  one steep drop, a future year exists
+          recovery ≥90%  → smooth dropped year (avg of neighbors), % CAGR
+          recovery <90%  → plain dollar avg
+    B2  one steep drop IS the most-recent year
+          → project via prior avg delta, % CAGR on adjusted series
+          (fallback to dollar avg if projected ≤ 0)
+    C   two or more steep drops                  → plain dollar avg
+
+    Callers apply unified final steps:
+      tapered_project(projection_base, weighted_cagr, avg_dollar_change)
+      dual gate: cumulative_sum > 0 AND tapered proj_5y > 0
+
+    Returns: bucket, method, weighted_cagr, avg_dollar_change, signal,
+             cumulative_sum, [smoothed_values], [projection_base (B2 only)]
+    """
+    n      = len(values)
+    cumsum = sum(values)
+
+    if n < 2:
+        return {
+            "bucket": "A", "method": "insufficient data — fallback",
+            "weighted_cagr": 0.05, "avg_dollar_change": None,
+            "signal": "Insufficient Data", "cumulative_sum": cumsum,
+        }
+
+    steep_drops = [i for i in range(1, n) if _is_steep_drop(values[i - 1], values[i])]
+
+    def _dollar_result(bucket: str, method: str) -> dict:
+        deltas = [values[i] - values[i - 1] for i in range(1, n)]
+        return {
+            "bucket": bucket, "method": method,
+            "weighted_cagr": None,
+            "avg_dollar_change": sum(deltas) / len(deltas) if deltas else 0.0,
+            "signal": _dollar_signal(deltas),
+            "cumulative_sum": cumsum,
+        }
+
+    def _pct_result(bucket: str, method: str, series: list[float],
+                    smoothed: list[float] | None = None,
+                    projection_base: float | None = None) -> dict:
+        gq = compute_gq(series, sp500_cagr)
+        r  = {
+            "bucket": bucket, "method": method,
+            "weighted_cagr": gq["weightedCAGR"],
+            "avg_dollar_change": None,
+            "signal": gq["signal"],
+            "cumulative_sum": cumsum,
+        }
+        if smoothed        is not None: r["smoothed_values"] = smoothed
+        if projection_base is not None: r["projection_base"] = projection_base
+        return r
+
+    # ── Bucket A / B0 ─────────────────────────────────────────────────────────
+    if not steep_drops:
+        if values[0] < 0:
+            # The steep drop that produced this negative value lies before our
+            # window — no prior year exists to measure or test recovery against.
+            return _dollar_result("B0", "dollar avg (steep drop predates window; oldest year negative)")
+        return _pct_result("A", "standard % growth (no steep drops)", values)
+
+    d = steep_drops[0]
+
+    if len(steep_drops) == 1:
+        if d < n - 1:
+            # ── Bucket B1: one steep drop with a successor year ────────────────
+            before, after = values[d - 1], values[d + 1]
+            recovery = before > 0 and after >= 0.90 * before
+            if recovery:
+                smoothed    = list(values)
+                smoothed[d] = (before + after) / 2.0
+                pct = f"{after / before * 100:.1f}%"
+                return _pct_result(
+                    "B1",
+                    f"% growth, steep-drop smoothed (recovery {pct} ≥ 90%)",
+                    smoothed, smoothed,
+                )
+            pct_str = (f"{after / before * 100:.1f}%" if before > 0 else "n/a")
+            return _dollar_result(
+                "B1",
+                f"dollar avg (steep drop, recovery {pct_str} < 90%)",
+            )
+
+        else:
+            # ── Bucket B2: steep drop IS the most-recent year ──────────────────
+            prior_deltas = [values[i] - values[i - 1] for i in range(1, d)]
+            avg_prior    = sum(prior_deltas) / len(prior_deltas) if prior_deltas else 0.0
+            projected    = values[d - 1] + avg_prior
+            if projected > 0:
+                smoothed    = list(values)
+                smoothed[d] = projected
+                return _pct_result(
+                    "B2",
+                    "% growth, most-recent steep-drop projected via prior avg delta",
+                    smoothed, smoothed, projected,
+                )
+            return _dollar_result(
+                "B2", "dollar avg (most-recent steep drop, projected ≤ 0)"
+            )
+
+    # ── Bucket C: two or more steep drops ─────────────────────────────────────
+    return _dollar_result("C", f"dollar avg ({len(steep_drops)} steep drops)")
+
+
 def trimmed_median(values: list) -> float:
     """Median of positive values; drops highest+lowest if 4+ data points."""
     vals = sorted(v for v in values if v and v > 0)

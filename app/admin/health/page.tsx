@@ -43,6 +43,10 @@ type FundRow = {
   gross_profit: number | null
   operating_income: number | null
   dividends_paid: number | null
+  // Section 7 gap fields
+  buybacks: number | null
+  operating_cash_flow: number | null
+  retained_earnings: number | null
 }
 
 type FixLogRow = {
@@ -175,7 +179,7 @@ export default async function AdminHealthPage() {
       .select('ticker, final_score, signal, has_anomaly, updated_at, product_segments, geo_segments, m1_ev_ebitda_multiple, m1_ebitda_current'),
     supabaseAdmin
       .from('stock_fundamentals')
-      .select('ticker, fiscal_year, eps, rd_expense, roe, roic, gross_margin, net_margin, operating_margin, free_cash_flow, total_debt, total_equity, sga, sbc, tax_rate, capex, shares_outstanding, intangibles, revenue, total_assets, updated_at, ebitda, net_income, cash_and_equivalents, current_liabilities, gross_profit, operating_income, dividends_paid')
+      .select('ticker, fiscal_year, eps, rd_expense, roe, roic, gross_margin, net_margin, operating_margin, free_cash_flow, total_debt, total_equity, sga, sbc, tax_rate, capex, shares_outstanding, intangibles, revenue, total_assets, updated_at, ebitda, net_income, cash_and_equivalents, current_liabilities, gross_profit, operating_income, dividends_paid, buybacks, operating_cash_flow, retained_earnings')
       .order('fiscal_year', { ascending: false }),
     supabaseAdmin
       .from('stock_prices')
@@ -393,17 +397,28 @@ export default async function AdminHealthPage() {
 
   // ── 7. Missing data gaps ────────────────────────────────────────────────────
   const GAP_FIELDS: Array<{ key: string; label: string }> = [
-    { key: 'revenue',          label: 'revenue' },
-    { key: 'gross_profit',     label: 'gross_profit' },
-    { key: 'sga',              label: 'sga' },
-    { key: 'rd_expense',       label: 'rd_expense' },
-    { key: 'operating_income', label: 'operating_income' },
-    { key: 'net_income',       label: 'net_income' },
-    { key: 'ebitda',           label: 'ebitda' },
-    { key: 'free_cash_flow',   label: 'free_cash_flow' },
-    { key: 'total_debt',       label: 'total_debt' },
-    { key: 'eps',              label: 'eps' },
-    { key: 'dividends_paid',   label: 'dividends_paid' },
+    // Income statement
+    { key: 'revenue',             label: 'revenue' },
+    { key: 'gross_profit',        label: 'gross_profit' },
+    { key: 'sga',                 label: 'sga' },
+    { key: 'rd_expense',          label: 'rd_expense' },
+    { key: 'operating_income',    label: 'operating_income' },
+    { key: 'net_income',          label: 'net_income' },
+    { key: 'ebitda',              label: 'ebitda' },
+    { key: 'eps',                 label: 'eps' },
+    // Cash flow
+    { key: 'operating_cash_flow', label: 'operating_cash_flow' },
+    { key: 'free_cash_flow',      label: 'free_cash_flow' },
+    { key: 'capex',               label: 'capex' },
+    { key: 'sbc',                 label: 'sbc' },
+    { key: 'dividends_paid',      label: 'dividends_paid' },
+    { key: 'buybacks',            label: 'buybacks' },
+    // Balance sheet
+    { key: 'total_debt',          label: 'total_debt' },
+    { key: 'total_equity',        label: 'total_equity' },
+    { key: 'total_assets',        label: 'total_assets' },
+    { key: 'cash_and_equivalents', label: 'cash_and_equivalents' },
+    { key: 'retained_earnings',   label: 'retained_earnings' },
   ]
 
   type DataGapRow = { ticker: string; field: string; missingYears: number[] }
@@ -584,6 +599,35 @@ export default async function AdminHealthPage() {
     sigCounts['NONE'] / sigTotal > 0.30
   )
 
+  // ── 10. Triage Summary ─────────────────────────────────────────────────────
+  type TriageItem = { priority: 1 | 2 | 3; section: string; count: number; label: string }
+  const triageRaw: Array<TriageItem | null> = [
+    // P1 — critical: data corruption or scoring inputs broken
+    { priority: 1, section: '07', count: dataGaps.length,       label: 'interior data gaps (null mid-run)' },
+    { priority: 1, section: '07', count: allNullActive.length,  label: 'all-null fields unconfirmed — needs tag fix or confirmed_exceptions entry' },
+    { priority: 1, section: '09a', count: balanceSanity.length, label: 'balance sheet sanity failures (total_debt ≥ total_assets)' },
+    { priority: 1, section: '09c', count: scaleErrors.length,   label: 'scale/magnitude errors (YoY ratio >100×)' },
+    { priority: 1, section: '09d', count: negativeErrors.length, label: 'negative sign errors on must-be-positive fields' },
+    { priority: 1, section: '06a', count: ebitdaSanity.length,  label: 'EBITDA >5× revenue (scoring input corrupt)' },
+    sigSkewed ? { priority: 1, section: '09g', count: 1,        label: 'signal distribution skewed (>80% single signal or >30% no signal)' } : null,
+    // P2 — investigate: data gaps that affect scoring accuracy
+    { priority: 2, section: '06b', count: epsComputable.length, label: 'EPS null but computable — net_income + shares available' },
+    { priority: 2, section: '06d', count: ebitdaMissing.length, label: 'EBITDA null/zero with positive net income — D&A extraction likely failed' },
+    { priority: 2, section: '09b', count: frozenValues.length,  label: 'frozen values across 3+ years (possible stale copy-forward)' },
+    { priority: 2, section: '09f', count: staleYearRows.length, label: 'tickers below median fiscal year (data behind rest of universe)' },
+    // P3 — informational
+    { priority: 3, section: '04',  count: anomalies.length,     label: 'magnitude outliers >10× median (may be real — verify)' },
+    { priority: 3, section: '09e', count: peerOutliers.length,  label: 'peer outliers >3σ (banks expected — verify non-banks)' },
+    { priority: 3, section: '05',  count: staleCount,           label: `stale pipeline entries (>${STALE_DAYS} days since last run)` },
+    { priority: 3, section: '03',  count: longSegNames.length,  label: 'segment names >40 chars (display truncation risk)' },
+  ]
+  const triageItems = triageRaw
+    .filter((x): x is TriageItem => x !== null && x.count > 0)
+    .sort((a, b) => a.priority - b.priority || b.count - a.count)
+
+  const p1Count = triageItems.filter(t => t.priority === 1).length
+  const p2Count = triageItems.filter(t => t.priority === 2).length
+
   // ── report string ───────────────────────────────────────────────────────────
   const hr = '─'.repeat(60)
   const reportLines: string[] = [
@@ -654,6 +698,15 @@ export default async function AdminHealthPage() {
     `  9e PEER OUTLIERS          ${peerOutliers.length} flagged`,
     `  9f STALE FISCAL YEAR      ${staleYearRows.length} flagged  (median year: ${medianYear})`,
     `  9g SIGNAL DISTRIBUTION    ${sigSkewed ? 'SKEWED ⚠' : 'OK'}  BUY ${sigCounts['BUY']} · HOLD ${sigCounts['HOLD']} · SELL ${sigCounts['SELL']} · NONE ${sigCounts['NONE']}`,
+    '',
+    `10 — TRIAGE SUMMARY  (${triageItems.length} active issues · P1:${p1Count} P2:${p2Count} P3:${triageItems.length - p1Count - p2Count})`,
+    ...(triageItems.length === 0
+      ? ['  ✓ No issues detected']
+      : triageItems.map(t => {
+          const label = t.priority === 1 ? 'P1' : t.priority === 2 ? 'P2' : 'P3'
+          return `  [${label}] §${t.section}  ${t.count} × ${t.label}`
+        })
+    ),
     hr,
   ]
   const report = reportLines.join('\n')
@@ -1257,8 +1310,41 @@ export default async function AdminHealthPage() {
           <SampleValidation />
         </div>
 
+        {/* ── 10. Triage Summary ── */}
+        <div style={S.section}>
+          <p style={S.head}>
+            10 — TRIAGE SUMMARY  ·  {triageItems.length} active issues
+            {p1Count > 0 && <span style={{ color: '#ef4444', marginLeft: 8 }}>P1: {p1Count}</span>}
+            {p2Count > 0 && <span style={{ color: '#ffcc00', marginLeft: 8 }}>P2: {p2Count}</span>}
+            {triageItems.length - p1Count - p2Count > 0 && <span style={{ color: DIM, marginLeft: 8 }}>P3: {triageItems.length - p1Count - p2Count}</span>}
+          </p>
+          {triageItems.length === 0 ? (
+            <p style={S.none}>✓ No issues detected</p>
+          ) : (
+            <table style={S.table}>
+              <thead>
+                <tr>{(['PRI', 'SECTION', 'COUNT', 'ISSUE'] as const).map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {triageItems.map((t, i) => {
+                  const color = t.priority === 1 ? '#ef4444' : t.priority === 2 ? '#ffcc00' : DIM
+                  const badge = t.priority === 1 ? 'P1' : t.priority === 2 ? 'P2' : 'P3'
+                  return (
+                    <tr key={i}>
+                      <td style={{ ...S.td, color, fontWeight: 'bold', letterSpacing: '0.1em' }}>{badge}</td>
+                      <td style={{ ...S.td, color: DIM }}>§{t.section}</td>
+                      <td style={{ ...S.td, color, fontWeight: 'bold', textAlign: 'right' as const, paddingRight: 16 }}>{t.count}</td>
+                      <td style={{ ...S.td, color: t.priority === 1 ? '#fff' : t.priority === 2 ? '#ffcc00' : DIM }}>{t.label}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
         <div style={{ marginTop: '3rem', paddingTop: '1rem', borderTop: `1px solid ${FAINT}`, fontSize: 9, color: 'rgba(0,255,136,0.15)' }}>
-          STOCKSNACK ADMIN · /admin/health · INTERNAL USE ONLY · 9 SECTIONS
+          STOCKSNACK ADMIN · /admin/health · INTERNAL USE ONLY · 10 SECTIONS
         </div>
       </div>
     </div>

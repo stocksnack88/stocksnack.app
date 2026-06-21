@@ -87,6 +87,10 @@ _MEMBER_OVERRIDES: dict[str, str] = {
     "glw:SpecialtyMaterialsProductsMember":  "Specialty Materials",
     "glw:LifeScienceProductsMember":         "Life Sciences",
     "glw:PolycrystallineSiliconProductsMember": "Polycrystalline Silicon",
+    # MSFT — camelCase split of "ThreeSixFive…AndCloudServices" produces 51/50
+    # chars, which _shorten() clips to "…Products And" at the 40-char word boundary.
+    "msft:MicrosoftThreeSixFiveCommercialProductsAndCloudServicesMember": "Microsoft 365 Commercial Products and Cloud Services",
+    "msft:MicrosoftThreeSixFiveConsumerProductsAndCloudServicesMember":   "Microsoft 365 Consumer Products and Cloud Services",
     # Standard XBRL members — replace generic taxonomy labels with clean names
     "us-gaap:ProductAndServiceOtherMember":  "Other",
     "us-gaap:AllOtherSegmentsMember":        "Other",

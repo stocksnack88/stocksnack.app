@@ -909,7 +909,7 @@ def main() -> None:
         pre_register_tickers(tickers, writer)
 
     log.info("Fetching S&P 500 benchmark…")
-    spy = compute_spy_benchmark({}, [])
+    spy = compute_spy_benchmark()
     log.info("SPY benchmark: cagr=%.4f", spy.get("sp500_cagr") or 0)
 
     processed:       list[str]          = []

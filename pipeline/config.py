@@ -20,8 +20,6 @@ _load_env_file(Path(__file__).parent.parent / ".env.local")
 
 SUPABASE_URL: str = os.environ["NEXT_PUBLIC_SUPABASE_URL"]
 SUPABASE_KEY: str = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-FMP_API_KEY: str = os.environ.get("FMP_API_KEY", "")  # unused by SEC pipeline
-FMP_BASE_URL: str = "https://financialmodelingprep.com"
 
 TICKERS = [
     "NVDA", "GOOGL", "AAPL", "MSFT", "AMZN",

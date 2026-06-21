@@ -104,7 +104,12 @@ def _fcf_gq_score(
 
     gq = compute_gq(series, sp500_cagr)
     score = cagr_to_score(gq["weightedCAGR"], sp500_cagr)
-    return score, gq["weightedCAGR"], gq["signal"]
+    # Display-only: dollar-based path leaves weightedCAGR=0.0; compute pseudo-CAGR for chart
+    if gq["avg_dollar_change"] is not None and series[-1]:
+        display_cagr = gq["avg_dollar_change"] / abs(series[-1])
+    else:
+        display_cagr = gq["weightedCAGR"]
+    return score, display_cagr, gq["signal"]
 
 
 
@@ -138,11 +143,25 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
     rev_weighted_cagr = gq_rev["weightedCAGR"]
     ni_weighted_cagr  = gq_ni["weightedCAGR"]
 
+    # Display-only pseudo-CAGR for dollar-based path (scoring uses rev/ni_weighted_cagr unchanged)
+    _rv0 = rev_vals[0] if rev_vals else 0.0
+    _ni0 = ni_vals[0]  if ni_vals  else 0.0
+    rev_display_cagr = (gq_rev["avg_dollar_change"] / abs(_rv0)
+                        if gq_rev["avg_dollar_change"] is not None and _rv0 else rev_weighted_cagr)
+    ni_display_cagr  = (gq_ni["avg_dollar_change"] / abs(_ni0)
+                        if gq_ni["avg_dollar_change"] is not None and _ni0 else ni_weighted_cagr)
+
     # 3-year variants (identical logic, shorter window)
     gq_rev_3y = compute_gq(list(reversed(rev_vals[:3])), _base)
     gq_ni_3y  = compute_gq(list(reversed(ni_vals[:3])),  _base)
     rev_weighted_cagr_3y = gq_rev_3y["weightedCAGR"]
     ni_weighted_cagr_3y  = gq_ni_3y["weightedCAGR"]
+    _rv0_3y = rev_vals[0] if rev_vals else 0.0
+    _ni0_3y = ni_vals[0]  if ni_vals  else 0.0
+    rev_display_cagr_3y = (gq_rev_3y["avg_dollar_change"] / abs(_rv0_3y)
+                           if gq_rev_3y["avg_dollar_change"] is not None and _rv0_3y else rev_weighted_cagr_3y)
+    ni_display_cagr_3y  = (gq_ni_3y["avg_dollar_change"] / abs(_ni0_3y)
+                           if gq_ni_3y["avg_dollar_change"] is not None and _ni0_3y else ni_weighted_cagr_3y)
 
     rev_ni_scores = [
         cagr_to_score(rev_weighted_cagr, _base),
@@ -168,7 +187,11 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
         if sum(series_3y) < 0:
             fcf_ng_3y = None
         else:
-            fcf_ng_3y = compute_gq(series_3y, _base)["weightedCAGR"]
+            gq_3y = compute_gq(series_3y, _base)
+            if gq_3y["avg_dollar_change"] is not None and series_3y[-1]:
+                fcf_ng_3y = gq_3y["avg_dollar_change"] / abs(series_3y[-1])
+            else:
+                fcf_ng_3y = gq_3y["weightedCAGR"]
 
     avg_score = sum(all_scores) / len(all_scores) if all_scores else 50.0
 
@@ -195,10 +218,10 @@ def score_growth(data: dict, sp500_cagr: float | None = None, ticker: str = "") 
 
     return {
         "score":              final_score,
-        "revenue_cagr_3y":    round(rev_weighted_cagr_3y, 4),
-        "revenue_cagr_5y":    round(rev_weighted_cagr, 4),
-        "net_income_cagr_3y": round(ni_weighted_cagr_3y,  4),
-        "net_income_cagr_5y": round(ni_weighted_cagr,  4),
+        "revenue_cagr_3y":    round(rev_display_cagr_3y, 4),
+        "revenue_cagr_5y":    round(rev_display_cagr, 4),
+        "net_income_cagr_3y": round(ni_display_cagr_3y,  4),
+        "net_income_cagr_5y": round(ni_display_cagr,  4),
         # FCF stored as normalised regression growth rate; None for financial companies
         "fcf_cagr_3y":        round(fcf_ng_3y, 4) if fcf_ng_3y is not None else None,
         "fcf_cagr_5y":        round(fcf_ng, 4) if fcf_ng is not None else None,

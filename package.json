@@ -16,6 +16,7 @@
     "html2canvas": "^1.4.1",
     "libphonenumber-js": "^1.13.6",
     "lucide-react": "^1.18.0",
+    "marked": "^18.0.5",
     "next": "14.2.35",
     "posthog-js": "^1.372.10",
     "react": "^18",

@@ -26,6 +26,79 @@ body {
   }
 }
 
+/* ── Blog prose ─────────────────────────────────────────────────────────── */
+.blog-prose {
+  font-family: var(--font-geist-mono), 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  color: rgba(0, 255, 65, 0.65);
+}
+.blog-prose p { margin-bottom: 1.2em; }
+.blog-prose h2 {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #00ff41;
+  margin-top: 2em;
+  margin-bottom: 0.75em;
+}
+.blog-prose h3 {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(0, 255, 65, 0.8);
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+.blog-prose strong { color: rgba(0, 255, 65, 0.9); font-weight: 700; }
+.blog-prose em { color: rgba(0, 255, 65, 0.5); font-style: italic; }
+.blog-prose a { color: #00ff41; text-decoration: underline; }
+.blog-prose a:hover { color: rgba(0, 255, 65, 0.7); }
+.blog-prose ul, .blog-prose ol {
+  margin: 1em 0;
+  padding-left: 1.5em;
+}
+.blog-prose li { margin-bottom: 0.4em; }
+.blog-prose blockquote {
+  border-left: 3px solid rgba(0, 255, 65, 0.3);
+  padding-left: 1em;
+  margin: 1.5em 0;
+  color: rgba(0, 255, 65, 0.45);
+}
+.blog-prose code {
+  background: rgba(0, 255, 65, 0.07);
+  border: 1px solid rgba(0, 255, 65, 0.15);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 12px;
+}
+.blog-prose pre {
+  background: rgba(0, 255, 65, 0.05);
+  border: 1px solid rgba(0, 255, 65, 0.1);
+  border-radius: 4px;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+.blog-prose pre code { background: none; border: none; padding: 0; }
+.blog-prose hr {
+  border: none;
+  border-top: 1px solid rgba(0, 255, 65, 0.1);
+  margin: 2em 0;
+}
+.blog-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  font-size: 12px;
+}
+.blog-prose th, .blog-prose td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+}
+.blog-prose th { color: #00ff41; font-weight: 700; letter-spacing: 0.05em; }
+
 /* ── Shared animations ──────────────────────────────────────────────────── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(8px); }

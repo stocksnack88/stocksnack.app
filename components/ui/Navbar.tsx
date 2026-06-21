@@ -30,6 +30,13 @@ export default async function Navbar() {
       </Link>
 
       <div className="flex items-center gap-3 sm:gap-5 text-xs">
+        <Link
+          href="/blog"
+          className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
+        >
+          BLOG
+        </Link>
+
         {!user && (
           <>
             <Link

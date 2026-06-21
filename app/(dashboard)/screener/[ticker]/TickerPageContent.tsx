@@ -800,18 +800,18 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[2]</span> {isPeMode ? "NET INCOME" : "EBITDA"} NOW</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(score?.m1_ebitda_current)}</p>
                 </div></div>
-                {!m2na && (
-                  <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
+                <div className={`px-3 py-1 ${cb}`}>
+                  {!m2na && <div className={stepBox}>
                     <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[2]</span> FCF NOW</p>
                     <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(score?.m2_fcf_current)}</p>
-                  </div></div>
-                )}
-                {!m3na && (
-                  <div className="px-3 py-1"><div className={stepBox}>
+                  </div>}
+                </div>
+                <div className="px-3 py-1">
+                  {!m3na && <div className={stepBox}>
                     <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[2]</span> DIV YIELD NOW</p>
                     <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m3_div_yield != null ? `${(Number(score.m3_div_yield) * 100).toFixed(2)}%` : "—"}</p>
-                  </div></div>
-                )}
+                  </div>}
+                </div>
 
                 {/* ROW 3.5: Arrow */}
                 <div className={cb}>{arrow("0.25")}</div>
@@ -823,18 +823,18 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[3]</span> GROWTH RATE</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m1_growth_rate != null ? `${(Number(score.m1_growth_rate) * 100).toFixed(1)}%/yr` : "—"}</p>
                 </div></div>
-                {!m2na && (
-                  <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
+                <div className={`px-3 py-1 ${cb}`}>
+                  {!m2na && <div className={stepBox}>
                     <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[3]</span> GROWTH RATE</p>
                     <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m2_growth_rate != null ? `${(Number(score.m2_growth_rate) * 100).toFixed(1)}%/yr` : "—"}</p>
-                  </div></div>
-                )}
-                {!m3na && (
-                  <div className="px-3 py-1"><div className={stepBox}>
+                  </div>}
+                </div>
+                <div className="px-3 py-1">
+                  {!m3na && <div className={stepBox}>
                     <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[3]</span> GROWTH RATE</p>
                     <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m3_growth_rate != null ? `${(Number(score.m3_growth_rate) * 100).toFixed(1)}%/yr` : "—"}</p>
-                  </div></div>
-                )}
+                  </div>}
+                </div>
 
                 {/* ROW 4.5: Arrow */}
                 <div className={cb}>{arrow("0.25")}</div>
@@ -846,18 +846,18 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[4]</span> {isPeMode ? "NET INCOME" : "EBITDA"} IN 5Y</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(score?.m1_ebitda_projected)}</p>
                 </div></div>
-                {!m2na && (
-                  <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
+                <div className={`px-3 py-1 ${cb}`}>
+                  {!m2na && <div className={stepBox}>
                     <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[4]</span> FCF IN 5Y</p>
                     <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(score?.m2_fcf_projected)}</p>
-                  </div></div>
-                )}
-                {!m3na && (
-                  <div className="px-3 py-1"><div className={stepBox}>
+                  </div>}
+                </div>
+                <div className="px-3 py-1">
+                  {!m3na && <div className={stepBox}>
                     <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[4]</span> TOTAL DIV (5Y)</p>
                     <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{m3CurTotalDiv != null ? fmtBn(m3CurTotalDiv) : "—"}</p>
-                  </div></div>
-                )}
+                  </div>}
+                </div>
 
                 {/* ROW 5.5: Arrow */}
                 <div className={cb}>{arrow("0.25")}</div>
@@ -869,18 +869,18 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                   <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[5]</span> {isPeMode ? "P/E" : "EV/EBITDA"} MULTIPLE</p>
                   <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m1_ev_ebitda_multiple != null ? `${Number(score.m1_ev_ebitda_multiple).toFixed(1)}x` : "—"}</p>
                 </div></div>
-                {!m2na && (
-                  <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
+                <div className={`px-3 py-1 ${cb}`}>
+                  {!m2na && <div className={stepBox}>
                     <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[5]</span> FCF YIELD</p>
                     <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m2_fcf_yield != null ? `${(Number(score.m2_fcf_yield) * 100).toFixed(2)}%` : "—"}</p>
-                  </div></div>
-                )}
-                {!m3na && (
-                  <div className="px-3 py-1"><div className={stepBox}>
+                  </div>}
+                </div>
+                <div className="px-3 py-1">
+                  {!m3na && <div className={stepBox}>
                     <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[5]</span> DIV IN 5Y</p>
                     <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{m3Proj5yTotalDiv != null ? fmtBn(m3Proj5yTotalDiv) : "—"}</p>
-                  </div></div>
-                )}
+                  </div>}
+                </div>
 
                 {/* ROW 6.5: Arrow */}
                 <div className={cb}>{arrow("0.4")}</div>
@@ -895,19 +895,19 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                     <p className="text-[7px] mt-0.5" style={{ color: "rgba(0,255,65,0.35)" }}>net debt {fmtBn(score.m1_net_debt)}</p>
                   )}
                 </div></div>
-                {!m2na && (
-                  <div className={`px-3 py-2 ${cb}`}><div className={`${stepBox} border-[rgba(0,255,65,0.3)]`}>
+                <div className={`px-3 py-2 ${cb}`}>
+                  {!m2na && <div className={`${stepBox} border-[rgba(0,255,65,0.3)]`}>
                     <p className="text-[8px] font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>M2 PRICE TARGET</p>
                     <p className="text-sm font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price)}</p>
-                  </div></div>
-                )}
-                {!m3na && (
-                  <div className="px-3 py-2"><div className={`${stepBox} border-[rgba(0,255,65,0.3)]`}>
+                  </div>}
+                </div>
+                <div className="px-3 py-2">
+                  {!m3na && <div className={`${stepBox} border-[rgba(0,255,65,0.3)]`}>
                     <p className="text-[8px] font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>M3 PRICE TARGET</p>
                     <p className="text-sm font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price)}</p>
                     <p className="text-[7px] mt-0.5 leading-tight" style={{ color: "rgba(0,255,65,0.35)" }}>{divLabel}</p>
-                  </div></div>
-                )}
+                  </div>}
+                </div>
 
               </div>
             )

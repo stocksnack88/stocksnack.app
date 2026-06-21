@@ -239,7 +239,7 @@ export function MethodologyToggle({ children }: { children: React.ReactNode }) {
           }}
           onClick={() => setOpen(v => !v)}
         >
-          {open ? '▲ HIDE METHODOLOGY' : '▼ HOW IT'S CALCULATED'}
+          {open ? '▲ HIDE METHODOLOGY' : "▼ HOW IT'S CALCULATED"}
         </button>
       </div>
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 300ms ease-in-out' }}>

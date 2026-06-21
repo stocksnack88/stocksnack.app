@@ -1,3 +1,4 @@
+import { Resvg } from "@resvg/resvg-js";
 import { supabaseAdmin } from "@/lib/supabase";
 
 interface BlogImageParams {
@@ -83,19 +84,24 @@ function escapeXml(str: string): string {
     .replace(/'/g, "&apos;");
 }
 
+function svgToPng(svg: string): Buffer {
+  const resvg = new Resvg(svg, { fitTo: { mode: "width", value: 1200 } });
+  return Buffer.from(resvg.render().asPng());
+}
+
 export async function generateBlogImage(
   slug: string,
   params: BlogImageParams
 ): Promise<string | null> {
   try {
     const svg = buildSvg(params);
-    const buffer = Buffer.from(svg, "utf8");
-    const path = `${slug}.svg`;
+    const png = svgToPng(svg);
+    const path = `${slug}.png`;
 
     const { error } = await supabaseAdmin.storage
       .from("blog-images")
-      .upload(path, buffer, {
-        contentType: "image/svg+xml",
+      .upload(path, png, {
+        contentType: "image/png",
         upsert: true,
       });
 

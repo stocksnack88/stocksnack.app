@@ -1,5 +1,6 @@
-// Run: node --env-file=.env.local scripts/test-blog-image.mjs
+// Run: node --env-file=pipeline/.env scripts/test-blog-image.mjs
 import { createClient } from "@supabase/supabase-js";
+import { Resvg } from "@resvg/resvg-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -67,6 +68,11 @@ function buildSvg({ title, category, ticker, stat, statLabel }) {
 </svg>`;
 }
 
+function svgToPng(svg) {
+  const resvg = new Resvg(svg, { fitTo: { mode: "width", value: 1200 } });
+  return Buffer.from(resvg.render().asPng());
+}
+
 const tests = [
   {
     slug: "nvda-score-breakdown",
@@ -91,17 +97,18 @@ const tests = [
 
 for (const { slug, params } of tests) {
   const svg = buildSvg(params);
-  const buffer = Buffer.from(svg, "utf8");
+  const png = svgToPng(svg);
+  const path = `${slug}.png`;
 
   const { error } = await supabase.storage
     .from("blog-images")
-    .upload(`${slug}.svg`, buffer, { contentType: "image/svg+xml", upsert: true });
+    .upload(path, png, { contentType: "image/png", upsert: true });
 
   if (error) {
     console.error(`[${slug}] Upload error:`, error.message);
     continue;
   }
 
-  const { data } = supabase.storage.from("blog-images").getPublicUrl(`${slug}.svg`);
+  const { data } = supabase.storage.from("blog-images").getPublicUrl(path);
   console.log(`[${slug}] ✓`, data.publicUrl);
 }

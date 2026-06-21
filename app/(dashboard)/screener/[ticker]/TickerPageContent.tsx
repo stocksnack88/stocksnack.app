@@ -772,14 +772,14 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               <td style={{
                 padding: "7px 8px 7px 12px", position: "sticky", left: 0, zIndex: 1,
                 background: "#0b0f0b", borderRight: VB,
-                color: "rgba(0,255,65,0.38)", fontSize: "8px", letterSpacing: "0.1em", whiteSpace: "nowrap",
+                color: "rgba(0,255,65,0.5)", fontSize: "10px", letterSpacing: "0.1em", whiteSpace: "nowrap",
               }}>{text}</td>
             )
             const cel = (node: React.ReactNode, bordered = true) => (
               <td style={{ padding: "7px 8px", textAlign: "center", borderRight: bordered ? CB : undefined }}>{node}</td>
             )
             const bv = (t: React.ReactNode) => (
-              <span style={{ ...brt, border: "1px solid #00ff41", padding: "2px 7px", display: "inline-block" }}>{t}</span>
+              <span style={{ ...brt, border: "1px solid #00ff41", padding: "2px 0", display: "inline-block", width: "72px", textAlign: "center", fontSize: "10px" }}>{t}</span>
             )
             const mv = (t: React.ReactNode) => <span style={mut}>{t}</span>
             const row = (style: React.CSSProperties, label: string, c1: React.ReactNode, c2: React.ReactNode, c3: React.ReactNode) => (
@@ -795,7 +795,9 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                   </colgroup>
                   <thead>
                     <tr style={{ background: "#0d150d", borderBottom: VB }}>
-                      <th style={{ padding: "8px 8px 8px 12px", position: "sticky", left: 0, zIndex: 2, background: "#0d150d", borderRight: VB }} />
+                      <th style={{ padding: "8px 8px 8px 12px", position: "sticky", left: 0, zIndex: 2, background: "#0d150d", borderRight: VB }}>
+                        <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em" }}>STEPS</div>
+                      </th>
                       <th style={{ padding: "8px", textAlign: "center", borderRight: CB }}>
                         <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em", marginBottom: "2px" }}>METHOD 1</div>
                         <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>{isPeMode ? "P/E RATIO" : "EBITDA"}</div>
@@ -844,23 +846,20 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                         fontWeight: "bold", whiteSpace: "nowrap",
                       }}>PRICE TARGET</td>
                       <td style={{ padding: "10px 8px", textAlign: "center", borderRight: CB }}>
-                        <div style={{ color: "#00ff41", fontSize: "15px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m1_price)}</div>
-                        {score?.m1_net_debt != null && (
-                          <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "7px", marginTop: "2px" }}>net debt {fmtBn(score.m1_net_debt)}</div>
-                        )}
+                        <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", borderRadius: "999px", padding: "4px 14px", color: "#00ff41", fontSize: "13px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m1_price)}</span>
                       </td>
                       <td style={{ padding: "10px 8px", textAlign: "center", borderRight: CB, opacity: m2na ? 0.35 : 1 }}>
                         {m2na
                           ? <span style={mut}>{m2NotApplicableReason}</span>
-                          : <div style={{ color: "#00ff41", fontSize: "15px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m2_price)}</div>
+                          : <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", borderRadius: "999px", padding: "4px 14px", color: "#00ff41", fontSize: "13px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m2_price)}</span>
                         }
                       </td>
                       <td style={{ padding: "10px 8px", textAlign: "center", opacity: m3na ? 0.35 : 1 }}>
                         {m3na
                           ? <span style={mut}>Div yield below threshold</span>
                           : <>
-                              <div style={{ color: "#00ff41", fontSize: "15px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m3_price)}</div>
-                              <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "7px", marginTop: "2px" }}>incl. ${cumDivPs.toFixed(2)}/sh divs</div>
+                              <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", borderRadius: "999px", padding: "4px 14px", color: "#00ff41", fontSize: "13px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m3_price)}</span>
+                              <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "7px", marginTop: "4px" }}>incl. ${cumDivPs.toFixed(2)}/sh divs</div>
                             </>
                         }
                       </td>

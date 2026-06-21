@@ -175,17 +175,21 @@ def get_xbrl_files(cik: str, ticker: str = "") -> dict[str, str] | None:
 
     instance_url = find_file([r"_htm\.xml$", r"_htmx\.xml$"])
     label_url    = find_file([r"_lab\.xml$"])
+    pre_url      = find_file([r"_pre\.xml$"])
 
     if not instance_url:
         log.warning("[%s] No XBRL instance file found in filing %s", ticker, accn)
         return None
     if not label_url:
         log.warning("[%s] No label linkbase found in filing %s", ticker, accn)
+    if not pre_url:
+        log.warning("[%s] No presentation linkbase found in filing %s", ticker, accn)
 
     log.info("[%s] XBRL instance: %s", ticker, instance_url)
     log.info("[%s] Label file:    %s", ticker, label_url or "—")
+    log.info("[%s] Pre linkbase:  %s", ticker, pre_url or "—")
 
-    return {"instance_url": instance_url, "label_url": label_url}
+    return {"instance_url": instance_url, "label_url": label_url, "pre_url": pre_url}
 
 
 # ── STEP 2: Parse label file ──────────────────────────────────────────────────
@@ -272,6 +276,56 @@ def parse_labels(lab_xml_url: str) -> dict[str, str]:
     return labels
 
 
+# ── STEP 2b: Parse presentation linkbase ─────────────────────────────────────
+
+def parse_presentation(pre_xml_url: str) -> dict[str, set[str]]:
+    """
+    Parse _pre.xml and return {parent_member: {child_member, ...}} for every
+    presentation arc in every link role.
+
+    This gives us the exact XBRL hierarchy without heuristics: a member that
+    appears as the "from" end of an arc is a rollup row; members that only
+    appear as "to" ends (or not at all) are leaves.
+    """
+    if not pre_xml_url:
+        return {}
+    try:
+        xml_bytes = _get(pre_xml_url, timeout=60).content
+        root      = ET.fromstring(xml_bytes)
+    except Exception as exc:
+        log.warning("Failed to fetch/parse presentation linkbase: %s", exc)
+        return {}
+
+    LINK_NS  = "http://www.xbrl.org/2003/linkbase"
+    XLINK    = "http://www.w3.org/1999/xlink"
+
+    parent_children: dict[str, set[str]] = {}
+
+    for plink in root.iter(f"{{{LINK_NS}}}presentationLink"):
+        # Build xlink:label → member-name map from loc elements
+        loc_map: dict[str, str] = {}
+        for loc in plink.iter(f"{{{LINK_NS}}}loc"):
+            label = loc.get(f"{{{XLINK}}}label", "")
+            href  = loc.get(f"{{{XLINK}}}href",  "")
+            # href fragment: "aapl-20250927.xsd#aapl_IPhoneMember"
+            # or "../../us-gaap-2024.xsd#us-gaap_ProductMember"
+            fragment = href.split("#")[-1] if "#" in href else ""
+            if "_" in fragment:
+                parts = fragment.split("_", 1)
+                loc_map[label] = f"{parts[0]}:{parts[1]}"
+
+        for arc in plink.iter(f"{{{LINK_NS}}}presentationArc"):
+            frm  = arc.get(f"{{{XLINK}}}from", "")
+            to   = arc.get(f"{{{XLINK}}}to",   "")
+            parent = loc_map.get(frm)
+            child  = loc_map.get(to)
+            if parent and child:
+                parent_children.setdefault(parent, set()).add(child)
+
+    log.info("Parsed %d rollup parents from presentation linkbase", len(parent_children))
+    return parent_children
+
+
 # ── STEP 3: Parse XBRL instance ───────────────────────────────────────────────
 
 def _clean_member_name(member: str, labels: dict[str, str]) -> str:
@@ -286,6 +340,12 @@ def _clean_member_name(member: str, labels: dict[str, str]) -> str:
         name = labels[member]
         name = re.sub(r"\s*\[Member\]\.?$", "", name).strip()
         name = re.sub(r"\s+Segment$", "", name).strip()
+        # Some companies (e.g. INCY) store documentation text as the label:
+        # "Represents information pertaining to JAKAFI, ruxolitinib…"
+        # Extract the product/category name that follows "pertaining to".
+        _rept = re.match(r'represents\s+information\s+pertaining\s+to\s+(.+)', name, re.IGNORECASE)
+        if _rept:
+            name = _rept.group(1).split(',')[0].strip()
         return _shorten(name)
 
     # Strip namespace prefix
@@ -463,62 +523,95 @@ def _extract_revenue_facts(
     return facts
 
 
-def _drop_rollups(segments: list[dict]) -> list[dict]:
+def _drop_rollups(
+    segments: list[dict],
+    parent_child_map: dict[str, set[str]] | None = None,
+) -> list[dict]:
     """
-    Remove parent-aggregate rows using a prefix-guided subset-sum check.
+    Remove parent-aggregate rows.
 
-    Standard taxonomy members (us-gaap: / srt:) are rollup candidates.
-    Company-specific members (aapl:, amzn:, msft:, …) are always kept.
+    Primary method — presentation linkbase hierarchy (when available):
+      Any segment whose XBRL member code is listed as a parent in the
+      _pre.xml arcs AND has at least one of its children also present in
+      the current segment list is identified as a rollup row and dropped.
+      This is exact: no heuristics, no false positives.
 
-    A candidate is dropped when its value ≈ sum of any subset of the
-    company-specific rows in the group (±2% of the candidate's value).
-    Because we check against the fixed set of company rows, one pass suffices.
+    Fallback — subset-sum on standard taxonomy members (us-gaap:/srt:):
+      When _pre.xml is not available (or identifies no rollups), STD rows
+      are tested against all other segments: if any subset of ≤10 siblings
+      sums to within 2% of the candidate, the candidate is a rollup.
+      Company-specific rows are NOT checked by this fallback — coincidental
+      sum matches are too common when many items are present (e.g. GILD's
+      Descovy would be falsely dropped).
     """
     if len(segments) <= 1:
         return segments
+
+    # ── Primary: presentation-linkbase hierarchy ──────────────────────────
+    if parent_child_map:
+        member_set = {s["member"] for s in segments}
+        to_drop = {
+            id(s) for s in segments
+            if s.get("member") in parent_child_map
+            and bool(parent_child_map[s["member"]] & member_set)
+        }
+        if to_drop:
+            kept = [s for s in segments if id(s) not in to_drop]
+            return kept if kept else segments
+        # Fall through: pre.xml parsed but found no rollup candidates in
+        # this segment set (can happen for BizSegments axis).
+
+    # ── Fallback: subset-sum ─────────────────────────────────────────────────
+    # STD rows (us-gaap:/srt:) always tested with 2% tolerance.
+    # Company-specific rows also tested when the list is small (≤ 8 items):
+    # small lists have too few combinations for coincidental matches to occur,
+    # but company-specific geo aggregates (e.g. "Outside the United States")
+    # would otherwise go uncaught. Use tighter 0.5% tolerance for those.
+    _MAX_CHILDREN = 10
+    _SMALL_N      = 8
 
     def _is_std(s: dict) -> bool:
         m = s.get("member", "")
         return m.startswith("us-gaap:") or m.startswith("srt:")
 
-    company_rows = [s for s in segments if not _is_std(s)]
-    std_rows     = [s for s in segments if _is_std(s)]
-
-    if not std_rows:
-        return segments  # no rollup candidates
-
-    cv = [s["value"] for s in company_rows]
-    n  = len(cv)
+    n_total   = len(segments)
+    candidates = [s for s in segments if _is_std(s) or n_total <= _SMALL_N]
+    if not candidates:
+        return segments
 
     to_drop: set[int] = set()
 
-    for idx, s in enumerate(std_rows):
-        v   = s["value"]
-        tol = v * 0.02
+    for candidate in candidates:
+        v   = candidate["value"]
+        tol = v * (0.02 if _is_std(candidate) else 0.005)
+        lo, hi = v - tol, v + tol
 
-        if n == 0:
+        # All other segments are potential children (STD or company-specific).
+        others = [s for s in segments if s is not candidate]
+        if not others:
             continue
 
-        # Fast path: v ≈ sum of all company rows
-        if abs(v - sum(cv)) <= tol:
-            to_drop.add(idx)
+        child_vals = sorted([s["value"] for s in others], reverse=True)
+        n = len(child_vals)
+
+        # Fast path: all others sum to v
+        if lo <= sum(child_vals) <= hi:
+            to_drop.add(id(candidate))
             continue
 
         # Subset search
-        check_sizes = range(2, n + 1) if n <= 7 else range(2, 4)
         found = False
-        for size in check_sizes:
-            for combo in combinations(range(n), size):
-                if abs(v - sum(cv[k] for k in combo)) <= tol:
+        for size in range(2, min(_MAX_CHILDREN, n) + 1):
+            for combo in combinations(child_vals, size):
+                if lo <= sum(combo) <= hi:
                     found = True
                     break
             if found:
                 break
         if found:
-            to_drop.add(idx)
+            to_drop.add(id(candidate))
 
-    dropped_ids = {id(std_rows[i]) for i in to_drop}
-    kept = [s for s in segments if id(s) not in dropped_ids]
+    kept = [s for s in segments if id(s) not in to_drop]
     return kept if kept else segments
 
 
@@ -526,6 +619,7 @@ def _build_segments(
     facts: list[dict],
     axes: set[str],
     labels: dict[str, str],
+    parent_child_map: dict[str, set[str]] | None = None,
 ) -> list[dict] | None:
     """
     From a list of revenue facts, keep only those matching the given axes.
@@ -621,7 +715,7 @@ def _build_segments(
 
     # Sort by value descending
     segments.sort(key=lambda s: s["value"], reverse=True)
-    segments = _drop_rollups(segments)
+    segments = _drop_rollups(segments, parent_child_map)
 
     # Drop name-based rollup markers: anything starting with "total",
     # or exact matches for "worldwide" / "consolidated".
@@ -644,6 +738,7 @@ def parse_segments(
     instance_xml_url: str,
     labels: dict[str, str],
     ticker: str = "",
+    parent_child_map: dict[str, set[str]] | None = None,
 ) -> dict[str, list[dict] | None]:
     """
     Parse the XBRL instance document and return:
@@ -672,10 +767,10 @@ def parse_segments(
     # Build product segments — try ProductOrService axis first, fall back to
     # StatementBusinessSegmentsAxis when the product axis returns nothing or only
     # one segment (e.g. GOOGL, META, JPM, AMD all report divisions on BizSegments).
-    product         = _build_segments(facts, _PRODUCT_AXES, labels)
+    product          = _build_segments(facts, _PRODUCT_AXES, labels, parent_child_map)
     product_used_biz = False
     if product is None or len(product) < 2:
-        biz_product = _build_segments(facts, _BIZ_SEGMENT_AXES, labels)
+        biz_product = _build_segments(facts, _BIZ_SEGMENT_AXES, labels, parent_child_map)
         if biz_product and len(biz_product) >= 2:
             product          = biz_product
             product_used_biz = True
@@ -684,9 +779,9 @@ def parse_segments(
     # Build geo segments — try pure geo axes first, fall back to business segment axes
     # (many companies like AAPL report geographic revenue under StatementBusinessSegmentsAxis).
     # Skip the BizSegments fallback if it was already consumed for product above.
-    geo = _build_segments(facts, _GEO_AXES, labels)
+    geo = _build_segments(facts, _GEO_AXES, labels, parent_child_map)
     if geo is None and not product_used_biz:
-        geo = _build_segments(facts, _BIZ_SEGMENT_AXES, labels)
+        geo = _build_segments(facts, _BIZ_SEGMENT_AXES, labels, parent_child_map)
         if geo:
             log.info("[%s] Geo segments sourced from StatementBusinessSegmentsAxis", ticker)
 
@@ -705,9 +800,10 @@ def get_segments(ticker: str, cik: str) -> dict[str, list[dict] | None]:
         if not files:
             return _NULL_RESULT
 
-        labels = parse_labels(files["label_url"]) if files.get("label_url") else {}
+        labels           = parse_labels(files["label_url"]) if files.get("label_url") else {}
+        parent_child_map = parse_presentation(files["pre_url"]) if files.get("pre_url") else {}
 
-        return parse_segments(files["instance_url"], labels, ticker)
+        return parse_segments(files["instance_url"], labels, ticker, parent_child_map or None)
     except Exception as exc:
         log.error("[%s] Unexpected error in get_segments: %s", ticker, exc)
         return _NULL_RESULT

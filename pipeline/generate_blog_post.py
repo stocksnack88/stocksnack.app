@@ -3,7 +3,7 @@ StockSnack — Weekly blog post generator.
 
 Runs after all 20 scoring jobs complete (needs: pipeline in the workflow).
 Reads the full scored S&P 500 universe, identifies top BUY+ names and signal
-flips vs last week, calls Claude to draft the post, generates a featured image
+flips vs last week, calls Gemini to draft the post, generates a featured image
 (Python port of lib/generate-blog-image.ts), and inserts into blog_posts.
 """
 from __future__ import annotations
@@ -17,8 +17,9 @@ from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 
+from google import genai
+from google.genai import types
 from supabase import create_client, Client
-import anthropic
 
 # Allow imports from pipeline/
 _PIPELINE_DIR = Path(__file__).parent
@@ -264,11 +265,11 @@ def generate_content(
     week_label:    str,
     universe_count: int,
 ) -> dict:
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY not set")
+        raise RuntimeError("GEMINI_API_KEY not set")
 
-    client = anthropic.Anthropic(api_key=api_key)
+    gemini = genai.Client(api_key=api_key)
 
     buys_lines = [
         f"- {r['ticker']}: signal={r['signal']}, ppm_cagr={_pct(_f(r.get('ppm_cagr')))}, "
@@ -309,14 +310,16 @@ Rules:
 - grade = signal value (BUY+, BUY, HOLD, SELL)
 - if no BUY+ signals, say so plainly and note which signals were most common"""
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=2048,
-        messages=[{"role": "user", "content": prompt}],
+    response = gemini.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+        ),
     )
 
-    raw = message.content[0].text.strip()
-    # Strip markdown fences if the model wrapped the JSON
+    raw = response.text.strip()
+    # Strip markdown fences if the model wrapped the JSON despite response_mime_type
     if raw.startswith("```"):
         lines = raw.split("\n")
         inner = lines[1:] if lines[0].startswith("```") else lines
@@ -325,7 +328,7 @@ Rules:
     try:
         return json.loads(raw)
     except json.JSONDecodeError as exc:
-        log.error("Claude returned non-JSON (%s):\n%s", exc, raw[:500])
+        log.error("Gemini returned non-JSON (%s):\n%s", exc, raw[:500])
         raise
 
 

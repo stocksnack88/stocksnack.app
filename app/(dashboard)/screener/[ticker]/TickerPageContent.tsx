@@ -717,7 +717,6 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           </p>
 
           <MethodologyToggle>
-          {/* 3 method cards */}
           {(() => {
             const m3na = score?.m3_applicable === false || !score?.ppm_m3_price || Number(score.ppm_m3_price) === 0 || (score?.m3_div_yield != null && Number(score.m3_div_yield) < 0.04)
             const m2na = !score?.ppm_m2_price || Number(score.ppm_m2_price) === 0
@@ -729,186 +728,157 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                 return 'Negative FCF — capex exceeds operating cash'
               return 'Insufficient FCF data'
             })()
-            const stepBox = "border border-[rgba(0,255,65,0.1)] rounded p-1 text-center"
-            const cb  = "border-r border-[rgba(0,255,65,0.1)]"
             const cumDivPs = score?.m_cumulative_div_ps != null ? Number(score.m_cumulative_div_ps) : 0
-            const divLabel = `+ $${cumDivPs.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} dividends received over 5Y`
-            const arrow = (op: string) => (
-              <div className="text-center text-[9px] leading-none py-0.5" style={{ color: `rgba(0,255,65,${op})` }}>↓</div>
-            )
-
-            const m3Shares         = score?.m1_shares != null ? Number(score.m1_shares) : null
-            const m3AnnualDivPs    = cumDivPs > 0 ? cumDivPs / 5 : null
-            const m3CurTotalDiv    = m3AnnualDivPs != null && m3Shares != null ? m3AnnualDivPs * m3Shares : null
-            const m3GrowthRate     = score?.m3_growth_rate != null ? Number(score.m3_growth_rate) : null
+            const m3Shares = score?.m1_shares != null ? Number(score.m1_shares) : null
+            const m3AnnualDivPs = cumDivPs > 0 ? cumDivPs / 5 : null
+            const m3CurTotalDiv = m3AnnualDivPs != null && m3Shares != null ? m3AnnualDivPs * m3Shares : null
+            const m3GrowthRate = score?.m3_growth_rate != null ? Number(score.m3_growth_rate) : null
             const m3Proj5yTotalDiv = m3CurTotalDiv != null && m3GrowthRate != null
               ? m3CurTotalDiv * Math.pow(1 + m3GrowthRate, 5) : null
             const isPeMode = ["PYPL", "HOOD"].includes(ticker)
 
+            const m1Price = score?.ppm_m1_price ? Number(score.ppm_m1_price) : null
+            const m2Price = !m2na && score?.ppm_m2_price ? Number(score.ppm_m2_price) : null
+            const m3Price = !m3na && score?.ppm_m3_price ? Number(score.ppm_m3_price) : null
+            const m1Return = m1Price != null && currentPrice ? m1Price / currentPrice : null
+            const m2Return = m2Price != null && currentPrice ? m2Price / currentPrice : null
+            const m3Return = m3Price != null && currentPrice ? m3Price / currentPrice : null
+            const m1Cagr = m1Return != null ? Math.pow(m1Return, 0.2) - 1 : null
+            const m2Cagr = m2Return != null ? Math.pow(m2Return, 0.2) - 1 : null
+            const m3Cagr = m3Return != null ? Math.pow(m3Return, 0.2) - 1 : null
+            const sp500CagrVal = score?.sp500_cagr != null ? Number(score.sp500_cagr) : null
+
+            const CB = "1px solid rgba(0,255,65,0.08)"
+            const RB = "1px solid rgba(0,255,65,0.06)"
+
+            const pct  = (v: unknown) => v != null ? `${(Number(v) * 100).toFixed(1)}%/yr` : "—"
+            const mlt  = (v: unknown) => v != null ? `${Number(v).toFixed(1)}x` : "—"
+            const yld  = (v: unknown) => v != null ? `${(Number(v) * 100).toFixed(2)}%` : "—"
+            const retX = (r: number | null) => r != null ? `${r.toFixed(1)}x` : "—"
+            const cagrP = (c: number | null) => c != null ? `${(c * 100).toFixed(1)}%` : "—"
+            const vsSP = (c: number | null) => {
+              if (c == null || sp500CagrVal == null) return "—"
+              const d = c - sp500CagrVal
+              return d >= 0 ? `+${(d * 100).toFixed(1)}%` : `${(d * 100).toFixed(1)}%`
+            }
+            const vsClr = (c: number | null) =>
+              c != null && sp500CagrVal != null && c > sp500CagrVal ? "#00ff41" : "rgba(0,255,65,0.45)"
+
+            const brt: React.CSSProperties = { color: "rgba(0,255,65,0.8)", fontWeight: "bold" }
+            const mut: React.CSSProperties = { color: "rgba(0,255,65,0.28)", fontSize: "8px" }
+
+            const lbl = (text: string) => (
+              <td style={{
+                padding: "7px 8px 7px 12px", position: "sticky", left: 0, zIndex: 1,
+                background: "#0b0f0b", borderRight: CB,
+                color: "rgba(0,255,65,0.38)", fontSize: "8px", letterSpacing: "0.1em", whiteSpace: "nowrap",
+              }}>{text}</td>
+            )
+            const cel = (node: React.ReactNode, bordered = true) => (
+              <td style={{ padding: "7px 8px", textAlign: "center", borderRight: bordered ? CB : undefined }}>{node}</td>
+            )
+            const bv = (t: React.ReactNode) => <span style={brt}>{t}</span>
+            const mv = (t: React.ReactNode) => <span style={mut}>{t}</span>
+            const row = (style: React.CSSProperties, label: string, c1: React.ReactNode, c2: React.ReactNode, c3: React.ReactNode) => (
+              <tr style={style}>{lbl(label)}{cel(c1)}{cel(c2)}{cel(c3, false)}</tr>
+            )
+
             return (
-              <div className="grid grid-cols-3 items-start" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
-
-                {/* ROW 1: Method headers */}
-                <div className={`px-3 pt-2 pb-1 text-center ${cb}`}>
-                  <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 1</p>
-                  <p className="text-xs font-bold tracking-wider" style={{ color: "#00ff41" }}>EARNINGS GROWTH</p>
-                </div>
-                <div className={`px-3 pt-2 pb-1 text-center ${cb} ${m2na ? "opacity-40" : ""}`}>
-                  <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 2</p>
-                  <p className="text-xs font-bold tracking-wider" style={{ color: "#00ff41" }}>FREE CASH FLOW</p>
-                </div>
-                <div className={`px-3 pt-2 pb-1 text-center ${m3na ? "opacity-40" : ""}`}>
-                  <p className="text-xs tracking-widest mb-0.5" style={{ color: "rgba(0,255,65,0.2)" }}>METHOD 3</p>
-                  <p className="text-xs font-bold tracking-wider" style={{ color: "#00ff41" }}>DIVIDENDS</p>
-                </div>
-
-                {/* ROW 2: Step [1] — Current Price */}
-                <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
-                  <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[1]</span> CURRENT PRICE</p>
-                  <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
-                </div></div>
-                {m2na ? (
-                  <div className={`px-3 py-1 ${cb} opacity-40 text-center`}>
-                    <p className="text-[9px] font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.7)" }}>NOT APPLICABLE</p>
-                    <p className="text-[8px] mt-0.5 leading-tight" style={{ color: "rgba(0,255,65,0.5)" }}>{m2NotApplicableReason}</p>
-                  </div>
-                ) : (
-                  <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
-                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[1]</span> CURRENT PRICE</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
-                  </div></div>
-                )}
-                {m3na ? (
-                  <div className="px-3 py-1 opacity-40 text-center">
-                    <p className="text-[9px] font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.7)" }}>NOT APPLICABLE</p>
-                    <p className="text-[8px] mt-0.5 leading-tight" style={{ color: "rgba(0,255,65,0.5)" }}>Dividend yield below 4.5% threshold</p>
-                  </div>
-                ) : (
-                  <div className="px-3 py-1"><div className={stepBox}>
-                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[1]</span> CURRENT PRICE</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtDollar(currentPrice)}</p>
-                  </div></div>
-                )}
-
-                {/* ROW 2.5: Arrow */}
-                <div className={cb}>{arrow("0.25")}</div>
-                <div className={cb}>{!m2na && arrow("0.25")}</div>
-                <div>{!m3na && arrow("0.25")}</div>
-
-                {/* ROW 3: Step [2] */}
-                <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
-                  <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[2]</span> {isPeMode ? "NET INCOME" : "EBITDA"} NOW</p>
-                  <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(score?.m1_ebitda_current)}</p>
-                </div></div>
-                <div className={`px-3 py-1 ${cb}`}>
-                  {!m2na && <div className={stepBox}>
-                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[2]</span> FCF NOW</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(score?.m2_fcf_current)}</p>
-                  </div>}
-                </div>
-                <div className="px-3 py-1">
-                  {!m3na && <div className={stepBox}>
-                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[2]</span> DIV YIELD NOW</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m3_div_yield != null ? `${(Number(score.m3_div_yield) * 100).toFixed(2)}%` : "—"}</p>
-                  </div>}
-                </div>
-
-                {/* ROW 3.5: Arrow */}
-                <div className={cb}>{arrow("0.25")}</div>
-                <div className={cb}>{!m2na && arrow("0.25")}</div>
-                <div>{!m3na && arrow("0.25")}</div>
-
-                {/* ROW 4: Step [3] */}
-                <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
-                  <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[3]</span> GROWTH RATE</p>
-                  <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m1_growth_rate != null ? `${(Number(score.m1_growth_rate) * 100).toFixed(1)}%/yr` : "—"}</p>
-                </div></div>
-                <div className={`px-3 py-1 ${cb}`}>
-                  {!m2na && <div className={stepBox}>
-                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[3]</span> GROWTH RATE</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m2_growth_rate != null ? `${(Number(score.m2_growth_rate) * 100).toFixed(1)}%/yr` : "—"}</p>
-                  </div>}
-                </div>
-                <div className="px-3 py-1">
-                  {!m3na && <div className={stepBox}>
-                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[3]</span> GROWTH RATE</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m3_growth_rate != null ? `${(Number(score.m3_growth_rate) * 100).toFixed(1)}%/yr` : "—"}</p>
-                  </div>}
-                </div>
-
-                {/* ROW 4.5: Arrow */}
-                <div className={cb}>{arrow("0.25")}</div>
-                <div className={cb}>{!m2na && arrow("0.25")}</div>
-                <div>{!m3na && arrow("0.25")}</div>
-
-                {/* ROW 5: Step [4] */}
-                <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
-                  <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[4]</span> {isPeMode ? "NET INCOME" : "EBITDA"} IN 5Y</p>
-                  <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(score?.m1_ebitda_projected)}</p>
-                </div></div>
-                <div className={`px-3 py-1 ${cb}`}>
-                  {!m2na && <div className={stepBox}>
-                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[4]</span> FCF IN 5Y</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{fmtBn(score?.m2_fcf_projected)}</p>
-                  </div>}
-                </div>
-                <div className="px-3 py-1">
-                  {!m3na && <div className={stepBox}>
-                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[4]</span> TOTAL DIV (5Y)</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{m3CurTotalDiv != null ? fmtBn(m3CurTotalDiv) : "—"}</p>
-                  </div>}
-                </div>
-
-                {/* ROW 5.5: Arrow */}
-                <div className={cb}>{arrow("0.25")}</div>
-                <div className={cb}>{!m2na && arrow("0.25")}</div>
-                <div>{!m3na && arrow("0.25")}</div>
-
-                {/* ROW 6: Step [5] */}
-                <div className={`px-3 py-1 ${cb}`}><div className={stepBox}>
-                  <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[5]</span> {isPeMode ? "P/E" : "EV/EBITDA"} MULTIPLE</p>
-                  <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m1_ev_ebitda_multiple != null ? `${Number(score.m1_ev_ebitda_multiple).toFixed(1)}x` : "—"}</p>
-                </div></div>
-                <div className={`px-3 py-1 ${cb}`}>
-                  {!m2na && <div className={stepBox}>
-                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[5]</span> FCF YIELD</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{score?.m2_fcf_yield != null ? `${(Number(score.m2_fcf_yield) * 100).toFixed(2)}%` : "—"}</p>
-                  </div>}
-                </div>
-                <div className="px-3 py-1">
-                  {!m3na && <div className={stepBox}>
-                    <p className="text-[8px] tracking-widest" style={{ color: "rgba(0,255,65,0.3)" }}><span className="text-[9px] font-bold">[5]</span> DIV IN 5Y</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: "rgba(0,255,65,0.7)" }}>{m3Proj5yTotalDiv != null ? fmtBn(m3Proj5yTotalDiv) : "—"}</p>
-                  </div>}
-                </div>
-
-                {/* ROW 6.5: Arrow */}
-                <div className={cb}>{arrow("0.4")}</div>
-                <div className={cb}>{!m2na && arrow("0.4")}</div>
-                <div>{!m3na && arrow("0.4")}</div>
-
-                {/* ROW 7: Price target */}
-                <div className={`px-3 py-2 ${cb}`}><div className={`${stepBox} border-[rgba(0,255,65,0.3)]`}>
-                  <p className="text-[8px] font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>M1 PRICE TARGET</p>
-                  <p className="text-sm font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m1_price)}</p>
-                  {score?.m1_net_debt != null && (
-                    <p className="text-[7px] mt-0.5" style={{ color: "rgba(0,255,65,0.35)" }}>net debt {fmtBn(score.m1_net_debt)}</p>
-                  )}
-                </div></div>
-                <div className={`px-3 py-2 ${cb}`}>
-                  {!m2na && <div className={`${stepBox} border-[rgba(0,255,65,0.3)]`}>
-                    <p className="text-[8px] font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>M2 PRICE TARGET</p>
-                    <p className="text-sm font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m2_price)}</p>
-                  </div>}
-                </div>
-                <div className="px-3 py-2">
-                  {!m3na && <div className={`${stepBox} border-[rgba(0,255,65,0.3)]`}>
-                    <p className="text-[8px] font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>M3 PRICE TARGET</p>
-                    <p className="text-sm font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(score?.ppm_m3_price)}</p>
-                    <p className="text-[7px] mt-0.5 leading-tight" style={{ color: "rgba(0,255,65,0.35)" }}>{divLabel}</p>
-                  </div>}
-                </div>
-
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ minWidth: "450px", width: "100%", borderCollapse: "collapse", fontFamily: "inherit" }}>
+                  <colgroup>
+                    <col style={{ width: "88px" }} />
+                    <col /><col /><col />
+                  </colgroup>
+                  <thead>
+                    <tr style={{ background: "#0d150d", borderBottom: "1px solid rgba(0,255,65,0.15)" }}>
+                      <th style={{ padding: "8px 8px 8px 12px", position: "sticky", left: 0, zIndex: 2, background: "#0d150d", borderRight: CB }} />
+                      <th style={{ padding: "8px", textAlign: "center", borderRight: CB }}>
+                        <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em", marginBottom: "2px" }}>METHOD 1</div>
+                        <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>{isPeMode ? "P/E RATIO" : "EBITDA"}</div>
+                      </th>
+                      <th style={{ padding: "8px", textAlign: "center", borderRight: CB, opacity: m2na ? 0.4 : 1 }}>
+                        <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em", marginBottom: "2px" }}>METHOD 2</div>
+                        <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>FREE CASH FLOW</div>
+                      </th>
+                      <th style={{ padding: "8px", textAlign: "center", opacity: m3na ? 0.4 : 1 }}>
+                        <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em", marginBottom: "2px" }}>METHOD 3</div>
+                        <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>DIVIDENDS</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {row({ borderBottom: RB }, "CURRENT PRICE",
+                      bv(fmtDollar(currentPrice)),
+                      m2na ? mv(m2NotApplicableReason) : bv(fmtDollar(currentPrice)),
+                      m3na ? mv("Div yield < 4.5%") : bv(fmtDollar(currentPrice))
+                    )}
+                    {row({ borderBottom: RB }, "CURRENT VALUE",
+                      bv(fmtBn(score?.m1_ebitda_current)),
+                      m2na ? mv("—") : bv(fmtBn(score?.m2_fcf_current)),
+                      m3na ? mv("—") : bv(yld(score?.m3_div_yield))
+                    )}
+                    {row({ borderBottom: RB }, "HIST. GROWTH (L5Y)",
+                      bv(pct(score?.m1_growth_rate)),
+                      m2na ? mv("—") : bv(pct(score?.m2_growth_rate)),
+                      m3na ? mv("—") : bv(pct(score?.m3_growth_rate))
+                    )}
+                    {row({ borderBottom: RB }, "FUTURE VALUE (5Y)",
+                      bv(fmtBn(score?.m1_ebitda_projected)),
+                      m2na ? mv("—") : bv(fmtBn(score?.m2_fcf_projected)),
+                      m3na ? mv("—") : bv(m3CurTotalDiv != null ? fmtBn(m3CurTotalDiv) : "—")
+                    )}
+                    {row({ borderBottom: "1px solid rgba(0,255,65,0.12)" }, isPeMode ? "P/E MULTIPLE" : "MULTIPLIER",
+                      bv(mlt(score?.m1_ev_ebitda_multiple)),
+                      m2na ? mv("—") : bv(yld(score?.m2_fcf_yield)),
+                      m3na ? mv("—") : bv(m3Proj5yTotalDiv != null ? fmtBn(m3Proj5yTotalDiv) : "—")
+                    )}
+                    <tr style={{ background: "rgba(0,255,65,0.03)", borderTop: "1px solid rgba(0,255,65,0.15)", borderBottom: "1px solid rgba(0,255,65,0.15)" }}>
+                      <td style={{
+                        padding: "10px 8px 10px 12px", position: "sticky", left: 0, zIndex: 1,
+                        background: "#111811", borderRight: CB,
+                        color: "rgba(0,255,65,0.5)", fontSize: "8px", letterSpacing: "0.12em",
+                        fontWeight: "bold", whiteSpace: "nowrap",
+                      }}>PRICE TARGET</td>
+                      <td style={{ padding: "10px 8px", textAlign: "center", borderRight: CB }}>
+                        <div style={{ color: "#00ff41", fontSize: "15px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m1_price)}</div>
+                        {score?.m1_net_debt != null && (
+                          <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "7px", marginTop: "2px" }}>net debt {fmtBn(score.m1_net_debt)}</div>
+                        )}
+                      </td>
+                      <td style={{ padding: "10px 8px", textAlign: "center", borderRight: CB, opacity: m2na ? 0.35 : 1 }}>
+                        {m2na
+                          ? <span style={mut}>{m2NotApplicableReason}</span>
+                          : <div style={{ color: "#00ff41", fontSize: "15px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m2_price)}</div>
+                        }
+                      </td>
+                      <td style={{ padding: "10px 8px", textAlign: "center", opacity: m3na ? 0.35 : 1 }}>
+                        {m3na
+                          ? <span style={mut}>Div yield below threshold</span>
+                          : <>
+                              <div style={{ color: "#00ff41", fontSize: "15px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m3_price)}</div>
+                              <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "7px", marginTop: "2px" }}>incl. ${cumDivPs.toFixed(2)}/sh divs</div>
+                            </>
+                        }
+                      </td>
+                    </tr>
+                    {row({ borderBottom: RB }, "FUTURE RETURN (5Y)",
+                      bv(retX(m1Return)),
+                      m2na ? mv("—") : bv(retX(m2Return)),
+                      m3na ? mv("—") : bv(retX(m3Return))
+                    )}
+                    {row({ borderBottom: RB }, "RETURN CAGR (5Y)",
+                      bv(cagrP(m1Cagr)),
+                      m2na ? mv("—") : bv(cagrP(m2Cagr)),
+                      m3na ? mv("—") : bv(cagrP(m3Cagr))
+                    )}
+                    {row({}, "VS S&P 500",
+                      <span style={{ ...brt, color: vsClr(m1Cagr) }}>{vsSP(m1Cagr)}</span>,
+                      m2na ? mv("—") : <span style={{ ...brt, color: vsClr(m2Cagr) }}>{vsSP(m2Cagr)}</span>,
+                      m3na ? mv("—") : <span style={{ ...brt, color: vsClr(m3Cagr) }}>{vsSP(m3Cagr)}</span>
+                    )}
+                  </tbody>
+                </table>
               </div>
             )
           })()}

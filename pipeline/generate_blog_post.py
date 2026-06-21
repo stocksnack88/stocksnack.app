@@ -1,10 +1,16 @@
 """
 StockSnack — Weekly blog post generator.
 
-Runs after all 20 scoring jobs complete (needs: pipeline in the workflow).
-Reads the full scored S&P 500 universe, identifies top BUY+ names and signal
-flips vs last week, calls Gemini to draft the post, generates a featured image
-(Python port of lib/generate-blog-image.ts), and inserts into blog_posts.
+Run on demand:
+    python3 pipeline/generate_blog_post.py
+
+Reads NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and GEMINI_API_KEY
+from pipeline/.env (loaded automatically via config.py).
+
+Reads the full scored S&P 500 universe from stock_scores, identifies top BUY+
+names and signal flips vs last week, calls Gemini to draft the post, generates
+a featured image (Python port of lib/generate-blog-image.ts), and inserts into
+blog_posts with status=published.
 """
 from __future__ import annotations
 

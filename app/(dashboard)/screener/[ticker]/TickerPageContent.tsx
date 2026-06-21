@@ -165,7 +165,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                   className="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold tracking-widest"
                   style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.5)" }}
                 >
-                  M1 ONLY
+                  EBITDA ONLY
                 </span>
               )}
               {score?.has_anomaly && (
@@ -227,7 +227,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               </div>
               <div className="flex-1 text-center">
                 <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>
-                  {m1Mode ? "M1-ONLY (5Y)" : "PROJECTED (5Y)"}
+                  {m1Mode ? "EBITDA-ONLY (5Y)" : "PROJECTED (5Y)"}
                 </p>
                 <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
                   {fmtDollar(displayPrice)}
@@ -247,11 +247,11 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                       color: m1Mode ? "#f59e0b" : "rgba(0,255,65,0.7)",
                     }}
                   >
-                    {m1Mode ? "◀ BLENDED VIEW" : "VIEW M1-ONLY ▶"}
+                    {m1Mode ? "◀ BLENDED VIEW" : "VIEW EBITDA-ONLY ▶"}
                   </button>
                   {m1Mode && (
                     <p className="text-[10px] font-mono text-center" style={{ color: "rgba(245,158,11,0.5)" }}>
-                      Viewing: M1-only price target · EBITDA multiple method
+                      Viewing: EBITDA-only price target (FCF method excluded)
                     </p>
                   )}
                 </>
@@ -943,7 +943,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             </div>
             <div className="flex-1 text-center">
               <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>
-                {m1Mode ? "M1-ONLY (5Y)" : "PROJECTED (5Y)"}
+                {m1Mode ? "EBITDA-ONLY (5Y)" : "PROJECTED (5Y)"}
               </p>
               <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
                 {fmtDollar(displayPrice)}

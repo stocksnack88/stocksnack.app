@@ -749,6 +749,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             const sp500CagrVal = score?.sp500_cagr != null ? Number(score.sp500_cagr) : null
 
             const CB = "1px solid rgba(0,255,65,0.08)"
+            const VB = "1px solid rgba(0,255,65,0.55)"
             const RB = "1px solid rgba(0,255,65,0.06)"
 
             const pct  = (v: unknown) => v != null ? `${(Number(v) * 100).toFixed(1)}%/yr` : "—"
@@ -770,14 +771,16 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             const lbl = (text: string) => (
               <td style={{
                 padding: "7px 8px 7px 12px", position: "sticky", left: 0, zIndex: 1,
-                background: "#0b0f0b", borderRight: CB,
+                background: "#0b0f0b", borderRight: VB,
                 color: "rgba(0,255,65,0.38)", fontSize: "8px", letterSpacing: "0.1em", whiteSpace: "nowrap",
               }}>{text}</td>
             )
             const cel = (node: React.ReactNode, bordered = true) => (
               <td style={{ padding: "7px 8px", textAlign: "center", borderRight: bordered ? CB : undefined }}>{node}</td>
             )
-            const bv = (t: React.ReactNode) => <span style={brt}>{t}</span>
+            const bv = (t: React.ReactNode) => (
+              <span style={{ ...brt, border: "1px solid #00ff41", padding: "2px 7px", display: "inline-block" }}>{t}</span>
+            )
             const mv = (t: React.ReactNode) => <span style={mut}>{t}</span>
             const row = (style: React.CSSProperties, label: string, c1: React.ReactNode, c2: React.ReactNode, c3: React.ReactNode) => (
               <tr style={style}>{lbl(label)}{cel(c1)}{cel(c2)}{cel(c3, false)}</tr>
@@ -791,8 +794,8 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                     <col /><col /><col />
                   </colgroup>
                   <thead>
-                    <tr style={{ background: "#0d150d", borderBottom: "1px solid rgba(0,255,65,0.15)" }}>
-                      <th style={{ padding: "8px 8px 8px 12px", position: "sticky", left: 0, zIndex: 2, background: "#0d150d", borderRight: CB }} />
+                    <tr style={{ background: "#0d150d", borderBottom: VB }}>
+                      <th style={{ padding: "8px 8px 8px 12px", position: "sticky", left: 0, zIndex: 2, background: "#0d150d", borderRight: VB }} />
                       <th style={{ padding: "8px", textAlign: "center", borderRight: CB }}>
                         <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em", marginBottom: "2px" }}>METHOD 1</div>
                         <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>{isPeMode ? "P/E RATIO" : "EBITDA"}</div>
@@ -836,7 +839,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                     <tr style={{ background: "rgba(0,255,65,0.03)", borderTop: "1px solid rgba(0,255,65,0.15)", borderBottom: "1px solid rgba(0,255,65,0.15)" }}>
                       <td style={{
                         padding: "10px 8px 10px 12px", position: "sticky", left: 0, zIndex: 1,
-                        background: "#111811", borderRight: CB,
+                        background: "#111811", borderRight: VB,
                         color: "rgba(0,255,65,0.5)", fontSize: "8px", letterSpacing: "0.12em",
                         fontWeight: "bold", whiteSpace: "nowrap",
                       }}>PRICE TARGET</td>

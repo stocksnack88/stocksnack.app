@@ -231,11 +231,12 @@ export function MethodologyToggle({ children }: { children: React.ReactNode }) {
         style={{ borderBottom: '1px solid rgba(0,255,65,0.1)' }}
       >
         <button
-          className="text-[10px] font-mono tracking-widest px-3 py-1 rounded-full border"
+          className="text-[10px] font-mono font-bold tracking-widest px-3 py-1 rounded-full border transition-all duration-200"
           style={{
-            background: 'rgba(0,255,65,0.08)',
-            borderColor: 'rgba(0,255,65,0.55)',
-            color: '#00ff41',
+            background: '#00ff41',
+            borderColor: '#00ff41',
+            color: '#001a08',
+            boxShadow: '0 0 14px rgba(0,255,65,0.32)',
           }}
           onClick={() => setOpen(v => !v)}
         >

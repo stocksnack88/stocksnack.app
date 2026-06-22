@@ -764,20 +764,21 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               return d >= 0 ? `+${(d * 100).toFixed(1)}%` : `${(d * 100).toFixed(1)}%`
             }
             const vsClr = (c: number | null) =>
-              c != null && sp500CagrVal != null && c > sp500CagrVal ? "#00ff41" : "rgba(0,255,65,0.45)"
+              c == null || sp500CagrVal == null ? "rgba(0,255,65,0.45)"
+              : c > sp500CagrVal ? "#00ff41" : "#ef4444"
 
             const brt: React.CSSProperties = { color: "rgba(0,255,65,0.8)", fontWeight: "bold" }
             const mut: React.CSSProperties = { color: "rgba(0,255,65,0.28)", fontSize: "8px" }
 
             const lbl = (text: string) => (
               <td style={{
-                padding: "2px 8px 2px 12px", position: "sticky", left: 0, zIndex: 1,
+                padding: "1px 8px 1px 12px", position: "sticky", left: 0, zIndex: 1,
                 background: "#0b0f0b", borderRight: VB,
                 color: "rgba(0,255,65,0.5)", fontSize: "10px", letterSpacing: "0.1em", whiteSpace: "nowrap",
               }}>{text}</td>
             )
             const cel = (node: React.ReactNode) => (
-              <td style={{ padding: "2px 8px", textAlign: "center" }}>{node}</td>
+              <td style={{ padding: "1px 8px", textAlign: "center" }}>{node}</td>
             )
             const bv = (t: React.ReactNode) => (
               <span style={{ ...brt, border: "1px solid #00ff41", padding: "2px 0", display: "inline-block", width: "72px", textAlign: "center", fontSize: "10px" }}>{t}</span>
@@ -787,7 +788,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               <tr style={style}>{lbl(label)}{cel(c1)}{cel(c2)}{cel(c3)}</tr>
             )
             const bvc = (t: React.ReactNode, color: string) => (
-              <span style={{ border: "1px solid #00ff41", padding: "2px 0", display: "inline-block", width: "72px", textAlign: "center", fontSize: "10px", fontWeight: "bold", color }}>{t}</span>
+              <span style={{ border: `1px solid ${color}`, padding: "2px 0", display: "inline-block", width: "72px", textAlign: "center", fontSize: "10px", fontWeight: "bold", color }}>{t}</span>
             )
             const arrowRow = () => (
               <tr>
@@ -863,21 +864,21 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                     {arrowRow()}
                     <tr style={{ background: "rgba(0,255,65,0.03)" }}>
                       <td style={{
-                        padding: "10px 8px 10px 12px", position: "sticky", left: 0, zIndex: 1,
+                        padding: "1px 8px 1px 12px", position: "sticky", left: 0, zIndex: 1,
                         background: "#111811", borderRight: VB,
                         color: "rgba(0,255,65,0.5)", fontSize: "8px", letterSpacing: "0.12em",
                         fontWeight: "bold", whiteSpace: "nowrap",
                       }}>PRICE TARGET</td>
-                      <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                      <td style={{ padding: "1px 8px", textAlign: "center" }}>
                         <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "4px 0", textAlign: "center", color: "#00ff41", fontSize: "13px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m1_price)}</span>
                       </td>
-                      <td style={{ padding: "10px 8px", textAlign: "center", opacity: m2na ? 0.35 : 1 }}>
+                      <td style={{ padding: "1px 8px", textAlign: "center", opacity: m2na ? 0.35 : 1 }}>
                         {m2na
                           ? <span style={mut}>{m2NotApplicableReason}</span>
                           : <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "4px 0", textAlign: "center", color: "#00ff41", fontSize: "13px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m2_price)}</span>
                         }
                       </td>
-                      <td style={{ padding: "10px 8px", textAlign: "center", opacity: m3na ? 0.35 : 1 }}>
+                      <td style={{ padding: "1px 8px", textAlign: "center", opacity: m3na ? 0.35 : 1 }}>
                         {m3na
                           ? <span style={mut}>Div yield below threshold</span>
                           : <>

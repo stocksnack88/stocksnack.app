@@ -763,9 +763,11 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               const d = c - sp500CagrVal
               return d >= 0 ? `+${(d * 100).toFixed(1)}%` : `${(d * 100).toFixed(1)}%`
             }
-            const vsClr = (c: number | null) =>
-              c == null || sp500CagrVal == null ? "rgba(0,255,65,0.45)"
-              : c > sp500CagrVal ? "#00ff41" : "#ef4444"
+            const vsClr = (c: number | null) => {
+              if (c == null || sp500CagrVal == null) return "rgba(0,255,65,0.45)"
+              const d = c - sp500CagrVal
+              return d > 0.01 ? "#00ff41" : d < -0.01 ? "#ef4444" : "#f59e0b"
+            }
 
             const brt: React.CSSProperties = { color: "rgba(0,255,65,0.8)", fontWeight: "bold" }
             const mut: React.CSSProperties = { color: "rgba(0,255,65,0.28)", fontSize: "8px" }
@@ -813,20 +815,29 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                     <col /><col /><col />
                   </colgroup>
                   <thead>
+                    <tr style={{ background: "#0d150d" }}>
+                      <th style={{ padding: "6px 8px 0 12px", position: "sticky", left: 0, zIndex: 2, background: "#0d150d", borderRight: VB }} />
+                      <th style={{ padding: "6px 8px 0", textAlign: "center" }}>
+                        <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em" }}>METHOD 1</div>
+                      </th>
+                      <th style={{ padding: "6px 8px 0", textAlign: "center", opacity: m2na ? 0.4 : 1 }}>
+                        <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em" }}>METHOD 2</div>
+                      </th>
+                      <th style={{ padding: "6px 8px 0", textAlign: "center", opacity: m3na ? 0.4 : 1 }}>
+                        <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em" }}>METHOD 3</div>
+                      </th>
+                    </tr>
                     <tr style={{ background: "#0d150d", borderBottom: VB }}>
-                      <th style={{ padding: "8px 8px 8px 12px", position: "sticky", left: 0, zIndex: 2, background: "#0d150d", borderRight: VB, textAlign: "left" }}>
+                      <th style={{ padding: "2px 8px 6px 12px", position: "sticky", left: 0, zIndex: 2, background: "#0d150d", borderRight: VB, textAlign: "left" }}>
                         <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "10px", letterSpacing: "0.12em" }}>STEPS</div>
                       </th>
-                      <th style={{ padding: "8px", textAlign: "center" }}>
-                        <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em", marginBottom: "2px" }}>METHOD 1</div>
+                      <th style={{ padding: "2px 8px 6px", textAlign: "center" }}>
                         <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>{isPeMode ? "P/E RATIO" : "EBITDA"}</div>
                       </th>
-                      <th style={{ padding: "8px", textAlign: "center", opacity: m2na ? 0.4 : 1 }}>
-                        <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em", marginBottom: "2px" }}>METHOD 2</div>
+                      <th style={{ padding: "2px 8px 6px", textAlign: "center", opacity: m2na ? 0.4 : 1 }}>
                         <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>FREE CASH FLOW</div>
                       </th>
-                      <th style={{ padding: "8px", textAlign: "center", opacity: m3na ? 0.4 : 1 }}>
-                        <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em", marginBottom: "2px" }}>METHOD 3</div>
+                      <th style={{ padding: "2px 8px 6px", textAlign: "center", opacity: m3na ? 0.4 : 1 }}>
                         <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>DIVIDENDS</div>
                       </th>
                     </tr>
@@ -866,23 +877,23 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                       <td style={{
                         padding: "1px 8px 1px 12px", position: "sticky", left: 0, zIndex: 1,
                         background: "#111811", borderRight: VB,
-                        color: "rgba(0,255,65,0.5)", fontSize: "8px", letterSpacing: "0.12em",
+                        color: "rgba(0,255,65,0.5)", fontSize: "10px", letterSpacing: "0.1em",
                         fontWeight: "bold", whiteSpace: "nowrap",
                       }}>PRICE TARGET</td>
                       <td style={{ padding: "1px 8px", textAlign: "center" }}>
-                        <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "4px 0", textAlign: "center", color: "#00ff41", fontSize: "13px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m1_price)}</span>
+                        <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "2px 0", textAlign: "center", color: "#00ff41", fontSize: "10px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m1_price)}</span>
                       </td>
                       <td style={{ padding: "1px 8px", textAlign: "center", opacity: m2na ? 0.35 : 1 }}>
                         {m2na
                           ? <span style={mut}>{m2NotApplicableReason}</span>
-                          : <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "4px 0", textAlign: "center", color: "#00ff41", fontSize: "13px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m2_price)}</span>
+                          : <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "2px 0", textAlign: "center", color: "#00ff41", fontSize: "10px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m2_price)}</span>
                         }
                       </td>
                       <td style={{ padding: "1px 8px", textAlign: "center", opacity: m3na ? 0.35 : 1 }}>
                         {m3na
                           ? <span style={mut}>Div yield below threshold</span>
                           : <>
-                              <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "4px 0", textAlign: "center", color: "#00ff41", fontSize: "13px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m3_price)}</span>
+                              <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "2px 0", textAlign: "center", color: "#00ff41", fontSize: "10px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m3_price)}</span>
                               <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "7px", marginTop: "4px" }}>incl. ${cumDivPs.toFixed(2)}/sh divs</div>
                             </>
                         }
@@ -890,15 +901,15 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                     </tr>
                     {arrowRow()}
                     {row({}, "FUTURE RETURN (5Y)",
-                      bv(retX(m1Return)),
-                      m2na ? mv("—") : bv(retX(m2Return)),
-                      m3na ? mv("—") : bv(retX(m3Return))
+                      bvc(retX(m1Return), vsClr(m1Cagr)),
+                      m2na ? mv("—") : bvc(retX(m2Return), vsClr(m2Cagr)),
+                      m3na ? mv("—") : bvc(retX(m3Return), vsClr(m3Cagr))
                     )}
                     {arrowRow()}
                     {row({}, "RETURN CAGR (5Y)",
-                      bv(cagrP(m1Cagr)),
-                      m2na ? mv("—") : bv(cagrP(m2Cagr)),
-                      m3na ? mv("—") : bv(cagrP(m3Cagr))
+                      bvc(cagrP(m1Cagr), vsClr(m1Cagr)),
+                      m2na ? mv("—") : bvc(cagrP(m2Cagr), vsClr(m2Cagr)),
+                      m3na ? mv("—") : bvc(cagrP(m3Cagr), vsClr(m3Cagr))
                     )}
                     {arrowRow()}
                     {row({}, "VS S&P 500",

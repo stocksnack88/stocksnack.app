@@ -35,24 +35,35 @@ body {
 }
 .blog-prose p { margin-bottom: 1.2em; }
 .blog-prose h2 {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: #00ff41;
-  margin-top: 2em;
-  margin-bottom: 0.75em;
+  color: #000;
+  background: #00ff41;
+  display: inline-block;
+  padding: 2px 10px;
+  margin-top: 2.2em;
+  margin-bottom: 1em;
 }
 .blog-prose h3 {
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: rgba(0, 255, 65, 0.8);
+  color: #00ff41;
+  border-left: 3px solid #00ff41;
+  padding-left: 8px;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
 }
 .blog-prose strong { color: rgba(0, 255, 65, 0.9); font-weight: 700; }
 .blog-prose em { color: rgba(0, 255, 65, 0.5); font-style: italic; }
-.blog-prose a { color: #00ff41; text-decoration: underline; }
+.blog-prose a {
+  color: #00ff41;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  border-bottom: 1px solid rgba(0,255,65,0.3);
+}
+.blog-prose a:hover { color: #fff; border-bottom-color: #fff; }
 .blog-prose a:hover { color: rgba(0, 255, 65, 0.7); }
 .blog-prose ul, .blog-prose ol {
   margin: 1em 0;

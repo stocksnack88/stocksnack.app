@@ -153,7 +153,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
 
         {/* ── Company header ──────────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div data-tour-id="ticker-header" className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1.5">
               <h1 className="text-3xl font-bold tracking-[0.2em]" style={{ color: "#00ff41" }}>
@@ -779,15 +779,15 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                 color: "rgba(0,255,65,0.5)", fontSize: "10px", letterSpacing: "0.1em", whiteSpace: "nowrap",
               }}>{text}</td>
             )
-            const cel = (node: React.ReactNode) => (
-              <td style={{ padding: "1px 8px", textAlign: "center" }}>{node}</td>
+            const cel = (node: React.ReactNode, tourId: string) => (
+              <td data-tour-id={tourId} style={{ padding: "1px 8px", textAlign: "center" }}>{node}</td>
             )
             const bv = (t: React.ReactNode) => (
               <span style={{ ...brt, border: "1px solid #00ff41", padding: "2px 0", display: "inline-block", width: "72px", textAlign: "center", fontSize: "10px" }}>{t}</span>
             )
             const mv = (t: React.ReactNode) => <span style={mut}>{t}</span>
             const row = (style: React.CSSProperties, label: string, c1: React.ReactNode, c2: React.ReactNode, c3: React.ReactNode) => (
-              <tr style={style}>{lbl(label)}{cel(c1)}{cel(c2)}{cel(c3)}</tr>
+              <tr style={style}>{lbl(label)}{cel(c1, "method-1")}{cel(c2, "method-2")}{cel(c3, "method-3")}</tr>
             )
             const bvc = (t: React.ReactNode, color: string) => (
               <span style={{ border: `1px solid ${color}`, padding: "2px 0", display: "inline-block", width: "72px", textAlign: "center", fontSize: "10px", fontWeight: "bold", color }}>{t}</span>
@@ -795,13 +795,13 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             const arrowRow = (c1 = "rgba(0,255,65,0.55)", c2 = c1, c3 = c1) => (
               <tr>
                 <td style={{ padding: 0, position: "sticky", left: 0, zIndex: 1, background: "#0b0f0b", boxShadow: "1px 0 0 0 rgba(0,255,65,0.55)" }} />
-                <td style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
+                <td data-tour-id="method-1" style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
                   <span style={{ color: c1, fontSize: "10px" }}>↓</span>
                 </td>
-                <td style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
+                <td data-tour-id="method-2" style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
                   {!m2na && <span style={{ color: c2, fontSize: "10px" }}>↓</span>}
                 </td>
-                <td style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
+                <td data-tour-id="method-3" style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
                   {!m3na && <span style={{ color: c3, fontSize: "10px" }}>↓</span>}
                 </td>
               </tr>
@@ -823,24 +823,24 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                       }}>
                         <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>STEPS</div>
                       </th>
-                      <th style={{ padding: "6px 8px 0", textAlign: "center" }}>
+                      <th data-tour-id="method-1" style={{ padding: "6px 8px 0", textAlign: "center" }}>
                         <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em" }}>METHOD 1</div>
                       </th>
-                      <th style={{ padding: "6px 8px 0", textAlign: "center", opacity: m2na ? 0.4 : 1 }}>
+                      <th data-tour-id="method-2" style={{ padding: "6px 8px 0", textAlign: "center", opacity: m2na ? 0.4 : 1 }}>
                         <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em" }}>METHOD 2</div>
                       </th>
-                      <th style={{ padding: "6px 8px 0", textAlign: "center", opacity: m3na ? 0.4 : 1 }}>
+                      <th data-tour-id="method-3" style={{ padding: "6px 8px 0", textAlign: "center", opacity: m3na ? 0.4 : 1 }}>
                         <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em" }}>METHOD 3</div>
                       </th>
                     </tr>
                     <tr style={{ background: "#0d150d", borderBottom: VB }}>
-                      <th style={{ padding: "2px 8px 6px", textAlign: "center" }}>
+                      <th data-tour-id="method-1" style={{ padding: "2px 8px 6px", textAlign: "center" }}>
                         <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>{isPeMode ? "P/E RATIO" : "EBITDA"}</div>
                       </th>
-                      <th style={{ padding: "2px 8px 6px", textAlign: "center", opacity: m2na ? 0.4 : 1 }}>
+                      <th data-tour-id="method-2" style={{ padding: "2px 8px 6px", textAlign: "center", opacity: m2na ? 0.4 : 1 }}>
                         <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>FREE CASH FLOW</div>
                       </th>
-                      <th style={{ padding: "2px 8px 6px", textAlign: "center", opacity: m3na ? 0.4 : 1 }}>
+                      <th data-tour-id="method-3" style={{ padding: "2px 8px 6px", textAlign: "center", opacity: m3na ? 0.4 : 1 }}>
                         <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>DIVIDENDS</div>
                       </th>
                     </tr>
@@ -883,16 +883,16 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                         color: "rgba(0,255,65,0.5)", fontSize: "10px", letterSpacing: "0.1em",
                         fontWeight: "bold", whiteSpace: "nowrap",
                       }}>PRICE TARGET</td>
-                      <td style={{ padding: "1px 8px", textAlign: "center" }}>
+                      <td data-tour-id="method-1" style={{ padding: "1px 8px", textAlign: "center" }}>
                         <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "2px 0", textAlign: "center", color: "#00ff41", fontSize: "10px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m1_price)}</span>
                       </td>
-                      <td style={{ padding: "1px 8px", textAlign: "center", opacity: m2na ? 0.35 : 1 }}>
+                      <td data-tour-id="method-2" style={{ padding: "1px 8px", textAlign: "center", opacity: m2na ? 0.35 : 1 }}>
                         {m2na
                           ? <span style={mut}>{m2NotApplicableReason}</span>
                           : <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "2px 0", textAlign: "center", color: "#00ff41", fontSize: "10px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m2_price)}</span>
                         }
                       </td>
-                      <td style={{ padding: "1px 8px", textAlign: "center", opacity: m3na ? 0.35 : 1 }}>
+                      <td data-tour-id="method-3" style={{ padding: "1px 8px", textAlign: "center", opacity: m3na ? 0.35 : 1 }}>
                         {m3na
                           ? <span style={mut}>Div yield &lt; 4.5%</span>
                           : <>

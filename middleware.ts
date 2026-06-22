@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { hasInternalAccess } from "@/lib/internal-access";
 
 export async function middleware(request: NextRequest) {
   // @supabase/ssr requires threading the response object through setAll so
@@ -33,6 +34,16 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Resolve preview access before React starts streaming. Doing this in
+  // middleware produces a real HTTP redirect instead of briefly rendering the
+  // not-found fallback while the dashboard layout redirects.
+  if (process.env.VERCEL_ENV === "preview" && pathname.startsWith("/screener")) {
+    if (!user) return NextResponse.redirect(new URL("/login", request.url));
+    if (!hasInternalAccess(user.email)) {
+      return NextResponse.redirect(new URL("/preview-access-denied", request.url));
+    }
+  }
+
   // Redirect already-authenticated users away from auth pages.
   if (user && (pathname.startsWith("/login") || pathname.startsWith("/signup"))) {
     return NextResponse.redirect(new URL("/screener", request.url));
@@ -44,5 +55,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/signup", "/screener", "/watchlist", "/profile"],
+  matcher: ["/login", "/signup", "/screener/:path*", "/watchlist/:path*", "/profile/:path*"],
 };

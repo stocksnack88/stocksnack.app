@@ -18,7 +18,7 @@ export default function OnboardingModal() {
   }, []);
 
   function finish(choice: "start" | "skip") {
-    choice === "start" ? playChime() : playClick();
+    if (choice === "start") { playChime(); } else { playClick(); }
     try {
       localStorage.setItem(SEEN_KEY, "1");
       localStorage.setItem(INTENT_KEY, choice);

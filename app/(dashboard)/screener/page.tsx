@@ -7,6 +7,7 @@ import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
 import ScreenerTableErrorBoundary from "@/components/ui/ScreenerTableErrorBoundary";
 import NavHeightLogger from "@/components/ui/NavHeightLogger";
 import OnboardingModal from "@/components/ui/OnboardingModal";
+import { TourConversionGate } from "@/components/ui/GuidedTour";
 import { getDailyFreeStocks } from "@/lib/free-stocks";
 
 const FREE_LIMIT = 5;
@@ -181,8 +182,9 @@ export default async function ScreenerPage({
       </div>
 
       {isGuest && (
-        <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-[320px] z-[50]">
-          <div className="bg-[#050505] border border-[#00ff41]/20 rounded-xl px-5 py-4 flex flex-col gap-3 shadow-lg shadow-black/60">
+        <TourConversionGate>
+          <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-[320px] z-[50]">
+            <div className="bg-[#050505] border border-[#00ff41]/20 rounded-xl px-5 py-4 flex flex-col gap-3 shadow-lg shadow-black/60">
             <div className="flex flex-col gap-1">
               <p className="text-[10px] font-mono font-bold text-[#00ff41] tracking-[0.2em]">
                 YOUR 5-MINUTE FREE TRIAL IS WAITING
@@ -197,8 +199,9 @@ export default async function ScreenerPage({
             >
               START 5 MIN PRO TRIAL →
             </a>
+            </div>
           </div>
-        </div>
+        </TourConversionGate>
       )}
     </div>
   );

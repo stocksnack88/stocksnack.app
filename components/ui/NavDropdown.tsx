@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
+import { useGuidedTour } from './GuidedTour'
 
 const MONO: React.CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function NavDropdown({ userEmail }: Props) {
+  const { startTour, menuLabel } = useGuidedTour()
   const [open, setOpen]             = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [message, setMessage]       = useState('')
@@ -166,6 +168,14 @@ export default function NavDropdown({ userEmail }: Props) {
             >
               ACCOUNT
             </Link>
+            <button
+              role="menuitem"
+              onClick={() => { setOpen(false); startTour() }}
+              className="block w-full text-left px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors cursor-pointer"
+              style={{ background: 'none', border: 'none', borderBottom: '1px solid rgba(0,255,65,0.08)', ...MONO }}
+            >
+              {menuLabel}
+            </button>
             <button
               role="menuitem"
               onClick={openFeedback}

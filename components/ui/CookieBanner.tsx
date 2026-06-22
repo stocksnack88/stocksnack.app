@@ -2,19 +2,35 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const STORAGE_KEY = "cookie-consent";
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    function showWhenReady() {
+      try {
+        const waitingForIntro = pathname === "/screener" && !localStorage.getItem("ss_onboarding_seen");
+        if (!waitingForIntro && !localStorage.getItem(STORAGE_KEY)) setVisible(true);
+      } catch {
+        setVisible(true);
+      }
+    }
+    showWhenReady();
+    window.addEventListener("onboarding-dismissed", showWhenReady);
+    return () => window.removeEventListener("onboarding-dismissed", showWhenReady);
+  }, [pathname]);
 
   useEffect(() => {
     try {
-      if (!localStorage.getItem(STORAGE_KEY)) setVisible(true);
+      if (localStorage.getItem(STORAGE_KEY)) setVisible(false);
     } catch {
-      setVisible(true);
+      // Keep the current visibility when storage is unavailable.
     }
-  }, []);
+  }, [pathname]);
 
   function accept() {
     document.cookie = "cookie-consent=true; path=/; max-age=31536000; SameSite=Lax";

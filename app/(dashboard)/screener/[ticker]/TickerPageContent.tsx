@@ -207,7 +207,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           <ChildCollapsibleLayer id={6} header={
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>PRICE PROJECTION</p>
           } shareButton={<BlockShareButton captureIds={['capture-6']} mode="single" fileName={`${ticker}-price-projection`} blockTitle="PRICE PROJECTION" {...shareProps} />}>
-          <div className="px-5 py-4" id="capture-6">
+          <div className="px-5 py-4" id="capture-6" data-tour-id="price-projection-data">
             <p className="text-[11px] font-bold tracking-widest mb-3" style={{ color: "#00ff41" }}>{ticker} Price In 5 Years (Projected)</p>
             <div className="flex items-center gap-4">
               <div className="flex-1 text-center">
@@ -269,7 +269,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           <ChildCollapsibleLayer id={7} header={
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>WHAT YOU ARE BUYING</p>
           } shareButton={<BlockShareButton captureIds={['capture-7']} mode="single" fileName={`${ticker}-scorecard`} blockTitle="WHAT YOU ARE BUYING" {...shareProps} />}>
-          <div id="capture-7">
+          <div id="capture-7" data-tour-id="scorecard-data">
           {(() => {
             // 5Y RETURN color
             const stockMult = currentPrice && displayPrice ? displayPrice / currentPrice : null
@@ -367,7 +367,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           const geoSegs: Segment[]     = Array.isArray(rawGeo)     ? rawGeo     : []
           if (!stock?.description && !productSegs.length && !geoSegs.length) return null
           return (
-            <>
+            <div data-tour-id="business-data">
               {stock?.description && (
                 <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
                   <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "rgba(0,255,65,0.4)" }}>COMPANY DESCRIPTION</p>
@@ -389,7 +389,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                   <ConnectedSegmentBreakdown id={13} title="GEOGRAPHIC BREAKDOWN" segs={geoSegs} />
                 </div>
               )}
-            </>
+            </div>
           )
           })()}
           <p className="text-center text-xs py-4 tracking-wide" style={{ color: "rgba(0,255,65,0.2)", borderTop: "1px solid rgba(0,255,65,0.1)" }}>
@@ -792,23 +792,23 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             const bvc = (t: React.ReactNode, color: string) => (
               <span style={{ border: `1px solid ${color}`, padding: "2px 0", display: "inline-block", width: "72px", textAlign: "center", fontSize: "10px", fontWeight: "bold", color }}>{t}</span>
             )
-            const arrowRow = () => (
+            const arrowRow = (c1 = "rgba(0,255,65,0.55)", c2 = c1, c3 = c1) => (
               <tr>
                 <td style={{ padding: 0, position: "sticky", left: 0, zIndex: 1, background: "#0b0f0b", boxShadow: "1px 0 0 0 rgba(0,255,65,0.55)" }} />
                 <td style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
-                  <span style={{ color: "rgba(0,255,65,0.55)", fontSize: "10px" }}>↓</span>
+                  <span style={{ color: c1, fontSize: "10px" }}>↓</span>
                 </td>
                 <td style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
-                  {!m2na && <span style={{ color: "rgba(0,255,65,0.55)", fontSize: "10px" }}>↓</span>}
+                  {!m2na && <span style={{ color: c2, fontSize: "10px" }}>↓</span>}
                 </td>
                 <td style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
-                  {!m3na && <span style={{ color: "rgba(0,255,65,0.55)", fontSize: "10px" }}>↓</span>}
+                  {!m3na && <span style={{ color: c3, fontSize: "10px" }}>↓</span>}
                 </td>
               </tr>
             )
 
             return (
-              <div style={{ overflowX: "auto" }}>
+              <div data-tour-id="methodology-table" style={{ overflowX: "auto", paddingTop: "12px" }}>
                 <table style={{ minWidth: "450px", width: "100%", borderCollapse: "collapse", fontFamily: "inherit" }}>
                   <colgroup>
                     <col style={{ width: "88px" }} />
@@ -902,19 +902,19 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                         }
                       </td>
                     </tr>
-                    {arrowRow()}
+                    {arrowRow(vsClr(m1Cagr), vsClr(m2Cagr), vsClr(m3Cagr))}
                     {row({}, "FUTURE RETURN (5Y)",
                       bvc(retX(m1Return), vsClr(m1Cagr)),
                       m2na ? mv("—") : bvc(retX(m2Return), vsClr(m2Cagr)),
                       m3na ? mv("—") : bvc(retX(m3Return), vsClr(m3Cagr))
                     )}
-                    {arrowRow()}
+                    {arrowRow(vsClr(m1Cagr), vsClr(m2Cagr), vsClr(m3Cagr))}
                     {row({}, "RETURN CAGR (5Y)",
                       bvc(cagrP(m1Cagr), vsClr(m1Cagr)),
                       m2na ? mv("—") : bvc(cagrP(m2Cagr), vsClr(m2Cagr)),
                       m3na ? mv("—") : bvc(cagrP(m3Cagr), vsClr(m3Cagr))
                     )}
-                    {arrowRow()}
+                    {arrowRow(vsClr(m1Cagr), vsClr(m2Cagr), vsClr(m3Cagr))}
                     {row({}, "VS S&P 500",
                       bvc(vsSP(m1Cagr), vsClr(m1Cagr)),
                       m2na ? mv("—") : bvc(vsSP(m2Cagr), vsClr(m2Cagr)),
@@ -928,7 +928,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           </MethodologyToggle>
 
           {/* Blended projection */}
-          <div className="px-5 py-6 text-center" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
+          <div data-tour-id="blended-projection" className="px-5 py-6 text-center" style={{ borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
             <p className="text-[9px] font-bold tracking-[0.3em] mb-2" style={{ color: "rgba(0,255,65,0.3)" }}>
               {m1Mode ? "METHOD 1 ONLY" : "AVERAGE OF ALL METHODS"}
             </p>
@@ -1204,7 +1204,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                       : benchLabel?.startsWith("Moderate") ? "#f59e0b"
                       : "#ef4444"
                     return (
-                      <div key={key}>
+                      <div key={key} data-tour-id={`growth-${key.replaceAll('_', '-')}`}>
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-xs font-bold tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.7)" }}>
                             {label}
@@ -1431,7 +1431,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                 const rawScore     = validPts.length ? Math.round(validPts.reduce((s, p) => s + p, 0) / validPts.length) : null
                 const penaltyLabel = hasPenalty && worstSig ? `${worstSig} ×${worstMult.toFixed(2)}` : "None"
                 return (
-                  <div className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
+                  <div data-tour-id="growth-score" className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
                     <div className="mb-3 pb-2" style={{ borderBottom: "1px solid rgba(0,255,65,0.08)" }}>
                       <p className="text-[10px] uppercase tracking-widest text-center" style={{ color: "rgba(0,255,65,0.4)" }}>
                         GROWTH QUALITY SCORE
@@ -1542,7 +1542,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               LAYER 3 — FINANCIAL HEALTH
             </p>
           )} shareButton={<BlockShareButton captureIds={['capture-4']} mode="single" fileName={`${ticker}-layer3`} blockTitle="LAYER 3 — FINANCIAL HEALTH" {...shareProps} />}>
-          <div className="px-5 pt-4 pb-3" id="capture-4">
+          <div className="px-5 pt-4 pb-3" id="capture-4" data-tour-id="health-summary">
             <div className="flex items-center rounded-lg p-4 mb-3" style={{ border: "1px solid rgba(0,255,65,0.2)" }}>
               <div className="flex-1 flex flex-col items-center">
                 <p className="text-4xl font-bold font-mono" style={{ color: healthColor(score?.health_score) }}>
@@ -1575,7 +1575,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               LAYER 4 — FINAL SCORE
             </p>
           )} shareButton={<BlockShareButton captureIds={['capture-5']} mode="single" fileName={`${ticker}-layer4`} blockTitle="LAYER 4 — FINAL SCORE" {...shareProps} />}>
-          <div className="px-5 py-6 space-y-3" id="capture-5">
+          <div className="px-5 py-6 space-y-3" id="capture-5" data-tour-id="final-score">
             <div className="grid grid-cols-3 gap-2">
               {[
                 { label: "PROJECTED RETURN", sub: "(5Y)", weight: "WEIGHT: 40%", value: displayPpmScore },

@@ -15,7 +15,9 @@ export default function LoginPage() {
     const supabase = createBrowserSupabase();
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: 'https://stocksnack.app/auth/callback' },
+      // Keep preview users on the preview deployment; production still resolves
+      // to https://stocksnack.app/auth/callback.
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 

@@ -3,13 +3,13 @@
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
 
-export default function SignOutButton() {
+export default function SignOutButton({ redirectTo = "/" }: { redirectTo?: string }) {
   const router = useRouter();
 
   async function handleSignOut() {
     const supabase = createBrowserSupabase();
     await supabase.auth.signOut();
-    router.push("/");
+    router.push(redirectTo);
     router.refresh();
   }
 
@@ -21,7 +21,7 @@ export default function SignOutButton() {
       onMouseEnter={(e) => (e.currentTarget.style.color = "#00ff41")}
       onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(0,255,65,0.5)")}
     >
-      SIGN OUT
+      {redirectTo === "/login" ? "SIGN OUT AND SWITCH ACCOUNT →" : "SIGN OUT"}
     </button>
   );
 }

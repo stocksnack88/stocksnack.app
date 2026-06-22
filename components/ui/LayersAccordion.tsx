@@ -31,14 +31,21 @@ export function LayerProvider({
   defaultOpenIds?: number[]
   children: React.ReactNode
 }) {
+  const tourActive = () => {
+    try { return JSON.parse(localStorage.getItem('ss_guided_tour_v1') ?? '{}').status === 'active' } catch { return false }
+  }
   const [opens, setOpens] = useState<boolean[]>(() => {
     const arr = Array(count).fill(false)
-    defaultOpenIds?.forEach(id => { arr[id] = true })
+    if (!tourActive()) defaultOpenIds?.forEach(id => { arr[id] = true })
     return arr
   })
 
   useEffect(() => {
     if (!briefExpand) return
+    try {
+      const tour = JSON.parse(localStorage.getItem('ss_guided_tour_v1') ?? '{}')
+      if (tour.status === 'active') return
+    } catch {}
     const t1 = setTimeout(
       () => setOpens(prev => Array(prev.length).fill(true)),
       briefExpand.startMs,
@@ -53,7 +60,7 @@ export function LayerProvider({
   const toggle = (i: number) => setOpens(prev => {
     const wasOpen = prev[i]
     const next = prev.map((v, j): boolean => (j === i ? !v : v))
-    if (childMap?.[i]) {
+    if (childMap?.[i] && !tourActive()) {
       for (const cid of childMap[i]) next[cid] = !wasOpen
     }
     return next
@@ -96,9 +103,11 @@ export function CollapsibleLayer({
 }) {
   const { opens, toggle } = useLayerCtx()
   const open = opens[id] ?? false
+  const tourId = ({ 2: 'price-methods', 3: 'growth-layer', 4: 'health-layer', 5: 'final-layer' } as Record<number, string>)[id]
 
   return (
     <section
+      data-tour-id={tourId}
       className="rounded overflow-hidden"
       style={{ ...card, animation: 'fadeInUp 400ms ease-out both' }}
     >
@@ -146,7 +155,7 @@ export function CollapsibleSectionHeader({
   const open = opens[id] ?? false
 
   return (
-    <div style={{ animation: 'fadeInUp 400ms ease-out both' }}>
+    <div data-tour-id={id === 0 ? 'overview' : undefined} style={{ animation: 'fadeInUp 400ms ease-out both' }}>
       <div
         className="flex items-center justify-between cursor-pointer select-none py-2"
         onClick={() => toggle(id)}
@@ -190,9 +199,10 @@ export function ChildCollapsibleLayer({
 }) {
   const { opens, toggle } = useLayerCtx()
   const open = opens[id] ?? false
+  const tourId = ({ 6: 'price-projection', 7: 'scorecard', 8: 'business' } as Record<number, string>)[id]
 
   return (
-    <section className="rounded overflow-hidden" style={{ ...card, animation: 'fadeInUp 400ms ease-out both' }}>
+    <section data-tour-id={tourId} className="rounded overflow-hidden" style={{ ...card, animation: 'fadeInUp 400ms ease-out both' }}>
       <div
         className="px-5 py-4 flex items-start justify-between cursor-pointer select-none"
         style={{ background: "#001a00", borderBottom: open ? "1px solid rgba(0,255,65,0.1)" : "none" }}
@@ -227,6 +237,7 @@ export function MethodologyToggle({ children }: { children: React.ReactNode }) {
   return (
     <>
       <div
+        data-tour-id="methodology-toggle"
         className="flex items-center justify-center py-2"
         style={{ borderBottom: '1px solid rgba(0,255,65,0.1)' }}
       >

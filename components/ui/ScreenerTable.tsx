@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import HazardTooltip from "@/components/ui/HazardTooltip";
+import { useGuidedTour } from "@/components/ui/GuidedTour";
 
 const EXTENSION_MS = 15 * 60 * 1000
 
@@ -232,6 +233,7 @@ export default function ScreenerTable({
   trialUsed?: boolean;
   trialExtensionStartedAt?: string | null;
 }) {
+  const { conversionReady } = useGuidedTour();
   const [detailLevel,  setDetailLevel]  = useState(0);
   const [showFilters,  setShowFilters]  = useState(false);
   const [showProGate,    setShowProGate]    = useState(false);
@@ -330,6 +332,9 @@ export default function ScreenerTable({
       : visibleStocks;
     return applyFilters(searched, filters);
   }, [visibleStocks, filters, searchQuery]);
+  const primaryTourTicker = visibleStocks.find(stock => stock.signal === "BUY+" || stock.signal === "BUY")?.ticker
+    ?? visibleStocks.reduce<ScreenerRow | null>((best, stock) => !best || stock.rank < best.rank ? stock : best, null)?.ticker
+    ?? null;
   const activeCount = filters.length;
 
   // ── localStorage persistence ───────────────────────────────────────────────
@@ -365,6 +370,7 @@ export default function ScreenerTable({
   useEffect(() => {
     // UPSELL TOAST — show only when: logged-in, not pro, trial_used=true,
     // extension was taken (trialExtensionStartedAt set), and extension has expired.
+    if (!conversionReady) return;                              // never compete with onboarding or tour
     if (isPro) return;                                          // never show to pro users
     if (!trialUsed) return;                                     // never show before trial is used
     if (!trialExtensionStartedAt) return;                       // never show when extension banner is showing (no extension yet)
@@ -390,7 +396,7 @@ export default function ScreenerTable({
       clearTimeout(timer);
       window.removeEventListener('onboarding-dismissed', onOnboardingDismissed);
     };
-  }, [isPro, trialUsed, trialExtensionStartedAt]);
+  }, [conversionReady, isPro, trialUsed, trialExtensionStartedAt]);
 
   function clearAllFilters() {
     setFilters([]);
@@ -748,6 +754,8 @@ export default function ScreenerTable({
             {processedStocks.map((stock, i) => (
               <React.Fragment key={stock.ticker}>
                 <tr
+                  data-tour-primary-stock={stock.ticker === primaryTourTicker ? "true" : undefined}
+                  data-tour-ticker={stock.ticker}
                   onClick={() => { playTickerClick(); setClickedTicker(stock.ticker); router.push(`/screener/${stock.ticker}`); }}
                   className={`screener-row cursor-pointer border-t border-[#00ff41]/10 transition-colors ${
                     clickedTicker === stock.ticker

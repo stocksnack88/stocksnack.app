@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { marked } from "marked";
 import { supabaseAdmin } from "@/lib/supabase";
+import NewsletterPopup from "@/components/NewsletterPopup";
 
 export const revalidate = 60;
 
@@ -74,6 +75,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
   return (
     <>
+      <NewsletterPopup />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

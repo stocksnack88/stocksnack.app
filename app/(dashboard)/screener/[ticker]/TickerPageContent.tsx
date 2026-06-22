@@ -239,15 +239,18 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               {m1Available ? (
                 <>
                   <button
+                    type="button"
                     onClick={() => setM1Mode(v => !v)}
-                    className="text-[10px] font-mono tracking-widest px-3 py-1 rounded-full border"
+                    aria-pressed={m1Mode}
+                    className="text-[10px] font-mono font-bold tracking-widest px-3 py-1 rounded-full border transition-all duration-200"
                     style={{
-                      background: m1Mode ? "rgba(245,158,11,0.12)" : "rgba(0,255,65,0.08)",
-                      borderColor: m1Mode ? "rgba(245,158,11,0.55)" : "rgba(0,255,65,0.35)",
-                      color: m1Mode ? "#f59e0b" : "rgba(0,255,65,0.7)",
+                      background: m1Mode ? "rgba(245,158,11,0.12)" : "#00ff41",
+                      borderColor: m1Mode ? "rgba(245,158,11,0.55)" : "#00ff41",
+                      color: m1Mode ? "#f59e0b" : "#001a08",
+                      boxShadow: m1Mode ? "none" : "0 0 14px rgba(0,255,65,0.32)",
                     }}
                   >
-                    {m1Mode ? "◀ BLENDED VIEW" : "VIEW EBITDA-ONLY ▶"}
+                    {m1Mode ? "◀ BLENDED VIEW" : "TRY EBITDA-ONLY VIEW →"}
                   </button>
                   {m1Mode && (
                     <p className="text-[10px] font-mono text-center" style={{ color: "rgba(245,158,11,0.5)" }}>
@@ -773,7 +776,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                 color: "rgba(0,255,65,0.5)", fontSize: "10px", letterSpacing: "0.1em", whiteSpace: "nowrap",
               }}>{text}</td>
             )
-            const cel = (node: React.ReactNode, bordered = true) => (
+            const cel = (node: React.ReactNode) => (
               <td style={{ padding: "3px 8px", textAlign: "center" }}>{node}</td>
             )
             const bv = (t: React.ReactNode) => (
@@ -781,7 +784,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             )
             const mv = (t: React.ReactNode) => <span style={mut}>{t}</span>
             const row = (style: React.CSSProperties, label: string, c1: React.ReactNode, c2: React.ReactNode, c3: React.ReactNode) => (
-              <tr style={style}>{lbl(label)}{cel(c1)}{cel(c2)}{cel(c3, false)}</tr>
+              <tr style={style}>{lbl(label)}{cel(c1)}{cel(c2)}{cel(c3)}</tr>
             )
             const bvc = (t: React.ReactNode, color: string) => (
               <span style={{ border: "1px solid #00ff41", padding: "2px 0", display: "inline-block", width: "72px", textAlign: "center", fontSize: "10px", fontWeight: "bold", color }}>{t}</span>

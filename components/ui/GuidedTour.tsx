@@ -19,10 +19,11 @@ type TourStep = {
   action: TourAction
   optional?: boolean
   multiple?: boolean
+  navigate?: boolean
 }
 
 const STEPS: TourStep[] = [
-  { page: 'screener', target: '[data-tour-primary-stock="true"]', action: 'click', instruction: 'Pick a stock and click on it.' },
+  { page: 'screener', target: '[data-tour-primary-stock="true"]', action: 'click', navigate: true, instruction: 'Pick a stock and click on it.' },
   { page: 'ticker', target: '[data-tour-id="ticker-header"]', action: 'tap', instruction: 'This is the stock you selected.' },
   { page: 'ticker', target: '[data-tour-id="overview"]', action: 'click', instruction: 'Click here for the stock overview.' },
   { page: 'ticker', target: '[data-tour-id="price-projection"]', action: 'click', instruction: 'This section estimates the stock\'s future price.' },
@@ -101,6 +102,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const [state, setState] = useState<TourState>({ status: 'idle', step: 0 })
   const [rect, setRect] = useState<HighlightRect | null>(null)
   const [consentTick, setConsentTick] = useState(0)
+  const [activatedStep, setActivatedStep] = useState<number | null>(null)
+  const [readyStep, setReadyStep] = useState<number | null>(null)
+  const [showTransition, setShowTransition] = useState(false)
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -147,9 +151,24 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
 
   const step = STEPS[state.step]
   const pageMatches = step && (step.page === 'screener' ? pathname === '/screener' : /^\/screener\/[^/]+$/.test(pathname))
+  const controlActivated = activatedStep === state.step
+  const canAdvance = readyStep === state.step
+
+  useEffect(() => {
+    if (!step || (step.action === 'click' && !controlActivated)) return
+    const timer = window.setTimeout(() => setReadyStep(state.step), 900)
+    return () => window.clearTimeout(timer)
+  }, [controlActivated, state.step, step])
+
+  useEffect(() => {
+    if (!showTransition || pathname !== '/screener') return
+    const timer = window.setTimeout(() => setShowTransition(false), 250)
+    return () => window.clearTimeout(timer)
+  }, [pathname, showTransition])
 
   const advance = useCallback(() => {
     if (state.step >= STEPS.length - 1) {
+      setShowTransition(true)
       save({ status: 'completed', step: STEPS.length - 1, ticker: state.ticker })
       router.push('/screener')
       return
@@ -202,7 +221,11 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const onClick = (event: MouseEvent) => {
       if (step.action !== 'click' || !targets.some(target => target.contains(event.target as Node))) return
       playTourClick()
-      window.setTimeout(advance, 350)
+      if (step.navigate) {
+        window.setTimeout(advance, 350)
+        return
+      }
+      setActivatedStep(state.step)
     }
     document.addEventListener('click', onClick, true)
     window.addEventListener('scroll', updateRect, true)
@@ -216,7 +239,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       window.removeEventListener('scroll', updateRect, true)
       window.removeEventListener('resize', updateRect)
     }
-  }, [advance, mounted, pageMatches, state.status, step])
+  }, [advance, mounted, pageMatches, state.status, state.step, step])
 
   const startTour = useCallback(() => {
     if (!hasCookieChoice()) {
@@ -229,9 +252,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   }, [pathname, router, save])
   const skipTour = useCallback(() => save({ ...state, status: 'completed' }), [save, state])
   const tapToAdvance = useCallback(() => {
+    if (!canAdvance) return
     playTourClick()
     advance()
-  }, [advance])
+  }, [advance, canAdvance])
   const skipWithSound = useCallback(() => {
     playTourClick()
     skipTour()
@@ -266,7 +290,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   return (
     <TourContext.Provider value={context}>
       {children}
-      {mounted && state.status === 'active' && step && !pageMatches && createPortal(
+      {mounted && (showTransition || (state.status === 'active' && step && !pageMatches)) && createPortal(
         <div className="fixed inset-0 z-[950] flex items-center justify-center bg-black font-mono">
           <span className="animate-pulse text-sm font-bold tracking-[0.3em] text-[#00ff41]">STOCKSNACK_</span>
         </div>,
@@ -279,7 +303,29 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height }} />
           <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0 }} />
           <div className="absolute pointer-events-none rounded-md border-2 border-[#00ff41] shadow-[0_0_24px_rgba(0,255,65,0.45)]" style={spotlight} />
-          {step.action === 'tap' && <button aria-label="Continue tour" onClick={tapToAdvance} className="pointer-events-auto absolute cursor-pointer touch-pan-y bg-transparent" style={spotlight} />}
+          {(step.action === 'tap' || controlActivated) && (
+            <button
+              aria-label={canAdvance ? 'Continue tour' : 'Please read this tour step'}
+              disabled={!canAdvance}
+              onClick={tapToAdvance}
+              className="pointer-events-auto absolute cursor-pointer touch-pan-y bg-transparent disabled:cursor-default"
+              style={spotlight}
+            />
+          )}
+
+          <div
+            className="pointer-events-none absolute z-[902] h-3 w-3"
+            style={{
+              left: Math.max(4, spotlight.left + spotlight.width - 14),
+              top: Math.max(4, spotlight.top + spotlight.height - 14),
+            }}
+            aria-hidden="true"
+          >
+            {(step.action === 'click' && !controlActivated) || canAdvance ? (
+              <span className="absolute inset-0 animate-ping rounded-full bg-[#00ff41] opacity-70" />
+            ) : null}
+            <span className="absolute inset-[2px] rounded-full bg-[#00ff41] shadow-[0_0_10px_#00ff41]" />
+          </div>
 
           <button onClick={skipWithSound} className="pointer-events-auto fixed left-2 top-2 z-[903] min-h-11 px-2 text-[9px] tracking-widest text-[#00ff41]/40 hover:text-[#00ff41]">SKIP TOUR</button>
 

@@ -19,6 +19,7 @@ type TourStep = {
   target: string
   page: 'screener' | 'ticker'
   action: TourAction
+  optional?: boolean
 }
 
 const STEPS: TourStep[] = [
@@ -29,7 +30,7 @@ const STEPS: TourStep[] = [
   { page: 'ticker', target: '[data-tour-id="scorecard"]', action: 'click', chapter: 'QUICK OVERVIEW', title: 'How does it compare?', body: 'Open this scorecard for the stock-versus-S&P 500 summary.' },
   { page: 'ticker', target: '[data-tour-id="scorecard-data"]', action: 'tap', chapter: 'QUICK OVERVIEW', title: 'Potential and risk together', body: 'Projected return is only useful when growth quality and financial health support it.' },
   { page: 'ticker', target: '[data-tour-id="business"]', action: 'click', chapter: 'THE BUSINESS', title: 'What does this company do?', body: 'Open the business section before judging the numbers.' },
-  { page: 'ticker', target: '[data-tour-id="business-data"]', action: 'tap', chapter: 'THE BUSINESS', title: 'Know what you own', body: 'Use the description, product mix, and geographic mix to understand where revenue comes from.' },
+  { page: 'ticker', target: '[data-tour-id="business-data"]', action: 'tap', optional: true, chapter: 'THE BUSINESS', title: 'Know what you own', body: 'Use the description, product mix, and geographic mix to understand where revenue comes from.' },
   { page: 'ticker', target: '[data-tour-id="price-methods"]', action: 'click', chapter: 'PRICE PROJECTION', title: 'How is the price projected?', body: 'Open Layer 1 to inspect the valuation logic.' },
   { page: 'ticker', target: '[data-tour-id="methodology-toggle"]', action: 'click', chapter: 'PRICE PROJECTION', title: 'Reveal the methodology', body: 'StockSnack blends independent methods instead of trusting one estimate.' },
   { page: 'ticker', target: '[data-tour-id="methodology-table"]', action: 'tap', chapter: 'PRICE PROJECTION', title: 'Earnings multiple method', body: 'This method projects operating earnings and applies an appropriate EBITDA or P/E valuation multiple.' },
@@ -37,13 +38,13 @@ const STEPS: TourStep[] = [
   { page: 'ticker', target: '[data-tour-id="methodology-table"]', action: 'tap', chapter: 'PRICE PROJECTION', title: 'Dividend method', body: 'Dividend valuation is used only when the yield is meaningful. Otherwise StockSnack marks it not applicable.' },
   { page: 'ticker', target: '[data-tour-id="blended-projection"]', action: 'tap', chapter: 'PRICE PROJECTION', title: 'One blended target', body: 'Applicable methods are averaged into one five-year price target, reducing dependence on any single model.' },
   { page: 'ticker', target: '[data-tour-id="growth-layer"]', action: 'click', chapter: 'GROWTH QUALITY', title: 'Is the business really growing?', body: 'Open Layer 2 to compare growth with the S&P 500 benchmark.' },
-  { page: 'ticker', target: '[data-tour-id="growth-revenue"]', action: 'tap', chapter: 'GROWTH QUALITY', title: 'Revenue versus the S&P 500', body: 'Revenue shows whether customer demand is expanding faster than the market benchmark.' },
-  { page: 'ticker', target: '[data-tour-id="growth-ebitda"]', action: 'tap', chapter: 'GROWTH QUALITY', title: 'Are earnings keeping pace?', body: 'EBITDA helps reveal whether sales growth is translating into operating earnings.' },
-  { page: 'ticker', target: '[data-tour-id="growth-free-cash-flow"]', action: 'tap', chapter: 'GROWTH QUALITY', title: 'Is growth producing cash?', body: 'Free cash flow shows whether accounting growth is becoming usable cash.' },
+  { page: 'ticker', target: '[data-tour-id="growth-revenue"]', action: 'tap', optional: true, chapter: 'GROWTH QUALITY', title: 'Revenue versus the S&P 500', body: 'Revenue shows whether customer demand is expanding faster than the market benchmark.' },
+  { page: 'ticker', target: '[data-tour-id="growth-ebitda"]', action: 'tap', optional: true, chapter: 'GROWTH QUALITY', title: 'Are earnings keeping pace?', body: 'EBITDA helps reveal whether sales growth is translating into operating earnings.' },
+  { page: 'ticker', target: '[data-tour-id="growth-free-cash-flow"]', action: 'tap', optional: true, chapter: 'GROWTH QUALITY', title: 'Is growth producing cash?', body: 'Free cash flow shows whether accounting growth is becoming usable cash.' },
   { page: 'ticker', target: '[data-tour-id="growth-score"]', action: 'tap', chapter: 'GROWTH QUALITY', title: 'The combined growth score', body: 'StockSnack combines growth rates and trend quality into one comparable score.' },
   { page: 'ticker', target: '[data-tour-id="health-layer"]', action: 'click', chapter: 'FINANCIAL HEALTH', title: 'Can the balance sheet support growth?', body: 'Open Layer 3 to inspect financial resilience.' },
   { page: 'ticker', target: '[data-tour-id="health-summary"]', action: 'tap', chapter: 'FINANCIAL HEALTH', title: 'Four groups of checks', body: 'Balance Sheet, Income Statement, Cash Flow, and Business Traits combine into the health score.' },
-  { page: 'ticker', target: '[data-tour-id="health-metric"]', action: 'click', chapter: 'FINANCIAL HEALTH', title: 'Inspect one metric', body: 'Tap this arrow to see the underlying five-year detail—not just PASS or FAIL.' },
+  { page: 'ticker', target: '[data-tour-id="health-metric"]', action: 'click', optional: true, chapter: 'FINANCIAL HEALTH', title: 'Inspect one metric', body: 'Tap this arrow to see the underlying five-year detail—not just PASS or FAIL.' },
   { page: 'ticker', target: '[data-tour-id="final-layer"]', action: 'click', chapter: 'FINAL VERDICT', title: 'Do the three pillars agree?', body: 'Open the final layer to combine projected return, growth quality, and financial health.' },
   { page: 'ticker', target: '[data-tour-id="final-score"]', action: 'tap', chapter: 'FINAL VERDICT', title: 'You can now read StockSnack', body: 'The weighted score produces the final BUY, HOLD, or SELL signal. Tap to return to the screener.' },
 ]
@@ -146,11 +147,18 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     let cancelled = false
     let target: HTMLElement | null = null
     let observer: ResizeObserver | null = null
+    let retryTimer: number | null = null
+    let attempts = 0
     const updateRect = () => { if (!cancelled && target) setRect(target.getBoundingClientRect()) }
     const locate = () => {
       target = document.querySelector<HTMLElement>(step.target)
       if (!target) {
-        window.setTimeout(() => { if (!cancelled) advance() }, 900)
+        attempts += 1
+        if (step.optional && attempts >= 20) {
+          advance()
+          return
+        }
+        retryTimer = window.setTimeout(locate, 250)
         return
       }
       target.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
@@ -169,6 +177,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     return () => {
       cancelled = true
       window.clearTimeout(timer)
+      if (retryTimer !== null) window.clearTimeout(retryTimer)
       observer?.disconnect()
       document.removeEventListener('click', onClick, true)
       window.removeEventListener('scroll', updateRect, true)

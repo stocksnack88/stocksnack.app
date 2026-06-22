@@ -43,7 +43,7 @@ export default function OnboardingModal() {
 
         <div className="flex flex-1 flex-col justify-center py-7">
           <p className="max-w-[470px] font-mono text-[28px] font-bold leading-[1.08] tracking-[-0.02em] text-[#00ff41] sm:text-[42px]">
-            WHAT&apos;S THE BEST STOCK IN THE S&amp;P 500?
+            FIND THE BEST S&amp;P 500 STOCK.
           </p>
           <p className="mt-5 max-w-[470px] font-mono text-[12px] leading-7 text-[#00ff41]/55 sm:text-[14px]">
             StockSnack ranks all 500 using projected return, growth quality, and financial health—so you can find the strongest opportunities faster.

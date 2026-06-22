@@ -771,13 +771,13 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
 
             const lbl = (text: string) => (
               <td style={{
-                padding: "3px 8px 3px 12px", position: "sticky", left: 0, zIndex: 1,
+                padding: "2px 8px 2px 12px", position: "sticky", left: 0, zIndex: 1,
                 background: "#0b0f0b", borderRight: VB,
                 color: "rgba(0,255,65,0.5)", fontSize: "10px", letterSpacing: "0.1em", whiteSpace: "nowrap",
               }}>{text}</td>
             )
             const cel = (node: React.ReactNode) => (
-              <td style={{ padding: "3px 8px", textAlign: "center" }}>{node}</td>
+              <td style={{ padding: "2px 8px", textAlign: "center" }}>{node}</td>
             )
             const bv = (t: React.ReactNode) => (
               <span style={{ ...brt, border: "1px solid #00ff41", padding: "2px 0", display: "inline-block", width: "72px", textAlign: "center", fontSize: "10px" }}>{t}</span>
@@ -792,14 +792,14 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             const arrowRow = () => (
               <tr>
                 <td style={{ padding: 0, position: "sticky", left: 0, zIndex: 1, background: "#0b0f0b", borderRight: VB }} />
-                <td style={{ textAlign: "center", padding: "2px 8px 1px", lineHeight: 1 }}>
-                  <span style={{ color: "rgba(0,255,65,0.28)", fontSize: "8px" }}>↓</span>
+                <td style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
+                  <span style={{ color: "rgba(0,255,65,0.55)", fontSize: "10px" }}>↓</span>
                 </td>
-                <td style={{ textAlign: "center", padding: "2px 8px 1px", lineHeight: 1 }}>
-                  {!m2na && <span style={{ color: "rgba(0,255,65,0.28)", fontSize: "8px" }}>↓</span>}
+                <td style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
+                  {!m2na && <span style={{ color: "rgba(0,255,65,0.55)", fontSize: "10px" }}>↓</span>}
                 </td>
-                <td style={{ textAlign: "center", padding: "2px 8px 1px", lineHeight: 1 }}>
-                  {!m3na && <span style={{ color: "rgba(0,255,65,0.28)", fontSize: "8px" }}>↓</span>}
+                <td style={{ textAlign: "center", padding: "0 8px", lineHeight: 1 }}>
+                  {!m3na && <span style={{ color: "rgba(0,255,65,0.55)", fontSize: "10px" }}>↓</span>}
                 </td>
               </tr>
             )

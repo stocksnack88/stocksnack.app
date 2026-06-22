@@ -46,13 +46,14 @@ body {
   margin-bottom: 1em;
 }
 .blog-prose h3 {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: #00ff41;
-  border-left: 3px solid #00ff41;
-  padding-left: 8px;
-  margin-top: 1.5em;
+  letter-spacing: 0.1em;
+  color: #000;
+  background: rgba(0,255,65,0.7);
+  display: inline-block;
+  padding: 1px 8px;
+  margin-top: 1.6em;
   margin-bottom: 0.5em;
 }
 .blog-prose strong { color: rgba(0, 255, 65, 0.9); font-weight: 700; }

@@ -35,12 +35,17 @@ _REVENUE_TAGS = [
     "RevenuesNetOfInterestExpense",   # banks (JPM, BAC, WFC)
     "SalesRevenueNet",
     "RevenueFromContractWithCustomerIncludingAssessedTax",
+    # IFRS filers (20-F, e.g. TSM)
+    "ifrs-full:Revenue",
+    "ifrs-full:RevenueFromContractsWithCustomers",
 ]
 
 # Axes that indicate product segments
 _PRODUCT_AXES = {
     "srt:ProductOrServiceAxis",
     "us-gaap:ProductOrServiceAxis",
+    # IFRS filers use end-market breakdown (e.g. TSM: HPC, Smartphone, Auto…)
+    "ifrs-full:MarketsOfCustomersAxis",
 }
 
 # Axes that indicate geographic segments
@@ -48,6 +53,8 @@ _GEO_AXES = {
     "srt:StatementGeographicalAxis",
     "us-gaap:StatementGeographicalAxis",
     "us-gaap:GeographicAreasRevenuesFromExternalCustomersAbstract",
+    # IFRS filers (20-F)
+    "ifrs-full:GeographicalAreasAxis",
 }
 
 # Axes that indicate operating/reportable segments (geo-style for companies
@@ -146,13 +153,13 @@ def get_xbrl_files(cik: str, ticker: str = "") -> dict[str, str] | None:
         log.warning("[%s] Failed to fetch submissions: %s", ticker, exc)
         return None
 
-    # 2. Find most recent 10-K accession number
+    # 2. Find most recent annual filing — 10-K (US) or 20-F (foreign private issuer)
     recent  = sub.get("filings", {}).get("recent", {})
     forms   = recent.get("form", [])
     accns   = recent.get("accessionNumber", [])
-    accn    = next((a for f, a in zip(forms, accns) if f == "10-K"), None)
+    accn    = next((a for f, a in zip(forms, accns) if f in ("10-K", "20-F")), None)
     if not accn:
-        log.warning("[%s] No 10-K found in recent filings", ticker)
+        log.warning("[%s] No 10-K or 20-F found in recent filings", ticker)
         return None
 
     accn_clean = accn.replace("-", "")
@@ -487,11 +494,11 @@ def _extract_revenue_facts(
         "http://fasb.org/us-gaap/2025",
     ]
 
-    # Dynamically find the actual us-gaap namespace used in this document
+    # Dynamically find us-gaap and ifrs-full namespace URIs used in this document
     found_ns: set[str] = set()
     for elem in root.iter():
         tag = elem.tag
-        if tag.startswith("{") and "us-gaap" in tag:
+        if tag.startswith("{") and ("us-gaap" in tag or "ifrs-full" in tag or "ifrs.org" in tag):
             ns_uri = tag[1:tag.index("}")]
             found_ns.add(ns_uri)
 
@@ -499,8 +506,18 @@ def _extract_revenue_facts(
     seen_ctx: set[tuple[str, str]] = set()  # (tag, context_id) dedup
 
     for rev_tag in _REVENUE_TAGS:
-        for ns_uri in found_ns:
-            full_tag = f"{{{ns_uri}}}{rev_tag}"
+        # IFRS tags already carry their namespace prefix — resolve directly
+        if rev_tag.startswith("ifrs-full:"):
+            local = rev_tag.split(":", 1)[1]
+            ifrs_ns = next((n for n in found_ns if "ifrs" in n), None)
+            search_ns = {ifrs_ns} if ifrs_ns else set()
+            search_tag = local
+        else:
+            search_ns = {n for n in found_ns if "us-gaap" in n}
+            search_tag = rev_tag
+
+        for ns_uri in search_ns:
+            full_tag = f"{{{ns_uri}}}{search_tag}"
             for elem in root.iter(full_tag):
                 ctx_ref = elem.get("contextRef", "")
                 if ctx_ref not in ctx_map:

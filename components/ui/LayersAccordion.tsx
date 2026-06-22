@@ -1,6 +1,7 @@
 'use client'
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import SegmentBreakdown from '@/components/ui/SegmentBreakdown'
+import { playTick } from '@/lib/sounds'
 
 type Seg = { name: string; pct: number; cagr: number | null; value: number }
 
@@ -57,16 +58,16 @@ export function LayerProvider({
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggle = (i: number) => setOpens(prev => {
+  const toggle = (i: number) => { playTick(); setOpens(prev => {
     const wasOpen = prev[i]
     const next = prev.map((v, j): boolean => (j === i ? !v : v))
     if (childMap?.[i] && !tourActive()) {
       for (const cid of childMap[i]) next[cid] = !wasOpen
     }
     return next
-  })
+  }) }
 
-  const setAll = (open: boolean) => setOpens(Array(count).fill(open))
+  const setAll = (open: boolean) => { playTick(); setOpens(Array(count).fill(open)) }
 
   return (
     <LayerCtx.Provider value={{ opens, toggle, setAll }}>

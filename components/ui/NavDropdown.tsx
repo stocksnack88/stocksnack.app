@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useGuidedTour } from './GuidedTour'
+import { playClick } from '@/lib/sounds'
 
 const MONO: React.CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }
 
@@ -112,7 +113,7 @@ export default function NavDropdown({ userEmail }: Props) {
       <div ref={ref} className="relative flex items-center">
         {/* trigger */}
         <button
-          onClick={() => setOpen(o => !o)}
+          onClick={() => { playClick(); setOpen(o => !o) }}
           aria-label="Open menu"
           aria-expanded={open}
           aria-haspopup="true"

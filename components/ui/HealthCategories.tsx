@@ -684,11 +684,14 @@ export default function HealthCategories({ cats, fundamentals }: { cats: HealthC
     <>
       {cats.map((cat, catIdx) => {
         const { data: dataOpen, why: whyOpen } = catState[cat.label] ?? { data: true, why: false };
-        const healthTourId = ({
-          "BALANCE SHEET": "health-balance-sheet",
-          "INCOME STATEMENT": "health-income-statement",
-          "CASH FLOW": "health-cash-flow",
-        } as Record<string, string>)[cat.label.toUpperCase()];
+        const upperLabel = cat.label.toUpperCase();
+        const healthTourId = upperLabel.includes("BALANCE SHEET")
+          ? "health-balance-sheet"
+          : upperLabel.includes("INCOME STATEMENT")
+            ? "health-income-statement"
+            : upperLabel.includes("CASH FLOW")
+              ? "health-cash-flow"
+              : undefined;
         return (
           <div
             key={cat.label}

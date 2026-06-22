@@ -24,32 +24,32 @@ type TourStep = {
 const STEPS: TourStep[] = [
   { page: 'screener', target: '[data-tour-primary-stock="true"]', action: 'click', instruction: 'Pick a stock and click on it.' },
   { page: 'ticker', target: '[data-tour-id="ticker-header"]', action: 'tap', instruction: 'This is the stock you selected.' },
-  { page: 'ticker', target: '[data-tour-id="overview"]', action: 'click', instruction: 'Open the Overview.' },
-  { page: 'ticker', target: '[data-tour-id="price-projection"]', action: 'click', instruction: 'Open Price Projection.' },
-  { page: 'ticker', target: '[data-tour-id="price-projection-data"]', action: 'tap', instruction: 'Compare today\'s price with the five-year projection.' },
-  { page: 'ticker', target: '[data-tour-id="scorecard"]', action: 'click', instruction: 'Open What You Are Buying.' },
-  { page: 'ticker', target: '[data-tour-id="scorecard-data"]', action: 'tap', instruction: 'Compare return, growth quality and financial health.' },
-  { page: 'ticker', target: '[data-tour-id="business"]', action: 'click', instruction: 'Open The Business.' },
-  { page: 'ticker', target: '[data-tour-id="business-data"]', action: 'tap', optional: true, instruction: 'See what the company sells and where it earns revenue.' },
-  { page: 'ticker', target: '[data-tour-id="price-methods"]', action: 'click', instruction: 'Open Layer 1 — Price Projection.' },
-  { page: 'ticker', target: '[data-tour-id="methodology-toggle"]', action: 'click', instruction: 'Show how the price is calculated.' },
-  { page: 'ticker', target: '[data-tour-id="method-1"]', action: 'tap', multiple: true, instruction: 'Read Method 1 — EBITDA or P/E.' },
-  { page: 'ticker', target: '[data-tour-id="method-2"]', action: 'tap', multiple: true, instruction: 'Read Method 2 — Free Cash Flow.' },
-  { page: 'ticker', target: '[data-tour-id="method-3"]', action: 'tap', multiple: true, instruction: 'Check whether the Dividend method applies.' },
-  { page: 'ticker', target: '[data-tour-id="blended-projection"]', action: 'tap', instruction: 'See how the methods become one price target.' },
-  { page: 'ticker', target: '[data-tour-id="growth-layer"]', action: 'click', instruction: 'Open Layer 2 — Growth Quality.' },
-  { page: 'ticker', target: '[data-tour-id="growth-revenue"]', action: 'tap', optional: true, instruction: 'Compare Revenue growth with the S&P 500.' },
-  { page: 'ticker', target: '[data-tour-id="growth-ebitda"]', action: 'tap', optional: true, instruction: 'Compare EBITDA growth with the S&P 500.' },
-  { page: 'ticker', target: '[data-tour-id="growth-free-cash-flow"]', action: 'tap', optional: true, instruction: 'Compare Free Cash Flow growth with the S&P 500.' },
-  { page: 'ticker', target: '[data-tour-id="growth-score"]', action: 'tap', instruction: 'Review the combined Growth Quality score.' },
-  { page: 'ticker', target: '[data-tour-id="health-layer"]', action: 'click', instruction: 'Open Layer 3 — Financial Health.' },
-  { page: 'ticker', target: '[data-tour-id="health-summary"]', action: 'tap', instruction: 'Review the overall Financial Health score.' },
-  { page: 'ticker', target: '[data-tour-id="health-balance-sheet"]', action: 'tap', instruction: 'Review the Balance Sheet checks.' },
-  { page: 'ticker', target: '[data-tour-id="health-income-statement"]', action: 'tap', instruction: 'Review the Income Statement checks.' },
-  { page: 'ticker', target: '[data-tour-id="health-cash-flow"]', action: 'tap', instruction: 'Review the Cash Flow checks.' },
-  { page: 'ticker', target: '[data-tour-id="health-metric"]', action: 'click', optional: true, instruction: 'Expand one metric to see its five-year detail.' },
-  { page: 'ticker', target: '[data-tour-id="final-layer"]', action: 'click', instruction: 'Open Layer 4 — Final Score.' },
-  { page: 'ticker', target: '[data-tour-id="final-score"]', action: 'tap', instruction: 'Review the weighted score and final verdict.' },
+  { page: 'ticker', target: '[data-tour-id="overview"]', action: 'click', instruction: 'Click here for the stock overview.' },
+  { page: 'ticker', target: '[data-tour-id="price-projection"]', action: 'click', instruction: 'This section estimates the stock\'s future price.' },
+  { page: 'ticker', target: '[data-tour-id="price-projection-data"]', action: 'tap', instruction: 'This shows the estimated stock price five years from now.' },
+  { page: 'ticker', target: '[data-tour-id="scorecard"]', action: 'click', instruction: 'Click here to understand the stock at a glance.' },
+  { page: 'ticker', target: '[data-tour-id="scorecard-data"]', action: 'tap', instruction: 'An overview of the stock\'s performance.' },
+  { page: 'ticker', target: '[data-tour-id="business"]', action: 'click', instruction: 'This section explains what the company does.' },
+  { page: 'ticker', target: '[data-tour-id="business-data"]', action: 'tap', optional: true, instruction: 'See how the business makes money.' },
+  { page: 'ticker', target: '[data-tour-id="price-methods"]', action: 'click', instruction: 'How do we calculate the future price?' },
+  { page: 'ticker', target: '[data-tour-id="methodology-toggle"]', action: 'click', instruction: 'Expand to see the valuation methods.' },
+  { page: 'ticker', target: '[data-tour-id="method-1"]', action: 'tap', multiple: true, instruction: 'Method 1 uses future EBITDA or P/E to estimate price.' },
+  { page: 'ticker', target: '[data-tour-id="method-2"]', action: 'tap', multiple: true, instruction: 'Method 2 uses future Free Cash Flow to estimate price.' },
+  { page: 'ticker', target: '[data-tour-id="method-3"]', action: 'tap', multiple: true, instruction: 'Method 3 uses future Dividends when applicable.' },
+  { page: 'ticker', target: '[data-tour-id="blended-projection"]', action: 'tap', instruction: 'We average all available future prices into one target.' },
+  { page: 'ticker', target: '[data-tour-id="growth-layer"]', action: 'click', instruction: 'This layer measures the company\'s growth quality.' },
+  { page: 'ticker', target: '[data-tour-id="growth-yoy"]', action: 'tap', instruction: 'This part shows the year-over-year performance.' },
+  { page: 'ticker', target: '[data-tour-id="growth-sp500"]', action: 'tap', optional: true, instruction: 'The red line shows the S&P 500 performance.' },
+  { page: 'ticker', target: '[data-tour-id="growth-metrics"]', action: 'tap', instruction: 'We cover Revenue, EBITDA and Free Cash Flow.' },
+  { page: 'ticker', target: '[data-tour-id="growth-score"]', action: 'tap', instruction: 'We score their growth performance against the S&P 500.' },
+  { page: 'ticker', target: '[data-tour-id="health-layer"]', action: 'click', instruction: 'This layer checks the company\'s financial strength.' },
+  { page: 'ticker', target: '[data-tour-id="health-summary"]', action: 'tap', instruction: 'This is the overall Financial Health score.' },
+  { page: 'ticker', target: '[data-tour-id="health-balance-sheet"]', action: 'tap', instruction: 'Balance Sheet checks cover cash, debt and equity.' },
+  { page: 'ticker', target: '[data-tour-id="health-income-statement"]', action: 'tap', instruction: 'Income Statement checks cover profit and earnings quality.' },
+  { page: 'ticker', target: '[data-tour-id="health-cash-flow"]', action: 'tap', instruction: 'Cash Flow checks show how reliably the business produces cash.' },
+  { page: 'ticker', target: '[data-tour-id="health-metric"]', action: 'click', optional: true, instruction: 'Expand one check to see its five-year history.' },
+  { page: 'ticker', target: '[data-tour-id="final-layer"]', action: 'click', instruction: 'The final layer combines every score above.' },
+  { page: 'ticker', target: '[data-tour-id="final-score"]', action: 'tap', instruction: 'The final score weights future return, growth and financial health.' },
 ]
 
 type TourContextValue = {
@@ -73,6 +73,25 @@ function readState(): TourState {
 
 function hasCookieChoice() {
   try { return !!localStorage.getItem(COOKIE_KEY) } catch { return false }
+}
+
+function playTourClick() {
+  try {
+    const AudioCtx = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!
+    const ctx = new AudioCtx()
+    const oscillator = ctx.createOscillator()
+    const gain = ctx.createGain()
+    oscillator.connect(gain)
+    gain.connect(ctx.destination)
+    oscillator.type = 'square'
+    oscillator.frequency.setValueAtTime(760, ctx.currentTime)
+    oscillator.frequency.exponentialRampToValueAtTime(480, ctx.currentTime + 0.045)
+    gain.gain.setValueAtTime(0.09, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05)
+    oscillator.start(ctx.currentTime)
+    oscillator.stop(ctx.currentTime + 0.05)
+    oscillator.onended = () => { void ctx.close() }
+  } catch {}
 }
 
 export function GuidedTourProvider({ children }: { children: React.ReactNode }) {
@@ -182,6 +201,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const timer = window.setTimeout(locate, 350)
     const onClick = (event: MouseEvent) => {
       if (step.action !== 'click' || !targets.some(target => target.contains(event.target as Node))) return
+      playTourClick()
       window.setTimeout(advance, 350)
     }
     document.addEventListener('click', onClick, true)
@@ -208,6 +228,14 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     if (pathname !== '/screener') router.push('/screener')
   }, [pathname, router, save])
   const skipTour = useCallback(() => save({ ...state, status: 'completed' }), [save, state])
+  const tapToAdvance = useCallback(() => {
+    playTourClick()
+    advance()
+  }, [advance])
+  const skipWithSound = useCallback(() => {
+    playTourClick()
+    skipTour()
+  }, [skipTour])
   const resumeTour = useCallback(() => {
     save({ ...state, status: 'active' })
     const resumeStep = STEPS[state.step]
@@ -228,6 +256,12 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const bottom = Math.max(top, Math.min(window.innerHeight, rect.top + rect.height + pad))
     return { top, left, width: right - left, height: bottom - top }
   })() : null
+  const callout = spotlight ? (() => {
+    const width = Math.min(window.innerWidth - 24, Math.max(240, spotlight.width))
+    const centeredLeft = spotlight.left + spotlight.width / 2 - width / 2
+    const left = Math.max(12, Math.min(window.innerWidth - width - 12, centeredLeft))
+    return { top: Math.max(54, spotlight.top - 62), left, width }
+  })() : null
 
   return (
     <TourContext.Provider value={context}>
@@ -245,14 +279,15 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height }} />
           <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0 }} />
           <div className="absolute pointer-events-none rounded-md border-2 border-[#00ff41] shadow-[0_0_24px_rgba(0,255,65,0.45)]" style={spotlight} />
-          {step.action === 'tap' && <button aria-label="Continue tour" onClick={advance} className="pointer-events-auto absolute cursor-pointer touch-pan-y bg-transparent" style={spotlight} />}
+          {step.action === 'tap' && <button aria-label="Continue tour" onClick={tapToAdvance} className="pointer-events-auto absolute cursor-pointer touch-pan-y bg-transparent" style={spotlight} />}
 
-          <div className="pointer-events-none fixed left-3 right-3 top-3 z-[902] rounded-lg border border-[#00ff41]/40 bg-[#030603]/95 px-3 py-2.5 shadow-2xl md:left-1/2 md:right-auto md:w-[440px] md:-translate-x-1/2">
-            <div className="flex items-center justify-between">
-              <button onClick={skipTour} className="pointer-events-auto min-h-9 px-1 text-[9px] tracking-widest text-[#00ff41]/35 hover:text-[#00ff41]">SKIP TOUR</button>
-              <p className="text-[9px] font-bold tracking-[0.2em] text-[#00ff41]/40">{state.step + 1}/{STEPS.length}</p>
+          <button onClick={skipWithSound} className="pointer-events-auto fixed left-2 top-2 z-[903] min-h-11 px-2 text-[9px] tracking-widest text-[#00ff41]/40 hover:text-[#00ff41]">SKIP TOUR</button>
+
+          <div className="pointer-events-none fixed z-[902] rounded-md bg-[#00ff41] px-3 py-2.5 shadow-[0_0_20px_rgba(0,255,65,0.4)]" style={callout ?? undefined}>
+            <div className="flex items-center justify-between gap-3 text-[#001a08]">
+              <p className="text-xs font-bold leading-snug">{step.instruction}</p>
+              <p className="shrink-0 text-[9px] font-bold tracking-[0.15em] opacity-60">{state.step + 1}/{STEPS.length}</p>
             </div>
-            <p className="pb-1 text-xs font-bold leading-relaxed text-[#00ff41]">{step.instruction}</p>
           </div>
         </div>,
         document.body,

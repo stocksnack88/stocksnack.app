@@ -1168,11 +1168,11 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             return (
               <>
               <div className="px-5 pb-5" style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
-                <div className="pt-4 pb-2 mb-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.3)" }}>
+                <div data-tour-id="growth-yoy" className="pt-4 pb-2 mb-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.3)" }}>
                   <p className="text-base font-bold leading-tight" style={{ color: "#00ff41" }}>HISTORICAL GROWTH TREND</p>
                   <p className="text-xs tracking-widest mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>REVENUE · EBITDA · FREE CASH FLOW</p>
                 </div>
-                <div className="space-y-6">
+                <div data-tour-id="growth-metrics" className="space-y-6">
                   {metrics.map(({ key, label, cagr, signal }) => {
                     const vals = rows.map(r => {
                       const v = r[key]
@@ -1231,6 +1231,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                             </span>
                             {sp500CagrL2 != null && (
                               <span
+                                data-tour-id="growth-sp500"
                                 className="text-[10px] font-mono px-1.5 py-0.5 rounded"
                                 style={{
                                   background: "rgba(255,0,0,0.15)",

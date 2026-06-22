@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import CookieBanner from "@/components/ui/CookieBanner";
 import PostHogProvider from "@/components/PostHogProvider";
+import { GuidedTourProvider } from "@/components/ui/GuidedTour";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -52,7 +53,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ backgroundColor: '#000000' }}
       >
-        <PostHogProvider>{children}</PostHogProvider>
+        <PostHogProvider>
+          <GuidedTourProvider>{children}</GuidedTourProvider>
+        </PostHogProvider>
         <CookieBanner />
       </body>
     </html>

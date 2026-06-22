@@ -1,7 +1,6 @@
 import Navbar from "@/components/ui/Navbar";
 import Footer from "@/components/ui/Footer";
 import TrialManager from "@/components/TrialManager";
-import { GuidedTourProvider } from "@/components/ui/GuidedTour";
 import { getCachedUser, getCachedUserProfile } from "@/lib/server-auth";
 import { hasInternalAccess } from "@/lib/internal-access";
 import { redirect } from "next/navigation";
@@ -31,13 +30,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <GuidedTourProvider>
-      <div className="min-h-screen bg-black flex flex-col">
-        <Navbar />
-        <div className="flex-1 flex flex-col">{children}</div>
-        <Footer />
-        <TrialManager initialTrialStatus={initialTrialStatus} />
-      </div>
-    </GuidedTourProvider>
+    <div className="min-h-screen bg-black flex flex-col">
+      <Navbar />
+      <div className="flex-1 flex flex-col">{children}</div>
+      <Footer />
+      <TrialManager initialTrialStatus={initialTrialStatus} />
+    </div>
   );
 }

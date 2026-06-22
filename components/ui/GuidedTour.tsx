@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
+import { playTick, playClick } from '@/lib/sounds'
 
 const STORAGE_KEY = 'ss_guided_tour_v1'
 const INTENT_KEY = 'ss_tour_intent'
@@ -127,6 +128,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const pageMatches = step && (step.page === 'screener' ? pathname === '/screener' : /^\/screener\/[^/]+$/.test(pathname))
 
   const advance = useCallback(() => {
+    playTick()
     if (state.step >= STEPS.length - 1) {
       save({ status: 'completed', step: STEPS.length - 1, ticker: state.ticker })
       router.push('/screener')
@@ -194,8 +196,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     save({ status: 'active', step: 0 })
     if (pathname !== '/screener') router.push('/screener')
   }, [pathname, router, save])
-  const pauseTour = useCallback(() => save({ ...state, status: 'paused' }), [save, state])
-  const skipTour = useCallback(() => save({ ...state, status: 'completed' }), [save, state])
+  const pauseTour = useCallback(() => { playClick(); save({ ...state, status: 'paused' }) }, [save, state])
+  const skipTour = useCallback(() => { playClick(); save({ ...state, status: 'completed' }) }, [save, state])
   const resumeTour = useCallback(() => {
     save({ ...state, status: 'active' })
     const resumeStep = STEPS[state.step]

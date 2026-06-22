@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { playClick, playChime } from "@/lib/sounds";
 
 const SEEN_KEY = "ss_onboarding_seen";
 const INTENT_KEY = "ss_tour_intent";
@@ -17,6 +18,7 @@ export default function OnboardingModal() {
   }, []);
 
   function finish(choice: "start" | "skip") {
+    choice === "start" ? playChime() : playClick();
     try {
       localStorage.setItem(SEEN_KEY, "1");
       localStorage.setItem(INTENT_KEY, choice);

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { playClick, playChime } from "@/lib/sounds";
 
 const STORAGE_KEY = "ss_newsletter_dismissed";
 
@@ -36,6 +37,7 @@ export default function NewsletterPopup() {
   }, []);
 
   const dismiss = () => {
+    playClick();
     localStorage.setItem(STORAGE_KEY, "1");
     setVisible(false);
   };
@@ -52,8 +54,8 @@ export default function NewsletterPopup() {
 
     if (error) {
       if (error.code === "23505") {
-        // already subscribed — treat as success
         setStatus("success");
+        playChime();
         localStorage.setItem(STORAGE_KEY, "1");
       } else {
         setStatus("error");
@@ -61,6 +63,7 @@ export default function NewsletterPopup() {
       }
     } else {
       setStatus("success");
+      playChime();
       localStorage.setItem(STORAGE_KEY, "1");
     }
   };

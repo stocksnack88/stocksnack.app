@@ -684,13 +684,21 @@ export default function HealthCategories({ cats, fundamentals }: { cats: HealthC
     <>
       {cats.map((cat, catIdx) => {
         const { data: dataOpen, why: whyOpen } = catState[cat.label] ?? { data: true, why: false };
+        const upperLabel = cat.label.toUpperCase();
+        const healthTourId = upperLabel.includes("BALANCE SHEET")
+          ? "health-balance-sheet"
+          : upperLabel.includes("INCOME STATEMENT")
+            ? "health-income-statement"
+            : upperLabel.includes("CASH FLOW")
+              ? "health-cash-flow"
+              : undefined;
         return (
           <div
             key={cat.label}
             style={catIdx < cats.length - 1 ? { borderBottom: "1px solid rgba(0,255,65,0.1)" } : {}}
           >
             {/* Category header */}
-            <div className="px-5 pt-4 pb-2 flex items-center gap-3 select-none">
+            <div data-tour-id={healthTourId} className="px-5 pt-4 pb-2 flex items-center gap-3 select-none">
               <div className="flex-1 min-w-0 border-b border-[rgba(0,255,65,0.2)] pb-1">
                 <p className="text-xs font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>
                   {cat.label}

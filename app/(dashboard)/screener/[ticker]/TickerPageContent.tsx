@@ -748,9 +748,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             const m3Cagr = m3Return != null ? Math.pow(m3Return, 0.2) - 1 : null
             const sp500CagrVal = score?.sp500_cagr != null ? Number(score.sp500_cagr) : null
 
-            const CB = "1px solid rgba(0,255,65,0.08)"
             const VB = "1px solid rgba(0,255,65,0.55)"
-            const RB = "1px solid rgba(0,255,65,0.06)"
 
             const pct  = (v: unknown) => v != null ? `${(Number(v) * 100).toFixed(1)}%/yr` : "—"
             const mlt  = (v: unknown) => v != null ? `${Number(v).toFixed(1)}x` : "—"
@@ -770,13 +768,13 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
 
             const lbl = (text: string) => (
               <td style={{
-                padding: "7px 8px 7px 12px", position: "sticky", left: 0, zIndex: 1,
+                padding: "3px 8px 3px 12px", position: "sticky", left: 0, zIndex: 1,
                 background: "#0b0f0b", borderRight: VB,
                 color: "rgba(0,255,65,0.5)", fontSize: "10px", letterSpacing: "0.1em", whiteSpace: "nowrap",
               }}>{text}</td>
             )
             const cel = (node: React.ReactNode, bordered = true) => (
-              <td style={{ padding: "7px 8px", textAlign: "center", borderRight: bordered ? CB : undefined }}>{node}</td>
+              <td style={{ padding: "3px 8px", textAlign: "center" }}>{node}</td>
             )
             const bv = (t: React.ReactNode) => (
               <span style={{ ...brt, border: "1px solid #00ff41", padding: "2px 0", display: "inline-block", width: "72px", textAlign: "center", fontSize: "10px" }}>{t}</span>
@@ -791,10 +789,10 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             const arrowRow = () => (
               <tr>
                 <td style={{ padding: 0, position: "sticky", left: 0, zIndex: 1, background: "#0b0f0b", borderRight: VB }} />
-                <td style={{ textAlign: "center", padding: "2px 8px 1px", lineHeight: 1, borderRight: CB }}>
+                <td style={{ textAlign: "center", padding: "2px 8px 1px", lineHeight: 1 }}>
                   <span style={{ color: "rgba(0,255,65,0.28)", fontSize: "8px" }}>↓</span>
                 </td>
-                <td style={{ textAlign: "center", padding: "2px 8px 1px", lineHeight: 1, borderRight: CB }}>
+                <td style={{ textAlign: "center", padding: "2px 8px 1px", lineHeight: 1 }}>
                   {!m2na && <span style={{ color: "rgba(0,255,65,0.28)", fontSize: "8px" }}>↓</span>}
                 </td>
                 <td style={{ textAlign: "center", padding: "2px 8px 1px", lineHeight: 1 }}>
@@ -815,11 +813,11 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                       <th style={{ padding: "8px 8px 8px 12px", position: "sticky", left: 0, zIndex: 2, background: "#0d150d", borderRight: VB, textAlign: "left" }}>
                         <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "10px", letterSpacing: "0.12em" }}>STEPS</div>
                       </th>
-                      <th style={{ padding: "8px", textAlign: "center", borderRight: CB }}>
+                      <th style={{ padding: "8px", textAlign: "center" }}>
                         <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em", marginBottom: "2px" }}>METHOD 1</div>
                         <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>{isPeMode ? "P/E RATIO" : "EBITDA"}</div>
                       </th>
-                      <th style={{ padding: "8px", textAlign: "center", borderRight: CB, opacity: m2na ? 0.4 : 1 }}>
+                      <th style={{ padding: "8px", textAlign: "center", opacity: m2na ? 0.4 : 1 }}>
                         <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "8px", letterSpacing: "0.12em", marginBottom: "2px" }}>METHOD 2</div>
                         <div style={{ color: "#00ff41", fontSize: "10px", fontWeight: "bold", letterSpacing: "0.08em" }}>FREE CASH FLOW</div>
                       </th>
@@ -830,47 +828,47 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                     </tr>
                   </thead>
                   <tbody>
-                    {row({ borderBottom: RB }, "CURRENT PRICE",
+                    {row({}, "CURRENT PRICE",
                       bv(fmtDollar(currentPrice)),
                       m2na ? mv(m2NotApplicableReason) : bv(fmtDollar(currentPrice)),
                       m3na ? mv("Div yield < 4.5%") : bv(fmtDollar(currentPrice))
                     )}
                     {arrowRow()}
-                    {row({ borderBottom: RB }, "CURRENT VALUE",
+                    {row({}, "CURRENT VALUE",
                       bv(fmtBn(score?.m1_ebitda_current)),
                       m2na ? mv("—") : bv(fmtBn(score?.m2_fcf_current)),
                       m3na ? mv("—") : bv(yld(score?.m3_div_yield))
                     )}
                     {arrowRow()}
-                    {row({ borderBottom: RB }, "HIST. GROWTH (L5Y)",
+                    {row({}, "HIST. GROWTH (L5Y)",
                       bv(pct(score?.m1_growth_rate)),
                       m2na ? mv("—") : bv(pct(score?.m2_growth_rate)),
                       m3na ? mv("—") : bv(pct(score?.m3_growth_rate))
                     )}
                     {arrowRow()}
-                    {row({ borderBottom: RB }, "FUTURE VALUE (5Y)",
+                    {row({}, "FUTURE VALUE (5Y)",
                       bv(fmtBn(score?.m1_ebitda_projected)),
                       m2na ? mv("—") : bv(fmtBn(score?.m2_fcf_projected)),
                       m3na ? mv("—") : bv(m3CurTotalDiv != null ? fmtBn(m3CurTotalDiv) : "—")
                     )}
                     {arrowRow()}
-                    {row({ borderBottom: "1px solid rgba(0,255,65,0.12)" }, isPeMode ? "P/E MULTIPLE" : "MULTIPLIER",
+                    {row({}, isPeMode ? "P/E MULTIPLE" : "MULTIPLIER",
                       <><div style={{ color: "rgba(0,255,65,0.3)", fontSize: "7px", fontStyle: "italic", marginBottom: "2px" }}>{isPeMode ? "P/E" : "EV/EBITDA"}</div>{bv(mlt(score?.m1_ev_ebitda_multiple))}</>,
                       m2na ? mv("—") : <><div style={{ color: "rgba(0,255,65,0.3)", fontSize: "7px", fontStyle: "italic", marginBottom: "2px" }}>FCF Yield</div>{bv(yld(score?.m2_fcf_yield))}</>,
                       m3na ? mv("—") : <><div style={{ color: "rgba(0,255,65,0.3)", fontSize: "7px", fontStyle: "italic", marginBottom: "2px" }}>Div Yield</div>{bv(m3Proj5yTotalDiv != null ? fmtBn(m3Proj5yTotalDiv) : "—")}</>
                     )}
                     {arrowRow()}
-                    <tr style={{ background: "rgba(0,255,65,0.03)", borderTop: "1px solid rgba(0,255,65,0.15)", borderBottom: "1px solid rgba(0,255,65,0.15)" }}>
+                    <tr style={{ background: "rgba(0,255,65,0.03)" }}>
                       <td style={{
                         padding: "10px 8px 10px 12px", position: "sticky", left: 0, zIndex: 1,
                         background: "#111811", borderRight: VB,
                         color: "rgba(0,255,65,0.5)", fontSize: "8px", letterSpacing: "0.12em",
                         fontWeight: "bold", whiteSpace: "nowrap",
                       }}>PRICE TARGET</td>
-                      <td style={{ padding: "10px 8px", textAlign: "center", borderRight: CB }}>
+                      <td style={{ padding: "10px 8px", textAlign: "center" }}>
                         <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "4px 0", textAlign: "center", color: "#00ff41", fontSize: "13px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m1_price)}</span>
                       </td>
-                      <td style={{ padding: "10px 8px", textAlign: "center", borderRight: CB, opacity: m2na ? 0.35 : 1 }}>
+                      <td style={{ padding: "10px 8px", textAlign: "center", opacity: m2na ? 0.35 : 1 }}>
                         {m2na
                           ? <span style={mut}>{m2NotApplicableReason}</span>
                           : <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "4px 0", textAlign: "center", color: "#00ff41", fontSize: "13px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m2_price)}</span>
@@ -887,13 +885,13 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                       </td>
                     </tr>
                     {arrowRow()}
-                    {row({ borderBottom: RB }, "FUTURE RETURN (5Y)",
+                    {row({}, "FUTURE RETURN (5Y)",
                       bv(retX(m1Return)),
                       m2na ? mv("—") : bv(retX(m2Return)),
                       m3na ? mv("—") : bv(retX(m3Return))
                     )}
                     {arrowRow()}
-                    {row({ borderBottom: RB }, "RETURN CAGR (5Y)",
+                    {row({}, "RETURN CAGR (5Y)",
                       bv(cagrP(m1Cagr)),
                       m2na ? mv("—") : bv(cagrP(m2Cagr)),
                       m3na ? mv("—") : bv(cagrP(m3Cagr))

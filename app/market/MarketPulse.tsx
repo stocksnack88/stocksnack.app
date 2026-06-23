@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 import {
   Bar,
   BarChart,
@@ -22,6 +23,7 @@ import type {
   TrendMetric,
   TrendPoint,
   ValuationMetricData,
+  ValuationMetricKey,
   ValuationPoint,
   ValuationVerdict,
 } from './market-types'
@@ -41,6 +43,11 @@ const METRICS: Array<{ key: TrendMetric; label: string }> = [
   { key: 'revenue', label: 'REVENUE' },
   { key: 'ebitda', label: 'EBITDA' },
   { key: 'fcf', label: 'FREE CASH FLOW' },
+]
+const VALUATION_METRICS: Array<{ key: ValuationMetricKey; label: string }> = [
+  { key: 'pe', label: 'P/E' },
+  { key: 'fcfYield', label: 'FCF YIELD' },
+  { key: 'divYield', label: 'DIVIDEND' },
 ]
 
 function verdictColor(verdict: ValuationVerdict): string {
@@ -146,22 +153,23 @@ function ValuationTooltip({ active, payload, label, metric }: {
 function ValuationHistoryCard({ metric, history }: { metric: ValuationMetricData; history: ValuationPoint[] }) {
   const color = verdictColor(metric.verdict)
   const chartData = history.map(point => ({ label: point.label, value: point[metric.key], current: point.current }))
+  const [tooltipActive, setTooltipActive] = useState(false)
   return (
     <div className="overflow-hidden rounded border border-[#00ff41]/20 bg-[#00ff41]/[0.015]">
       <div className="flex items-start justify-between gap-3 border-b border-[#00ff41]/10 px-4 py-3">
         <div>
-          <p className="text-[9px] font-bold tracking-[0.18em] text-[#00ff41]/40">{metric.label}</p>
+          <p className="text-xs font-bold tracking-[0.16em] text-[#00ff41]">{metric.label}</p>
           <p className="mt-1 text-2xl font-bold" style={{ color }}>{metric.key === 'pe' ? formatMultiple(metric.current) : formatPercent(metric.current)}</p>
         </div>
         <StatusPill label={metric.verdict} color={color} />
       </div>
-      <div className="px-2 pb-3 pt-4">
+      <div className="px-2 pb-3 pt-4" onMouseLeave={() => setTooltipActive(false)} onMouseOut={() => setTooltipActive(false)} onMouseUp={() => setTooltipActive(false)} onPointerLeave={() => setTooltipActive(false)} onPointerUp={() => setTooltipActive(false)} onTouchEnd={() => setTooltipActive(false)}>
         <ResponsiveContainer width="100%" height={170}>
-          <BarChart data={chartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+          <BarChart data={chartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }} onMouseMove={() => setTooltipActive(true)} onMouseLeave={() => setTooltipActive(false)} onTouchStart={() => setTooltipActive(true)} onTouchEnd={() => setTooltipActive(false)}>
             <CartesianGrid stroke="rgba(0,255,65,0.06)" vertical={false} />
             <XAxis dataKey="label" tick={{ fill: DIM, fontSize: 8 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: DIM, fontSize: 8 }} axisLine={false} tickLine={false} tickFormatter={value => metric.key === 'pe' ? `${Number(value).toFixed(0)}x` : `${(Number(value) * 100).toFixed(1)}%`} />
-            <Tooltip content={<ValuationTooltip metric={metric} />} cursor={{ fill: 'rgba(0,255,65,0.03)' }} />
+            <Tooltip active={tooltipActive} content={<ValuationTooltip metric={metric} />} cursor={{ fill: 'rgba(0,255,65,0.03)' }} />
             {metric.historicalAverage != null && (
               <ReferenceLine y={metric.historicalAverage} stroke="rgba(255,255,255,0.45)" strokeDasharray="4 4" label={{ value: '5Y AVG', fill: 'rgba(255,255,255,0.45)', fontSize: 8, position: 'insideTopRight' }} />
             )}
@@ -185,9 +193,7 @@ function SignalBar({ signals, showCounts = false }: { signals: SignalCounts; sho
           const share = total ? (signals[signal] / total) * 100 : 0
           if (share === 0) return null
           return (
-            <div key={signal} className="flex items-center justify-center text-[8px] font-bold tracking-wider text-black" style={{ width: `${share}%`, background: SIGNAL_COLORS[signal] }} title={`${signal}: ${signals[signal]} (${share.toFixed(1)}%)`}>
-              {share >= 12 ? signal : ''}
-            </div>
+            <div key={signal} style={{ width: `${share}%`, background: SIGNAL_COLORS[signal] }} title={`${signal}: ${signals[signal]} (${share.toFixed(1)}%)`} />
           )
         })}
       </div>
@@ -226,6 +232,7 @@ function GrowthChart({ title, points, metric, sp500Cagr, subtitle }: {
   const cagr = metricCagr(points, metric)
   const verdict = growthVerdict(cagr, sp500Cagr)
   const data = chartPoints(points, metric, sp500Cagr)
+  const [tooltipActive, setTooltipActive] = useState(false)
   return (
     <div className="overflow-hidden rounded border border-[#00ff41]/20 bg-[#00ff41]/[0.015]">
       <div className="flex items-start justify-between gap-3 border-b border-[#00ff41]/10 px-4 py-3">
@@ -235,17 +242,17 @@ function GrowthChart({ title, points, metric, sp500Cagr, subtitle }: {
         </div>
         <StatusPill label={verdict.label} color={verdict.color} />
       </div>
-      <div className="px-2 pb-3 pt-3">
+      <div className="px-2 pb-3 pt-3" onMouseLeave={() => setTooltipActive(false)} onMouseOut={() => setTooltipActive(false)} onMouseUp={() => setTooltipActive(false)} onPointerLeave={() => setTooltipActive(false)} onPointerUp={() => setTooltipActive(false)} onTouchEnd={() => setTooltipActive(false)}>
         <div className="flex gap-2 px-2 pb-1 text-[8px]">
           <span className="rounded border border-[#00ff41]/40 bg-[#00ff41]/10 px-1.5 py-0.5 text-[#00ff41]">GROWTH {cagr == null ? 'N/M' : `${cagr >= 0 ? '+' : ''}${(cagr * 100).toFixed(1)}%`}</span>
           <span className="rounded border border-red-500/40 bg-red-500/10 px-1.5 py-0.5 text-red-400">S&P +{(sp500Cagr * 100).toFixed(1)}%</span>
         </div>
         <ResponsiveContainer width="100%" height={210}>
-          <ComposedChart data={data} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
+          <ComposedChart data={data} margin={{ top: 12, right: 8, left: 0, bottom: 0 }} onMouseMove={() => setTooltipActive(true)} onMouseLeave={() => setTooltipActive(false)} onTouchStart={() => setTooltipActive(true)} onTouchEnd={() => setTooltipActive(false)}>
             <CartesianGrid stroke="rgba(0,255,65,0.06)" vertical={false} />
             <XAxis dataKey="year" tick={{ fill: DIM, fontSize: 8 }} axisLine={false} tickLine={false} tickFormatter={year => `FY${String(year).slice(2)}`} />
             <YAxis width={54} tick={{ fill: DIM, fontSize: 8 }} axisLine={false} tickLine={false} tickFormatter={value => formatMoney(Number(value))} />
-            <Tooltip content={<TrendTooltip />} cursor={{ fill: 'rgba(0,255,65,0.03)' }} />
+            <Tooltip active={tooltipActive} content={<TrendTooltip />} cursor={{ fill: 'rgba(0,255,65,0.03)' }} />
             <Bar dataKey="actual" radius={[3, 3, 0, 0]}>
               {data.map(point => <Cell key={point.year} fill={Number(point.actual) < 0 ? 'rgba(239,68,68,0.55)' : 'rgba(0,255,65,0.45)'} />)}
             </Bar>
@@ -262,6 +269,7 @@ function SectorDeviationPanel({ sectors, selected, onSelect }: { sectors: Sector
   const maxDeviation = Math.max(10, ...sectors.map(sector => Math.abs(sector.valuationDeviation)))
   return (
     <div className="space-y-1.5">
+      <p className="mb-3 rounded border border-[#00ff41]/20 bg-[#00ff41]/5 px-3 py-2 text-[9px] font-bold tracking-[0.12em] text-[#00ff41] lg:hidden">TAP A SECTOR TO VIEW ITS VALUATION ↓</p>
       <div className="mb-2 grid grid-cols-[120px_1fr_42px] gap-2 text-[8px] tracking-wider text-[#00ff41]/30 sm:grid-cols-[180px_1fr_48px]">
         <span>SECTOR</span><span className="flex justify-between"><span>ATTRACTIVE</span><span>STRETCHED</span></span><span className="text-right">VS 5Y</span>
       </div>
@@ -270,8 +278,8 @@ function SectorDeviationPanel({ sectors, selected, onSelect }: { sectors: Sector
         const width = Math.min(50, (Math.abs(deviation) / maxDeviation) * 50)
         const active = sector.sector === selected
         return (
-          <button key={sector.sector} onClick={() => onSelect(sector.sector)} className={`grid w-full grid-cols-[120px_1fr_42px] items-center gap-2 rounded px-1 py-2 text-left transition-colors sm:grid-cols-[180px_1fr_48px] ${active ? 'bg-[#00ff41]/10' : 'hover:bg-[#00ff41]/5'}`}>
-            <span className={`truncate text-[9px] sm:text-[10px] ${active ? 'font-bold text-[#00ff41]' : 'text-[#00ff41]/55'}`}>{sector.sector}</span>
+          <button key={sector.sector} type="button" aria-pressed={active} onClick={() => onSelect(sector.sector)} className={`grid w-full grid-cols-[120px_1fr_42px] items-center gap-2 rounded px-1 py-2 text-left transition-colors sm:grid-cols-[180px_1fr_48px] ${active ? 'bg-[#00ff41]/10' : 'hover:bg-[#00ff41]/5'}`}>
+            <span className={`truncate text-[9px] sm:text-[10px] ${active ? 'font-bold text-[#00ff41]' : 'text-[#00ff41]/55'}`}>{sector.sector}{active ? ' →' : ''}</span>
             <span className="relative h-3 rounded-sm bg-[#00ff41]/5">
               <span className="absolute bottom-[-3px] left-1/2 top-[-3px] w-px bg-white/25" />
               <span
@@ -301,13 +309,70 @@ function MetricTabs({ value, onChange }: { value: TrendMetric; onChange: (metric
   )
 }
 
+function ValuationMetricTabs({ value, onChange }: { value: ValuationMetricKey; onChange: (metric: ValuationMetricKey) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {VALUATION_METRICS.map(metric => (
+        <button key={metric.key} type="button" onClick={() => onChange(metric.key)} className={`rounded border px-3 py-2 text-[9px] font-bold tracking-wider ${value === metric.key ? 'border-[#00ff41]/60 bg-[#00ff41]/10 text-[#00ff41]' : 'border-[#00ff41]/15 text-[#00ff41]/35'}`}>
+          {metric.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function SectorGrowthPanel({ sectors, metric, sp500Cagr, selected, onSelect }: {
+  sectors: SectorPulse[]
+  metric: TrendMetric
+  sp500Cagr: number
+  selected: string
+  onSelect: (sector: string) => void
+}) {
+  const rows = sectors
+    .map(sector => ({ ...sector, cagr: metricCagr(sector.trends, metric) }))
+    .filter((sector): sector is SectorPulse & { cagr: number } => sector.cagr != null)
+    .sort((a, b) => a.cagr - b.cagr)
+  const maxDifference = Math.max(0.05, ...rows.map(sector => Math.abs(sector.cagr - sp500Cagr)))
+
+  return (
+    <div className="space-y-1.5">
+      <p className="mb-3 rounded border border-[#00ff41]/20 bg-[#00ff41]/5 px-3 py-2 text-[9px] font-bold tracking-[0.12em] text-[#00ff41] lg:hidden">TAP A SECTOR TO VIEW ITS GROWTH ↓</p>
+      <div className="mb-2 grid grid-cols-[120px_1fr_54px] gap-2 text-[8px] tracking-wider text-[#00ff41]/30 sm:grid-cols-[180px_1fr_64px]">
+        <span>SECTOR</span><span className="flex justify-between"><span>LAGGING</span><span>OUTPACING</span></span><span className="text-right">VS S&amp;P</span>
+      </div>
+      {rows.map(sector => {
+        const difference = sector.cagr - sp500Cagr
+        const width = Math.min(50, (Math.abs(difference) / maxDifference) * 50)
+        const active = sector.sector === selected
+        return (
+          <button key={sector.sector} type="button" aria-pressed={active} onClick={() => onSelect(sector.sector)} className={`grid w-full grid-cols-[120px_1fr_54px] items-center gap-2 rounded px-1 py-2 text-left transition-colors sm:grid-cols-[180px_1fr_64px] ${active ? 'bg-[#00ff41]/10' : 'hover:bg-[#00ff41]/5'}`}>
+            <span className={`truncate text-[9px] sm:text-[10px] ${active ? 'font-bold text-[#00ff41]' : 'text-[#00ff41]/55'}`}>{sector.sector}{active ? ' →' : ''}</span>
+            <span className="relative h-3 rounded-sm bg-[#00ff41]/5">
+              <span className="absolute bottom-[-3px] left-1/2 top-[-3px] w-px bg-white/25" />
+              <span className="absolute top-0 h-3 rounded-sm" style={difference < 0
+                ? { right: '50%', width: `${width}%`, background: RED, opacity: 0.65 }
+                : { left: '50%', width: `${width}%`, background: GREEN, opacity: 0.65 }} />
+            </span>
+            <span className="text-right text-[9px] font-bold" style={{ color: difference < 0 ? RED : GREEN }}>{difference >= 0 ? '+' : ''}{(difference * 100).toFixed(1)}pt</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function MarketPulse({ data }: { data: MarketPulseData }) {
   const defaultSector = data.sectors[data.sectors.length - 1]?.sector ?? data.sectors[0]?.sector ?? ''
   const [selectedSector, setSelectedSector] = useState(defaultSector)
-  const [sectorMetric, setSectorMetric] = useState<TrendMetric>('revenue')
+  const [valuationMetric, setValuationMetric] = useState<ValuationMetricKey>('pe')
   const [scanMetric, setScanMetric] = useState<TrendMetric>('revenue')
+  const [selectedGrowthSector, setSelectedGrowthSector] = useState(defaultSector)
+  const valuationDetailRef = useRef<HTMLDivElement>(null)
+  const growthDetailRef = useRef<HTMLDivElement>(null)
 
   const selected = data.sectors.find(sector => sector.sector === selectedSector) ?? data.sectors[0]
+  const selectedGrowth = data.sectors.find(sector => sector.sector === selectedGrowthSector) ?? data.sectors[0]
+  const selectedValuationMetric = selected?.valuationMetrics.find(metric => metric.key === valuationMetric)
   const sectorSignals = useMemo(() => [...data.sectors].sort((a, b) => bullishPct(b.signals) - bullishPct(a.signals)), [data.sectors])
   const growthScan = useMemo(() => data.sectors
     .map(sector => ({ sector: sector.sector, cagr: metricCagr(sector.trends, scanMetric) }))
@@ -322,6 +387,23 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
   const marketGrowth = growthVerdict(averageMarketGrowth, data.sp500Cagr)
   const mostAttractive = data.sectors.slice(0, 3)
   const mostStretched = data.sectors.slice(-3).reverse()
+  const currentPe = data.valuationMetrics.find(metric => metric.key === 'pe')?.current ?? null
+  const currentFcfYield = data.valuationMetrics.find(metric => metric.key === 'fcfYield')?.current ?? null
+  const currentDivYield = data.valuationMetrics.find(metric => metric.key === 'divYield')?.current ?? null
+  const valuationDetail = `P/E ${formatMultiple(currentPe)} · FCF ${formatPercent(currentFcfYield)} · DIV ${formatPercent(currentDivYield)}`
+
+  const revealOnMobile = (target: RefObject<HTMLDivElement | null>) => {
+    if (!window.matchMedia('(max-width: 1023px)').matches) return
+    window.requestAnimationFrame(() => target.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+  const selectValuationSector = (sector: string) => {
+    setSelectedSector(sector)
+    revealOnMobile(valuationDetailRef)
+  }
+  const selectGrowthSector = (sector: string) => {
+    setSelectedGrowthSector(sector)
+    revealOnMobile(growthDetailRef)
+  }
 
   return (
     <main className="min-h-screen bg-black font-mono text-[#00ff41]">
@@ -333,13 +415,18 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
               <h1 className="text-2xl font-bold tracking-[0.04em] sm:text-3xl">HOW IS THE MARKET DOING RIGHT NOW?</h1>
               <p className="mt-3 max-w-2xl text-[11px] leading-6 text-[#00ff41]/45">Start with valuation, find the sectors causing it, then check whether StockSnack signals and business growth agree.</p>
             </div>
-            <div className="shrink-0 rounded border px-4 py-3 text-center" style={{ color: verdictColor(data.valuationVerdict), borderColor: `${verdictColor(data.valuationVerdict)}77`, background: `${verdictColor(data.valuationVerdict)}12` }}>
-              <p className="text-[8px] tracking-[0.18em] opacity-60">MARKET VALUATION</p>
-              <p className="mt-1 text-lg font-bold tracking-[0.12em]">{data.valuationVerdict}</p>
+            <div className="shrink-0 rounded border px-4 py-3 sm:min-w-[245px]" style={{ color: verdictColor(data.valuationVerdict), borderColor: `${verdictColor(data.valuationVerdict)}77`, background: `${verdictColor(data.valuationVerdict)}12` }}>
+              <p className="text-[10px] font-bold tracking-[0.18em]">MARKET VALUATION</p>
+              <p className="mt-1 text-xl font-bold tracking-[0.12em]">{data.valuationVerdict}</p>
+              <div className="mt-3 grid grid-cols-3 gap-2 border-t pt-2 text-center" style={{ borderColor: `${verdictColor(data.valuationVerdict)}33` }}>
+                <MetricMini label="P/E" value={formatMultiple(currentPe)} />
+                <MetricMini label="FCF" value={formatPercent(currentFcfYield)} />
+                <MetricMini label="DIV" value={formatPercent(currentDivYield)} />
+              </div>
             </div>
           </div>
           <div className="mt-6 grid gap-2 sm:grid-cols-3">
-            <SummaryCard label="VALUATION" value={data.valuationVerdict} color={verdictColor(data.valuationVerdict)} detail="P/E · FCF yield · dividend yield" />
+            <SummaryCard label="VALUATION" value={data.valuationVerdict} color={verdictColor(data.valuationVerdict)} detail={valuationDetail} emphasizeDetail />
             <SummaryCard label="STOCK OPPORTUNITY" value={opportunityLabel} color={opportunityColor} detail={`${data.bullishPct.toFixed(0)}% rated BUY or BUY+`} />
             <SummaryCard label="BUSINESS GROWTH" value={marketGrowth.label} color={marketGrowth.color} detail="Revenue · EBITDA · free cash flow" />
           </div>
@@ -353,25 +440,25 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
         </section>
 
         <section className="mt-8 overflow-hidden rounded border border-[#00ff41]/20">
-          <SectionHeader number="02" question="WHICH SECTORS ARE CAUSING IT?" note="Deviation from each sector’s own five-year valuation. Tap a sector to inspect its business trend." />
+          <SectionHeader number="02" question="WHICH SECTORS ARE CAUSING IT?" note="Compare each sector’s P/E, FCF yield and dividend yield with its own five-year valuation." />
           <div className="grid gap-5 p-4 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
-              <SectorDeviationPanel sectors={data.sectors} selected={selectedSector} onSelect={setSelectedSector} />
+              <SectorDeviationPanel sectors={data.sectors} selected={selectedSector} onSelect={selectValuationSector} />
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <RankList title="MOST ATTRACTIVE" rows={mostAttractive} color={GREEN} />
-                <RankList title="MOST STRETCHED" rows={mostStretched} color={RED} />
+                <RankList title="MOST ATTRACTIVE" rows={mostAttractive} color={GREEN} selected={selectedSector} onSelect={selectValuationSector} />
+                <RankList title="MOST STRETCHED" rows={mostStretched} color={RED} selected={selectedSector} onSelect={selectValuationSector} />
               </div>
             </div>
-            {selected && (
-              <div>
+            {selected && selectedValuationMetric && (
+              <div ref={valuationDetailRef} className="scroll-mt-4">
                 <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-[9px] tracking-[0.18em] text-[#00ff41]/35">SELECTED SECTOR</p>
                     <p className="mt-1 text-sm font-bold">{selected.sector}</p>
                   </div>
-                  <MetricTabs value={sectorMetric} onChange={setSectorMetric} />
+                  <ValuationMetricTabs value={valuationMetric} onChange={setValuationMetric} />
                 </div>
-                <GrowthChart title={`AVG ${METRICS.find(metric => metric.key === sectorMetric)?.label} PER COMPANY`} points={selected.trends} metric={sectorMetric} sp500Cagr={data.sp500Cagr} subtitle="Annual bars · growth trend · S&P 500 baseline" />
+                <ValuationHistoryCard metric={selectedValuationMetric} history={selected.valuationHistory} />
               </div>
             )}
           </div>
@@ -389,10 +476,10 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
             </div>
             <div className="mt-5 space-y-2">
               {sectorSignals.map(sector => (
-                <div key={sector.sector} className="grid grid-cols-[120px_1fr_42px] items-center gap-2 sm:grid-cols-[190px_1fr_52px]">
+                <div key={sector.sector} className="grid grid-cols-[105px_1fr_82px] items-center gap-2 sm:grid-cols-[190px_1fr_104px]">
                   <span className="truncate text-[9px] text-[#00ff41]/50">{sector.sector}</span>
                   <SignalBar signals={sector.signals} />
-                  <span className="text-right text-[9px] font-bold text-[#00ff41]/65">{bullishPct(sector.signals).toFixed(0)}%</span>
+                  <span className="text-right text-[8px] font-bold leading-tight text-[#00ff41]/65 sm:text-[9px]">{bullishPct(sector.signals).toFixed(0)}%<br />BUY / BUY+</span>
                 </div>
               ))}
             </div>
@@ -406,12 +493,26 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
           </div>
           <div className="border-t border-[#00ff41]/10 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div><p className="text-[9px] tracking-[0.18em] text-[#00ff41]/35">SECTOR GROWTH SCAN</p><p className="mt-1 text-[10px] text-[#00ff41]/45">Top and bottom sectors versus their own five-year trend.</p></div>
+              <div><p className="text-[11px] font-bold tracking-[0.16em] text-[#00ff41]">SECTOR GROWTH SCAN</p><p className="mt-1 text-[10px] text-[#00ff41]/45">Compare each sector’s five-year business growth with the S&amp;P 500 benchmark.</p></div>
               <MetricTabs value={scanMetric} onChange={setScanMetric} />
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <GrowthRank title="TOP 3 ACCELERATING" rows={leaders} color={GREEN} />
-              <GrowthRank title="BOTTOM 3 WEAKENING" rows={laggards} color={RED} />
+            <div className="mt-5 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+              <div>
+                <SectorGrowthPanel sectors={data.sectors} metric={scanMetric} sp500Cagr={data.sp500Cagr} selected={selectedGrowthSector} onSelect={selectGrowthSector} />
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <GrowthRank title="TOP 3 ACCELERATING" rows={leaders} color={GREEN} selected={selectedGrowthSector} onSelect={selectGrowthSector} />
+                  <GrowthRank title="BOTTOM 3 WEAKENING" rows={laggards} color={RED} selected={selectedGrowthSector} onSelect={selectGrowthSector} />
+                </div>
+              </div>
+              {selectedGrowth && (
+                <div ref={growthDetailRef} className="scroll-mt-4">
+                  <div className="mb-3">
+                    <p className="text-[9px] tracking-[0.18em] text-[#00ff41]/35">SELECTED SECTOR</p>
+                    <p className="mt-1 text-sm font-bold">{selectedGrowth.sector}</p>
+                  </div>
+                  <GrowthChart title={`AVG ${METRICS.find(metric => metric.key === scanMetric)?.label} PER COMPANY`} points={selectedGrowth.trends} metric={scanMetric} sp500Cagr={data.sp500Cagr} subtitle="Annual bars · sector growth trend · S&P 500 baseline" />
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -427,35 +528,48 @@ function meanAvailable(values: Array<number | null>): number | null {
   return available.length ? available.reduce((sum, value) => sum + value, 0) / available.length : null
 }
 
-function SummaryCard({ label, value, color, detail }: { label: string; value: string; color: string; detail: string }) {
+function MetricMini({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[7px] font-bold tracking-wider opacity-60">{label}</p>
+      <p className="mt-0.5 text-[10px] font-bold">{value}</p>
+    </div>
+  )
+}
+
+function SummaryCard({ label, value, color, detail, emphasizeDetail = false }: { label: string; value: string; color: string; detail: string; emphasizeDetail?: boolean }) {
   return (
     <div className="rounded border border-[#00ff41]/15 bg-[#00ff41]/[0.015] px-4 py-3">
-      <p className="text-[8px] tracking-[0.18em] text-[#00ff41]/30">{label}</p>
-      <p className="mt-1 text-sm font-bold tracking-wider" style={{ color }}>{value}</p>
-      <p className="mt-1 text-[8px] text-[#00ff41]/30">{detail}</p>
+      <p className="text-[10px] font-bold tracking-[0.18em] text-[#00ff41]/75">{label}</p>
+      <p className="mt-1 text-lg font-bold tracking-wider" style={{ color }}>{value}</p>
+      <p className={`mt-1 ${emphasizeDetail ? 'text-[9px] font-bold text-[#00ff41]/70' : 'text-[8px] text-[#00ff41]/30'}`}>{detail}</p>
     </div>
   )
 }
 
-function RankList({ title, rows, color }: { title: string; rows: SectorPulse[]; color: string }) {
+function RankList({ title, rows, color, selected, onSelect }: { title: string; rows: SectorPulse[]; color: string; selected: string; onSelect: (sector: string) => void }) {
   return (
-    <div className="rounded border border-[#00ff41]/10 p-3">
+    <div className="rounded border p-3" style={{ borderColor: `${color}55`, background: `${color}12`, color }}>
       <p className="text-[8px] font-bold tracking-[0.14em]" style={{ color }}>{title}</p>
-      <div className="mt-2 space-y-1.5">{rows.map((row, index) => <p key={row.sector} className="truncate text-[9px] text-[#00ff41]/45"><span className="mr-2" style={{ color }}>{index + 1}</span>{row.sector}</p>)}</div>
+      <div className="mt-2 space-y-1">{rows.map((row, index) => (
+        <button key={row.sector} type="button" aria-pressed={row.sector === selected} onClick={() => onSelect(row.sector)} className="flex w-full items-center rounded px-1 py-1 text-left text-[9px] transition-colors hover:bg-white/5" style={{ color, opacity: row.sector === selected ? 1 : 0.72 }}>
+          <span className="mr-2 font-bold">{index + 1}</span><span className="truncate">{row.sector}</span>{row.sector === selected ? <span className="ml-auto">→</span> : null}
+        </button>
+      ))}</div>
     </div>
   )
 }
 
-function GrowthRank({ title, rows, color }: { title: string; rows: Array<{ sector: string; cagr: number }>; color: string }) {
+function GrowthRank({ title, rows, color, selected, onSelect }: { title: string; rows: Array<{ sector: string; cagr: number }>; color: string; selected: string; onSelect: (sector: string) => void }) {
   return (
-    <div className="rounded border border-[#00ff41]/10 p-3">
+    <div className="rounded border p-3" style={{ borderColor: `${color}55`, background: `${color}12`, color }}>
       <p className="text-[8px] font-bold tracking-[0.14em]" style={{ color }}>{title}</p>
       <div className="mt-3 space-y-2">
         {rows.map((row, index) => (
-          <div key={row.sector} className="flex items-center justify-between gap-3 text-[9px]">
-            <span className="truncate text-[#00ff41]/50"><span className="mr-2" style={{ color }}>{index + 1}</span>{row.sector}</span>
+          <button key={row.sector} type="button" aria-pressed={row.sector === selected} onClick={() => onSelect(row.sector)} className="flex w-full items-center justify-between gap-3 rounded px-1 py-1 text-left text-[9px] transition-colors hover:bg-white/5" style={{ color, opacity: row.sector === selected ? 1 : 0.72 }}>
+            <span className="truncate"><span className="mr-2 font-bold">{index + 1}</span>{row.sector}{row.sector === selected ? ' →' : ''}</span>
             <span className="shrink-0 font-bold" style={{ color }}>{row.cagr >= 0 ? '+' : ''}{(row.cagr * 100).toFixed(1)}%</span>
-          </div>
+          </button>
         ))}
       </div>
     </div>

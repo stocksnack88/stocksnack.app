@@ -1,5 +1,6 @@
 export type SignalKey = 'BUY+' | 'BUY' | 'HOLD' | 'SELL'
 export type TrendMetric = 'revenue' | 'ebitda' | 'fcf'
+export type ValuationMetricKey = 'pe' | 'fcfYield' | 'divYield'
 export type ValuationVerdict = 'ATTRACTIVE' | 'FAIR' | 'STRETCHED'
 
 export type SignalCounts = Record<SignalKey, number>
@@ -13,7 +14,7 @@ export type ValuationPoint = {
 }
 
 export type ValuationMetricData = {
-  key: 'pe' | 'fcfYield' | 'divYield'
+  key: ValuationMetricKey
   label: string
   current: number | null
   historicalAverage: number | null
@@ -32,6 +33,8 @@ export type SectorPulse = {
   count: number
   valuationDeviation: number
   signals: SignalCounts
+  valuationHistory: ValuationPoint[]
+  valuationMetrics: ValuationMetricData[]
   trends: TrendPoint[]
 }
 

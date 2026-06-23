@@ -221,8 +221,11 @@ function buildMarketPulse(scores: ScoreRow[], fund: FundRow[]): MarketPulseData 
       ? 'STRETCHED'
       : 'FAIR'
 
-  const sectors: SectorPulse[] = Array.from(scoresBySector.entries()).map(([sector, sectorScores]) => {
+  const sectors: SectorPulse[] = Array.from(scoresBySector.entries()).map(([sector, sectorScores]): SectorPulse => {
     const sectorFund = fundBySector.get(sector) ?? []
+    const sectorCurrent = validCurrentSnapshot(sectorScores)
+    const sectorHistoryByYear = FUND_YEARS.map(year => historicalSnapshot(sectorFund.filter(row => row.fiscal_year === year)))
+    const sectorHistorical = historicalSnapshot(sectorFund)
     const signals = emptySignals()
     for (const row of sectorScores) {
       if (SIGNALS.includes(row.signal as SignalKey)) signals[row.signal as SignalKey]++
@@ -230,8 +233,20 @@ function buildMarketPulse(scores: ScoreRow[], fund: FundRow[]): MarketPulseData 
     return {
       sector,
       count: sectorScores.length,
-      valuationDeviation: stretchDeviation(validCurrentSnapshot(sectorScores), historicalSnapshot(sectorFund)),
+      valuationDeviation: stretchDeviation(sectorCurrent, sectorHistorical),
       signals,
+      valuationHistory: [
+        ...FUND_YEARS.map((year, index) => ({
+          label: `FY${String(year).slice(2)}`,
+          ...sectorHistoryByYear[index],
+        })),
+        { label: 'NOW', ...sectorCurrent, current: true },
+      ],
+      valuationMetrics: [
+        { key: 'pe', label: 'P/E RATIO', current: sectorCurrent.pe, historicalAverage: sectorHistorical.pe, verdict: verdict(sectorCurrent.pe, sectorHistorical.pe, false) },
+        { key: 'fcfYield', label: 'FCF YIELD', current: sectorCurrent.fcfYield, historicalAverage: sectorHistorical.fcfYield, verdict: verdict(sectorCurrent.fcfYield, sectorHistorical.fcfYield, true) },
+        { key: 'divYield', label: 'DIVIDEND YIELD', current: sectorCurrent.divYield, historicalAverage: sectorHistorical.divYield, verdict: verdict(sectorCurrent.divYield, sectorHistorical.divYield, true) },
+      ],
       trends: FUND_YEARS.map(year => averagePerCompany(sectorFund, year)),
     }
   }).sort((a, b) => a.valuationDeviation - b.valuationDeviation)

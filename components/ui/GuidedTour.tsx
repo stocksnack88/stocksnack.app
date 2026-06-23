@@ -329,7 +329,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           <div
             className="pointer-events-none absolute z-[902] h-3 w-3"
             style={{
-              left: spotlight.left + spotlight.width / 2 - 6,
+              left: spotlight.left + spotlight.width - 14,
               top: spotlight.top + spotlight.height / 2 - 6,
             }}
             aria-hidden="true"

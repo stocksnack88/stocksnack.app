@@ -105,6 +105,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const [activatedStep, setActivatedStep] = useState<number | null>(null)
   const [readyStep, setReadyStep] = useState<number | null>(null)
   const [showTransition, setShowTransition] = useState(false)
+  const [calloutVisible, setCalloutVisible] = useState(true)
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -160,6 +161,13 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     return () => window.clearTimeout(timer)
   }, [controlActivated, state.step, step])
 
+  // Fade callout out on step change, then back in after spotlight has slid
+  useEffect(() => {
+    setCalloutVisible(false)
+    const timer = window.setTimeout(() => setCalloutVisible(true), 280)
+    return () => window.clearTimeout(timer)
+  }, [state.step])
+
   useEffect(() => {
     if (!showTransition || pathname !== '/screener') return
     const timer = window.setTimeout(() => setShowTransition(false), 250)
@@ -182,7 +190,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!mounted || state.status !== 'active' || !step || !pageMatches) {
-      setRect(null)
+      // Only clear rect when tour is fully inactive — not between steps — so the
+      // spotlight can slide smoothly instead of blinking out
+      if (state.status !== 'active') setRect(null)
       return
     }
     let cancelled = false
@@ -302,10 +312,11 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       )}
       {mounted && state.status === 'active' && step && pageMatches && spotlight && createPortal(
         <div className="pointer-events-none fixed inset-0 z-[900] font-mono" aria-live="polite">
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: 0, left: 0, right: 0, height: spotlight.top }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: 0, width: spotlight.left, height: spotlight.height }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0 }} />
+          {/* Overlay panels — transition so they slide with the spotlight */}
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: 0, left: 0, right: 0, height: spotlight.top, transition: 'height 350ms ease' }} />
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: 0, width: spotlight.left, height: spotlight.height, transition: 'top 350ms ease, width 350ms ease, height 350ms ease' }} />
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height, transition: 'top 350ms ease, left 350ms ease, height 350ms ease' }} />
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0, transition: 'top 350ms ease' }} />
           {/* Spotlight border — square top corners when callout sits flush above */}
           <div
             className="absolute pointer-events-none border-2 border-[#00ff41] shadow-[0_0_24px_rgba(0,255,65,0.45)]"
@@ -313,6 +324,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
               ...spotlight,
               borderRadius: callout?.above ? '0 0 6px 6px' : '6px',
               borderTop: callout?.above ? 'none' : undefined,
+              transition: 'top 350ms ease, left 350ms ease, width 350ms ease, height 350ms ease',
             }}
           />
           {(step.action === 'tap' || controlActivated) && (
@@ -325,12 +337,13 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             />
           )}
 
-          {/* Dot centered in spotlight */}
+          {/* Dot — vertically centered, 14px inset from right edge */}
           <div
             className="pointer-events-none absolute z-[902] h-3 w-3"
             style={{
-              left: spotlight.left + spotlight.width - 14,
+              left: spotlight.left + spotlight.width - 20,
               top: spotlight.top + spotlight.height / 2 - 6,
+              transition: 'left 350ms ease, top 350ms ease',
             }}
             aria-hidden="true"
           >
@@ -342,7 +355,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
 
           <button onClick={skipWithSound} className="pointer-events-auto fixed left-2 top-2 z-[903] min-h-11 px-3 text-[10px] font-bold tracking-widest text-[#ff4444] hover:text-[#ff6666] border border-[#ff4444]/40 hover:border-[#ff6666] rounded transition-colors">SKIP TOUR</button>
 
-          {/* Callout — flush above spotlight, square bottom corners to connect */}
+          {/* Callout — flush above spotlight, fades on step change */}
           {callout && (
             <div
               className="pointer-events-none fixed z-[902] bg-[#00ff41] px-3 py-2.5 shadow-[0_0_20px_rgba(0,255,65,0.4)]"
@@ -353,6 +366,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                 borderRadius: callout.above ? '6px 6px 0 0' : '0 0 6px 6px',
                 borderBottom: callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
                 borderTop: !callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
+                transition: 'left 350ms ease, bottom 350ms ease, top 350ms ease, width 350ms ease, opacity 200ms ease',
+                opacity: calloutVisible ? 1 : 0,
               }}
             >
               <div className="flex items-center justify-between gap-3 text-[#001a08]">

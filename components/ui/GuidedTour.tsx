@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
+import StockSnackLoader from './StockSnackLoader'
 
 const STORAGE_KEY = 'ss_guided_tour_v1'
 const INTENT_KEY = 'ss_tour_intent'
@@ -118,6 +119,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   // It stays live after the transition so expanding accordions and viewport
   // changes cannot leave the tutorial hit-area behind.
   const [displayRect, setDisplayRect] = useState<HighlightRect | null>(null)
+  const [crossPagePending, setCrossPagePending] = useState(false)
   const transitionRunRef = useRef(0)
   const routeLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -228,6 +230,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       if (reveal) {
         revealTimer = window.setTimeout(() => {
           if (cancelled || transitionRunRef.current !== run) return
+          setCrossPagePending(false)
           setCalloutVisible(true)
           setTargetReady(true)
         }, step.page === 'ticker' ? 320 : 80)
@@ -309,6 +312,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     control.click()
 
     if (step.navigate) {
+      setCrossPagePending(true)
       advance()
       return
     }
@@ -345,7 +349,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       : { top: spotlight.top + spotlight.height, left, width, above: false }
   })() : null
 
-  const routeLoading = mounted && state.status === 'active' && !!step && !pageMatches
+  const routeLoading = mounted && state.status === 'active' && !!step && (!pageMatches || crossPagePending)
 
   // Safety: if routeLoading persists for >4s the page never arrived — abort the tour
   // so the screen doesn't stay permanently black.
@@ -384,9 +388,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
               100% { width: 0px;   opacity: 0; }
             }
           `}</style>
-          {routeLoading && !showTransition && (
-            <span className="animate-pulse text-sm font-bold tracking-[0.3em] text-[#00ff41]">STOCKSNACK_</span>
-          )}
+          {routeLoading && !showTransition && <StockSnackLoader />}
           {showTransition && tvPhase === 'crush' && (
             <div style={{ position: 'absolute', width: '100vw', background: 'white', boxShadow: '0 0 60px 20px white', animation: 'ss-tv-crush 160ms cubic-bezier(0.4,0,1,1) forwards' }} />
           )}

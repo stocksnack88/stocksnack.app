@@ -119,6 +119,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   // changes cannot leave the tutorial hit-area behind.
   const [displayRect, setDisplayRect] = useState<HighlightRect | null>(null)
   const transitionRunRef = useRef(0)
+  const routeLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -345,6 +346,25 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   })() : null
 
   const routeLoading = mounted && state.status === 'active' && !!step && !pageMatches
+
+  // Safety: if routeLoading persists for >4s the page never arrived — abort the tour
+  // so the screen doesn't stay permanently black.
+  useEffect(() => {
+    if (routeLoading) {
+      routeLoadingTimerRef.current = setTimeout(() => {
+        save({ ...state, status: 'completed' })
+      }, 4000)
+    } else {
+      if (routeLoadingTimerRef.current !== null) {
+        clearTimeout(routeLoadingTimerRef.current)
+        routeLoadingTimerRef.current = null
+      }
+    }
+    return () => {
+      if (routeLoadingTimerRef.current !== null) clearTimeout(routeLoadingTimerRef.current)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeLoading])
 
   const TRANSITION = 'top 300ms cubic-bezier(0.4,0,0.2,1), left 300ms cubic-bezier(0.4,0,0.2,1), width 300ms cubic-bezier(0.4,0,0.2,1), height 300ms cubic-bezier(0.4,0,0.2,1)'
 

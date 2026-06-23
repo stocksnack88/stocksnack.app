@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createBrowserSupabase } from "@/lib/supabase-browser";
 import { playClick, playChime } from "@/lib/sounds";
 
 const STORAGE_KEY = "ss_newsletter_dismissed";
@@ -48,7 +48,7 @@ export default function NewsletterPopup() {
     setStatus("loading");
     setErrorMsg("");
 
-    const { error } = await supabase
+    const { error } = await createBrowserSupabase()
       .from("newsletter_subscribers")
       .insert({ email: email.trim().toLowerCase(), source: "blog" });
 

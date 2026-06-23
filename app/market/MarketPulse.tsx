@@ -269,16 +269,17 @@ function SectorDeviationPanel({ sectors, selected, onSelect }: { sectors: Sector
   const maxDeviation = Math.max(10, ...sectors.map(sector => Math.abs(sector.valuationDeviation)))
   return (
     <div className="space-y-1.5">
-      <p className="mb-3 rounded border border-[#00ff41]/20 bg-[#00ff41]/5 px-3 py-2 text-[9px] font-bold tracking-[0.12em] text-[#00ff41] lg:hidden">TAP A SECTOR TO VIEW ITS VALUATION ↓</p>
-      <div className="mb-2 grid grid-cols-[120px_1fr_42px] gap-2 text-[8px] tracking-wider text-[#00ff41]/30 sm:grid-cols-[180px_1fr_48px]">
-        <span>SECTOR</span><span className="flex justify-between"><span>ATTRACTIVE</span><span>STRETCHED</span></span><span className="text-right">VS 5Y</span>
+      <p className="mb-3 rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[9px] font-bold tracking-[0.12em] text-amber-400 lg:hidden">TAP A SECTOR TO VIEW ITS VALUATION ↓</p>
+      <p className="pb-1 text-[9px] font-bold tracking-[0.12em] text-[#00ff41]/75">BLENDED VALUATION DEVIATION <span className="text-[#00ff41]/40">· P/E · FCF YIELD · DIVIDEND YIELD</span></p>
+      <div className="mb-2 grid grid-cols-[120px_1fr_48px] gap-2 text-[8px] font-bold tracking-wider text-[#00ff41]/70 sm:grid-cols-[180px_1fr_58px]">
+        <span>SECTOR</span><span className="flex justify-between"><span>ATTRACTIVE</span><span>STRETCHED</span></span><span className="text-right leading-tight">VS 5Y</span>
       </div>
       {sectors.map(sector => {
         const deviation = sector.valuationDeviation
         const width = Math.min(50, (Math.abs(deviation) / maxDeviation) * 50)
         const active = sector.sector === selected
         return (
-          <button key={sector.sector} type="button" aria-pressed={active} onClick={() => onSelect(sector.sector)} className={`grid w-full grid-cols-[120px_1fr_42px] items-center gap-2 rounded px-1 py-2 text-left transition-colors sm:grid-cols-[180px_1fr_48px] ${active ? 'bg-[#00ff41]/10' : 'hover:bg-[#00ff41]/5'}`}>
+          <button key={sector.sector} type="button" aria-pressed={active} onClick={() => onSelect(sector.sector)} className={`grid w-full grid-cols-[120px_1fr_48px] items-center gap-2 rounded px-1 py-2 text-left transition-colors sm:grid-cols-[180px_1fr_58px] ${active ? 'bg-[#00ff41]/10' : 'hover:bg-[#00ff41]/5'}`}>
             <span className={`truncate text-[9px] sm:text-[10px] ${active ? 'font-bold text-[#00ff41]' : 'text-[#00ff41]/55'}`}>{sector.sector}{active ? ' →' : ''}</span>
             <span className="relative h-3 rounded-sm bg-[#00ff41]/5">
               <span className="absolute bottom-[-3px] left-1/2 top-[-3px] w-px bg-white/25" />
@@ -336,9 +337,10 @@ function SectorGrowthPanel({ sectors, metric, sp500Cagr, selected, onSelect }: {
 
   return (
     <div className="space-y-1.5">
-      <p className="mb-3 rounded border border-[#00ff41]/20 bg-[#00ff41]/5 px-3 py-2 text-[9px] font-bold tracking-[0.12em] text-[#00ff41] lg:hidden">TAP A SECTOR TO VIEW ITS GROWTH ↓</p>
-      <div className="mb-2 grid grid-cols-[120px_1fr_54px] gap-2 text-[8px] tracking-wider text-[#00ff41]/30 sm:grid-cols-[180px_1fr_64px]">
-        <span>SECTOR</span><span className="flex justify-between"><span>LAGGING</span><span>OUTPACING</span></span><span className="text-right">VS S&amp;P</span>
+      <p className="mb-3 rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[9px] font-bold tracking-[0.12em] text-amber-400 lg:hidden">TAP A SECTOR TO VIEW ITS GROWTH ↓</p>
+      <p className="pb-1 text-[9px] font-bold tracking-[0.12em] text-[#00ff41]/75">5Y CAGR DIFFERENCE <span className="text-[#00ff41]/40">· SECTOR GROWTH MINUS S&amp;P 500 CAGR</span></p>
+      <div className="mb-2 grid grid-cols-[120px_1fr_54px] gap-2 text-[8px] font-bold tracking-wider text-[#00ff41]/70 sm:grid-cols-[180px_1fr_64px]">
+        <span>SECTOR</span><span className="flex justify-between"><span>LAGGING</span><span>OUTPACING</span></span><span className="text-right leading-tight">CAGR GAP</span>
       </div>
       {rows.map(sector => {
         const difference = sector.cagr - sp500Cagr
@@ -465,12 +467,17 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
               </div>
               <SignalBar signals={data.overallSignals} showCounts />
             </div>
-            <div className="mt-5 space-y-2">
+            <div className="mt-5 grid grid-cols-[105px_1fr_82px] items-end gap-2 border-b border-[#00ff41]/15 pb-2 text-[8px] font-bold tracking-wider text-[#00ff41]/70 sm:grid-cols-[190px_1fr_104px]">
+              <span>SECTOR</span>
+              <span>SIGNAL MIX</span>
+              <span className="text-right leading-tight">BUY / BUY+</span>
+            </div>
+            <div className="mt-2 space-y-2">
               {sectorSignals.map(sector => (
                 <div key={sector.sector} className="grid grid-cols-[105px_1fr_82px] items-center gap-2 sm:grid-cols-[190px_1fr_104px]">
                   <span className="truncate text-[9px] text-[#00ff41]/50">{sector.sector}</span>
                   <SignalBar signals={sector.signals} />
-                  <span className="text-right text-[8px] font-bold leading-tight text-[#00ff41]/65 sm:text-[9px]">{bullishPct(sector.signals).toFixed(0)}%<br />BUY / BUY+</span>
+                  <span className="text-right text-[9px] font-bold text-[#00ff41]/65">{bullishPct(sector.signals).toFixed(0)}%</span>
                 </div>
               ))}
             </div>

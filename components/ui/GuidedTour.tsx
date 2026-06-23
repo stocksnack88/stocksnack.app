@@ -103,6 +103,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const [showTransition, setShowTransition] = useState(false)
   const [tvPhase, setTvPhase] = useState<'off' | 'crush' | 'shrink' | 'done'>('off')
   const [calloutVisible, setCalloutVisible] = useState(true)
+  const [headerRect, setHeaderRect] = useState<HighlightRect | null>(null)
+  const [retracting, setRetracting] = useState(false)
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -158,12 +160,27 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     return () => window.clearTimeout(timer)
   }, [controlActivated, state.step, step])
 
-  // Fade callout out on step change, then back in after spotlight has slid
+  // On step change: retract spotlight to header bar, then expand to new target
   useEffect(() => {
+    const header = document.querySelector<HTMLElement>('[data-tour-id="ticker-header"]')
+    if (header) {
+      const b = header.getBoundingClientRect()
+      setHeaderRect({ top: b.top, left: b.left, width: b.width, height: b.height })
+    }
     setCalloutVisible(false)
-    const timer = window.setTimeout(() => setCalloutVisible(true), 280)
-    return () => window.clearTimeout(timer)
+    setRetracting(true)
+    setRect(null) // clear so locate() will populate fresh for new step
+    // After retract (250ms) + brief hold (50ms), release — locate() has found new rect by then
+    const t = window.setTimeout(() => setRetracting(false), 300)
+    return () => window.clearTimeout(t)
   }, [state.step])
+
+  // Fade callout back in after expand has started
+  useEffect(() => {
+    if (retracting) return
+    const timer = window.setTimeout(() => setCalloutVisible(true), 200)
+    return () => window.clearTimeout(timer)
+  }, [retracting])
 
   useEffect(() => {
     if (!showTransition) return
@@ -288,11 +305,13 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const context = useMemo(() => ({ state, startTour: state.status === 'paused' ? resumeTour : startTour, conversionReady, menuLabel }), [conversionReady, menuLabel, resumeTour, startTour, state])
 
   const pad = 8
-  const spotlight = rect ? (() => {
-    const top = Math.max(0, Math.min(window.innerHeight, rect.top - pad))
-    const left = Math.max(0, Math.min(window.innerWidth, rect.left - pad))
-    const right = Math.max(left, Math.min(window.innerWidth, rect.left + rect.width + pad))
-    const bottom = Math.max(top, Math.min(window.innerHeight, rect.top + rect.height + pad))
+  // During retract phase show header rect; once released, show new target rect (triggers expand transition)
+  const displayRect = retracting ? headerRect : rect
+  const spotlight = displayRect ? (() => {
+    const top = Math.max(0, Math.min(window.innerHeight, displayRect.top - pad))
+    const left = Math.max(0, Math.min(window.innerWidth, displayRect.left - pad))
+    const right = Math.max(left, Math.min(window.innerWidth, displayRect.left + displayRect.width + pad))
+    const bottom = Math.max(top, Math.min(window.innerHeight, displayRect.top + displayRect.height + pad))
     return { top, left, width: right - left, height: bottom - top }
   })() : null
   const callout = spotlight ? (() => {

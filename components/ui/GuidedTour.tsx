@@ -101,9 +101,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const [activatedStep, setActivatedStep] = useState<number | null>(null)
   const [readyStep, setReadyStep] = useState<number | null>(null)
   const [showTransition, setShowTransition] = useState(false)
+  const [tvPhase, setTvPhase] = useState<'off' | 'crush' | 'shrink' | 'done'>('off')
   const [calloutVisible, setCalloutVisible] = useState(true)
-  const [spotlightExiting, setSpotlightExiting] = useState(false)
-  const [spotlightEntering, setSpotlightEntering] = useState(false)
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -159,17 +158,6 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     return () => window.clearTimeout(timer)
   }, [controlActivated, state.step, step])
 
-  // On step change: play exit animation (collapse + blink), then clear rect.
-  // When a new rect arrives, play enter animation (expand from centre).
-  useEffect(() => {
-    setSpotlightExiting(true)
-    const t = window.setTimeout(() => {
-      setRect(null)
-      setSpotlightExiting(false)
-    }, 380)
-    return () => window.clearTimeout(t)
-  }, [state.step])
-
   // Fade callout out on step change, then back in after spotlight has slid
   useEffect(() => {
     setCalloutVisible(false)
@@ -178,16 +166,24 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   }, [state.step])
 
   useEffect(() => {
-    if (!showTransition || pathname !== '/screener') return
-    const timer = window.setTimeout(() => setShowTransition(false), 250)
-    return () => window.clearTimeout(timer)
-  }, [pathname, showTransition])
+    if (!showTransition) return
+    // TV shutoff sequence: crush → shrink → done → route
+    setTvPhase('crush')
+    const t1 = window.setTimeout(() => setTvPhase('shrink'), 180)
+    const t2 = window.setTimeout(() => setTvPhase('done'),   320)
+    const t3 = window.setTimeout(() => {
+      setShowTransition(false)
+      setTvPhase('off')
+    }, 520)
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); window.clearTimeout(t3) }
+  }, [showTransition])
 
   const advance = useCallback(() => {
     if (state.step >= STEPS.length - 1) {
       setShowTransition(true)
       save({ status: 'completed', step: STEPS.length - 1, ticker: state.ticker })
-      router.push('/screener')
+      // Route after TV animation completes
+      window.setTimeout(() => router.push('/screener'), 500)
       return
     }
     const nextStep = state.step + 1
@@ -209,7 +205,6 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     let observer: ResizeObserver | null = null
     let retryTimer: number | null = null
     let attempts = 0
-    let firstRect = true
     const updateRect = () => {
       if (cancelled || targets.length === 0) return
       const boxes = targets.map(target => target.getBoundingClientRect()).filter(box => box.width > 0 && box.height > 0)
@@ -218,11 +213,6 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       const left = Math.min(...boxes.map(box => box.left))
       const right = Math.max(...boxes.map(box => box.right))
       const bottom = Math.max(...boxes.map(box => box.bottom))
-      if (firstRect) {
-        firstRect = false
-        setSpotlightEntering(true)
-        window.setTimeout(() => setSpotlightEntering(false), 350)
-      }
       setRect({ top, left, width: right - left, height: bottom - top })
     }
     const locate = () => {
@@ -320,50 +310,54 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     <TourContext.Provider value={context}>
       {children}
       {mounted && (showTransition || (state.status === 'active' && step && !pageMatches)) && createPortal(
-        <div className="fixed inset-0 z-[950] flex items-center justify-center bg-black font-mono">
-          <span className="animate-pulse text-sm font-bold tracking-[0.3em] text-[#00ff41]">STOCKSNACK_</span>
+        <div className="fixed inset-0 z-[950] flex items-center justify-center bg-black overflow-hidden">
+          <style>{`
+            @keyframes ss-tv-crush {
+              0%   { height: 100vh; opacity: 1; }
+              100% { height: 2px;   opacity: 1; }
+            }
+            @keyframes ss-tv-shrink {
+              0%   { width: 100vw; opacity: 1; }
+              80%  { width: 8px;   opacity: 1; }
+              100% { width: 0px;   opacity: 0; }
+            }
+          `}</style>
+          {tvPhase === 'crush' && (
+            <div style={{
+              position: 'absolute',
+              width: '100vw',
+              background: 'white',
+              boxShadow: '0 0 60px 20px white',
+              animation: 'ss-tv-crush 160ms cubic-bezier(0.4,0,1,1) forwards',
+            }} />
+          )}
+          {tvPhase === 'shrink' && (
+            <div style={{
+              position: 'absolute',
+              height: '2px',
+              background: 'white',
+              boxShadow: '0 0 30px 8px white',
+              animation: 'ss-tv-shrink 140ms cubic-bezier(0.4,0,1,1) forwards',
+            }} />
+          )}
         </div>,
         document.body,
       )}
       {mounted && state.status === 'active' && step && pageMatches && spotlight && createPortal(
         <div className="pointer-events-none fixed inset-0 z-[900] font-mono" aria-live="polite">
-          <style>{`
-            @keyframes ss-spotlight-exit {
-              0%   { transform: scale(1);    opacity: 1;   }
-              20%  { transform: scale(0.97); opacity: 0.2; }
-              45%  { transform: scale(0.8);  opacity: 0.8; }
-              70%  { transform: scale(0.4);  opacity: 0.1; }
-              100% { transform: scale(0);    opacity: 0;   }
-            }
-            @keyframes ss-spotlight-enter {
-              0%   { transform: scale(0);    opacity: 0;   }
-              60%  { transform: scale(1.06); opacity: 1;   }
-              100% { transform: scale(1);    opacity: 1;   }
-            }
-            @keyframes ss-overlay-exit {
-              0%   { opacity: 1; }
-              40%  { opacity: 0.4; }
-              100% { opacity: 0; }
-            }
-          `}</style>
-          {/* Overlay panels */}
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: 0, left: 0, right: 0, height: spotlight.top, animation: spotlightExiting ? 'ss-overlay-exit 380ms ease-in forwards' : undefined }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: 0, width: spotlight.left, height: spotlight.height, animation: spotlightExiting ? 'ss-overlay-exit 380ms ease-in forwards' : undefined }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height, animation: spotlightExiting ? 'ss-overlay-exit 380ms ease-in forwards' : undefined }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0, animation: spotlightExiting ? 'ss-overlay-exit 380ms ease-in forwards' : undefined }} />
-          {/* Spotlight border — collapses/expands from its own centre */}
+          {/* Overlay panels — transition position/size so hole slides smoothly */}
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: 0, left: 0, right: 0, height: spotlight.top, transition: 'height 320ms cubic-bezier(0.4,0,0.2,1)' }} />
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: 0, width: spotlight.left, height: spotlight.height, transition: 'top 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1), height 320ms cubic-bezier(0.4,0,0.2,1)' }} />
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height, transition: 'top 320ms cubic-bezier(0.4,0,0.2,1), left 320ms cubic-bezier(0.4,0,0.2,1), height 320ms cubic-bezier(0.4,0,0.2,1)' }} />
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0, transition: 'top 320ms cubic-bezier(0.4,0,0.2,1)' }} />
+          {/* Spotlight border — slides to new position */}
           <div
             className="absolute pointer-events-none border-2 border-[#00ff41] shadow-[0_0_24px_rgba(0,255,65,0.45)]"
             style={{
               ...spotlight,
               borderRadius: callout?.above ? '0 0 6px 6px' : '6px',
               borderTop: callout?.above ? 'none' : undefined,
-              transformOrigin: 'center',
-              animation: spotlightExiting
-                ? 'ss-spotlight-exit 380ms cubic-bezier(0.4,0,1,1) forwards'
-                : spotlightEntering
-                  ? 'ss-spotlight-enter 320ms cubic-bezier(0,0,0.2,1) forwards'
-                  : undefined,
+              transition: 'top 320ms cubic-bezier(0.4,0,0.2,1), left 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1), height 320ms cubic-bezier(0.4,0,0.2,1)',
             }}
           />
           {(step.action === 'tap' || controlActivated) && (
@@ -372,27 +366,24 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
               disabled={!canAdvance}
               onClick={tapToAdvance}
               className="pointer-events-auto absolute cursor-pointer touch-pan-y bg-transparent disabled:cursor-default"
-              style={spotlight}
+              style={{ ...spotlight, transition: 'top 320ms cubic-bezier(0.4,0,0.2,1), left 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1), height 320ms cubic-bezier(0.4,0,0.2,1)' }}
             />
           )}
 
-          {/* Dot — vertically centered, inset from right edge */}
+          {/* Dot — outside right edge of spotlight, vertically centered */}
           <div
             className="pointer-events-none absolute z-[902] h-3 w-3"
             style={{
-              left: spotlight.left + spotlight.width - 28,
-              top: spotlight.top + spotlight.height / 2 - 6,
-              animation: spotlightExiting ? 'ss-overlay-exit 380ms ease-in forwards' : undefined,
+              left: Math.min(window.innerWidth - 18, spotlight.left + spotlight.width + 6),
+              top: Math.max(8, Math.min(window.innerHeight - 18, spotlight.top + spotlight.height / 2 - 6)),
+              transition: 'left 320ms cubic-bezier(0.4,0,0.2,1), top 320ms cubic-bezier(0.4,0,0.2,1)',
             }}
             aria-hidden="true"
           >
-            {canAdvance ? (
+            {canAdvance && (
               <span className="absolute inset-0 animate-ping rounded-full bg-[#00ff41] opacity-70" />
-            ) : null}
-            {/* Hide dot while waiting for user to click — avoids blocking clickable UI elements */}
-            {(step.action === 'tap' || controlActivated) && (
-              <span className="absolute inset-[2px] rounded-full bg-[#00ff41] shadow-[0_0_10px_#00ff41]" />
             )}
+            <span className="absolute inset-[2px] rounded-full bg-[#00ff41] shadow-[0_0_10px_#00ff41]" />
           </div>
 
           <button onClick={skipWithSound} className="pointer-events-auto fixed left-3 top-[72px] z-[903] min-h-11 px-3 text-[10px] font-bold tracking-widest text-[#ff4444] hover:text-[#ff6666] border border-[#ff4444]/40 hover:border-[#ff6666] rounded transition-colors bg-black/60">SKIP TOUR</button>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 
@@ -91,20 +91,32 @@ function playTourClick() {
   } catch {}
 }
 
+// Fixed viewport-top anchor rect for the retract animation.
+// Always visible regardless of page scroll position.
+function getAnchorRect(): HighlightRect {
+  // Try to get the actual ticker-header height; fall back to 52px.
+  const header = document.querySelector<HTMLElement>('[data-tour-id="ticker-header"]')
+  const h = header ? header.getBoundingClientRect().height || 52 : 52
+  return { top: 60, left: 0, width: window.innerWidth, height: Math.max(h, 40) }
+}
+
 export function GuidedTourProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
   const [state, setState] = useState<TourState>({ status: 'idle', step: 0 })
-  const [rect, setRect] = useState<HighlightRect | null>(null)
   const [consentTick, setConsentTick] = useState(0)
   const [activatedStep, setActivatedStep] = useState<number | null>(null)
   const [readyStep, setReadyStep] = useState<number | null>(null)
   const [showTransition, setShowTransition] = useState(false)
   const [tvPhase, setTvPhase] = useState<'off' | 'crush' | 'shrink' | 'done'>('off')
   const [calloutVisible, setCalloutVisible] = useState(true)
-  const [headerRect, setHeaderRect] = useState<HighlightRect | null>(null)
-  const [retracting, setRetracting] = useState(false)
+
+  // displayRect is the single source of truth for spotlight position.
+  // locate() writes to rectRef (no re-render) and the step-change effect
+  // picks it up at the right moment to drive the expand transition.
+  const [displayRect, setDisplayRect] = useState<HighlightRect | null>(null)
+  const rectRef = useRef<HighlightRect | null>(null)
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -160,38 +172,50 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     return () => window.clearTimeout(timer)
   }, [controlActivated, state.step, step])
 
-  // On step change: retract spotlight to header bar, then expand to new target
+  // Step-change transition: retract to anchor, then expand to new target.
+  // Only runs on ticker page (steps 1+). Screener (step 0) has no anchor.
   useEffect(() => {
-    const header = document.querySelector<HTMLElement>('[data-tour-id="ticker-header"]')
-    if (header) {
-      const b = header.getBoundingClientRect()
-      setHeaderRect({ top: b.top, left: b.left, width: b.width, height: b.height })
-    }
     setCalloutVisible(false)
-    setRetracting(true)
-    setRect(null) // clear so locate() will populate fresh for new step
-    // After retract (250ms) + brief hold (50ms), release — locate() has found new rect by then
-    const t = window.setTimeout(() => setRetracting(false), 300)
-    return () => window.clearTimeout(t)
-  }, [state.step])
+    rectRef.current = null
 
-  // Fade callout back in after expand has started
-  useEffect(() => {
-    if (retracting) return
-    const timer = window.setTimeout(() => setCalloutVisible(true), 200)
-    return () => window.clearTimeout(timer)
-  }, [retracting])
+    const isTickerStep = step?.page === 'ticker'
+    if (!isTickerStep) return
+
+    // 1. Immediately snap spotlight to the fixed anchor at the top of viewport.
+    //    This is always visible — no scroll dependency.
+    setDisplayRect(getAnchorRect())
+
+    // 2. After retract transition completes (280ms) + small hold (70ms),
+    //    pick up whatever locate() found and expand to it.
+    //    locate() fires at 350ms — same window — so rectRef should be ready.
+    const expandTimer = window.setTimeout(() => {
+      const target = rectRef.current
+      if (target) {
+        setDisplayRect(target)
+        window.setTimeout(() => setCalloutVisible(true), 220)
+      } else {
+        // locate() hasn't returned yet — poll until it does
+        const poll = window.setInterval(() => {
+          if (rectRef.current) {
+            setDisplayRect(rectRef.current)
+            window.clearInterval(poll)
+            window.setTimeout(() => setCalloutVisible(true), 220)
+          }
+        }, 40)
+        // Safety: clear poll after 2s
+        window.setTimeout(() => window.clearInterval(poll), 2000)
+      }
+    }, 350)
+
+    return () => window.clearTimeout(expandTimer)
+  }, [state.step]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!showTransition) return
-    // TV shutoff sequence: crush → shrink → done → route
     setTvPhase('crush')
     const t1 = window.setTimeout(() => setTvPhase('shrink'), 180)
-    const t2 = window.setTimeout(() => setTvPhase('done'),   320)
-    const t3 = window.setTimeout(() => {
-      setShowTransition(false)
-      setTvPhase('off')
-    }, 520)
+    const t2 = window.setTimeout(() => setTvPhase('done'), 320)
+    const t3 = window.setTimeout(() => { setShowTransition(false); setTvPhase('off') }, 520)
     return () => { window.clearTimeout(t1); window.clearTimeout(t2); window.clearTimeout(t3) }
   }, [showTransition])
 
@@ -199,7 +223,6 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     if (state.step >= STEPS.length - 1) {
       setShowTransition(true)
       save({ status: 'completed', step: STEPS.length - 1, ticker: state.ticker })
-      // Route after TV animation completes
       window.setTimeout(() => router.push('/screener'), 500)
       return
     }
@@ -212,9 +235,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!mounted || state.status !== 'active' || !step || !pageMatches) {
-      // Only clear rect when tour is fully inactive — not between steps — so the
-      // spotlight can slide smoothly instead of blinking out
-      if (state.status !== 'active') setRect(null)
+      if (state.status !== 'active') {
+        setDisplayRect(null)
+        rectRef.current = null
+      }
       return
     }
     let cancelled = false
@@ -222,41 +246,42 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     let observer: ResizeObserver | null = null
     let retryTimer: number | null = null
     let attempts = 0
+
     const updateRect = () => {
       if (cancelled || targets.length === 0) return
-      const boxes = targets.map(target => target.getBoundingClientRect()).filter(box => box.width > 0 && box.height > 0)
+      const boxes = targets.map(t => t.getBoundingClientRect()).filter(b => b.width > 0 && b.height > 0)
       if (boxes.length === 0) return
-      const top = Math.min(...boxes.map(box => box.top))
-      const left = Math.min(...boxes.map(box => box.left))
-      const right = Math.max(...boxes.map(box => box.right))
-      const bottom = Math.max(...boxes.map(box => box.bottom))
-      setRect({ top, left, width: right - left, height: bottom - top })
+      const top = Math.min(...boxes.map(b => b.top))
+      const left = Math.min(...boxes.map(b => b.left))
+      const right = Math.max(...boxes.map(b => b.right))
+      const bottom = Math.max(...boxes.map(b => b.bottom))
+      const r = { top, left, width: right - left, height: bottom - top }
+      rectRef.current = r
+      // On screener (no retract animation), set displayRect directly.
+      // On ticker page the step-change effect drives displayRect via rectRef.
+      if (step.page === 'screener') setDisplayRect(r)
     }
+
     const locate = () => {
       const matches = Array.from(document.querySelectorAll<HTMLElement>(step.target))
       targets = step.multiple ? matches : matches.slice(0, 1)
       if (targets.length === 0) {
         attempts += 1
-        if (step.optional && attempts >= 6) {
-          advance()
-          return
-        }
+        if (step.optional && attempts >= 6) { advance(); return }
         retryTimer = window.setTimeout(locate, 250)
         return
       }
       targets[0].scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
       window.setTimeout(updateRect, 250)
       observer = new ResizeObserver(updateRect)
-      targets.forEach(target => observer?.observe(target))
+      targets.forEach(t => observer?.observe(t))
     }
+
     const timer = window.setTimeout(locate, 350)
     const onClick = (event: MouseEvent) => {
-      if (step.action !== 'click' || !targets.some(target => target.contains(event.target as Node))) return
+      if (step.action !== 'click' || !targets.some(t => t.contains(event.target as Node))) return
       playTourClick()
-      if (step.navigate) {
-        window.setTimeout(advance, 350)
-        return
-      }
+      if (step.navigate) { window.setTimeout(advance, 350); return }
       setActivatedStep(state.step)
     }
     document.addEventListener('click', onClick, true)
@@ -288,10 +313,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     playTourClick()
     advance()
   }, [advance, canAdvance])
-  const skipWithSound = useCallback(() => {
-    playTourClick()
-    skipTour()
-  }, [skipTour])
+  const skipWithSound = useCallback(() => { playTourClick(); skipTour() }, [skipTour])
   const resumeTour = useCallback(() => {
     save({ ...state, status: 'active' })
     const resumeStep = STEPS[state.step]
@@ -305,8 +327,6 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const context = useMemo(() => ({ state, startTour: state.status === 'paused' ? resumeTour : startTour, conversionReady, menuLabel }), [conversionReady, menuLabel, resumeTour, startTour, state])
 
   const pad = 8
-  // During retract phase show header rect; once released, show new target rect (triggers expand transition)
-  const displayRect = retracting ? headerRect : rect
   const spotlight = displayRect ? (() => {
     const top = Math.max(0, Math.min(window.innerHeight, displayRect.top - pad))
     const left = Math.max(0, Math.min(window.innerWidth, displayRect.left - pad))
@@ -315,15 +335,15 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     return { top, left, width: right - left, height: bottom - top }
   })() : null
   const callout = spotlight ? (() => {
-    // Match spotlight width exactly (capped to viewport with small margin)
     const width = Math.min(window.innerWidth - 24, Math.max(240, spotlight.width))
     const left = Math.max(12, Math.min(window.innerWidth - width - 12, spotlight.left))
-    // Place callout flush above spotlight when there's room, otherwise below
     const above = spotlight.top >= 60
     return above
       ? { bottom: window.innerHeight - spotlight.top, left, width, above: true }
       : { top: spotlight.top + spotlight.height, left, width, above: false }
   })() : null
+
+  const TRANSITION = 'top 300ms cubic-bezier(0.4,0,0.2,1), left 300ms cubic-bezier(0.4,0,0.2,1), width 300ms cubic-bezier(0.4,0,0.2,1), height 300ms cubic-bezier(0.4,0,0.2,1)'
 
   return (
     <TourContext.Provider value={context}>
@@ -342,41 +362,29 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             }
           `}</style>
           {tvPhase === 'crush' && (
-            <div style={{
-              position: 'absolute',
-              width: '100vw',
-              background: 'white',
-              boxShadow: '0 0 60px 20px white',
-              animation: 'ss-tv-crush 160ms cubic-bezier(0.4,0,1,1) forwards',
-            }} />
+            <div style={{ position: 'absolute', width: '100vw', background: 'white', boxShadow: '0 0 60px 20px white', animation: 'ss-tv-crush 160ms cubic-bezier(0.4,0,1,1) forwards' }} />
           )}
           {tvPhase === 'shrink' && (
-            <div style={{
-              position: 'absolute',
-              height: '2px',
-              background: 'white',
-              boxShadow: '0 0 30px 8px white',
-              animation: 'ss-tv-shrink 140ms cubic-bezier(0.4,0,1,1) forwards',
-            }} />
+            <div style={{ position: 'absolute', height: '2px', background: 'white', boxShadow: '0 0 30px 8px white', animation: 'ss-tv-shrink 140ms cubic-bezier(0.4,0,1,1) forwards' }} />
           )}
         </div>,
         document.body,
       )}
       {mounted && state.status === 'active' && step && pageMatches && spotlight && createPortal(
         <div className="pointer-events-none fixed inset-0 z-[900] font-mono" aria-live="polite">
-          {/* Overlay panels — transition position/size so hole slides smoothly */}
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: 0, left: 0, right: 0, height: spotlight.top, transition: 'height 320ms cubic-bezier(0.4,0,0.2,1)' }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: 0, width: spotlight.left, height: spotlight.height, transition: 'top 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1), height 320ms cubic-bezier(0.4,0,0.2,1)' }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height, transition: 'top 320ms cubic-bezier(0.4,0,0.2,1), left 320ms cubic-bezier(0.4,0,0.2,1), height 320ms cubic-bezier(0.4,0,0.2,1)' }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0, transition: 'top 320ms cubic-bezier(0.4,0,0.2,1)' }} />
-          {/* Spotlight border — slides to new position */}
+          {/* Overlay panels — CSS-transition the hole position for smooth retract/expand */}
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: 0, left: 0, right: 0, height: spotlight.top, transition: 'height 300ms cubic-bezier(0.4,0,0.2,1)' }} />
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: 0, width: spotlight.left, height: spotlight.height, transition: TRANSITION }} />
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height, transition: TRANSITION }} />
+          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0, transition: 'top 300ms cubic-bezier(0.4,0,0.2,1)' }} />
+          {/* Spotlight border */}
           <div
             className="absolute pointer-events-none border-2 border-[#00ff41] shadow-[0_0_24px_rgba(0,255,65,0.45)]"
             style={{
               ...spotlight,
               borderRadius: callout?.above ? '0 0 6px 6px' : '6px',
               borderTop: callout?.above ? 'none' : undefined,
-              transition: 'top 320ms cubic-bezier(0.4,0,0.2,1), left 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1), height 320ms cubic-bezier(0.4,0,0.2,1)',
+              transition: TRANSITION,
             }}
           />
           {(step.action === 'tap' || controlActivated) && (
@@ -385,29 +393,24 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
               disabled={!canAdvance}
               onClick={tapToAdvance}
               className="pointer-events-auto absolute cursor-pointer touch-pan-y bg-transparent disabled:cursor-default"
-              style={{ ...spotlight, transition: 'top 320ms cubic-bezier(0.4,0,0.2,1), left 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1), height 320ms cubic-bezier(0.4,0,0.2,1)' }}
+              style={{ ...spotlight, transition: TRANSITION }}
             />
           )}
-
           {/* Dot — fixed 20px from right border, vertically centered */}
           <div
             className="pointer-events-none absolute z-[902] h-3 w-3"
             style={{
               left: spotlight.left + spotlight.width - 20,
               top: spotlight.top + spotlight.height / 2 - 6,
-              transition: 'left 320ms cubic-bezier(0.4,0,0.2,1), top 320ms cubic-bezier(0.4,0,0.2,1)',
+              transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), top 300ms cubic-bezier(0.4,0,0.2,1)',
             }}
             aria-hidden="true"
           >
-            {canAdvance && (
-              <span className="absolute inset-0 animate-ping rounded-full bg-[#00ff41] opacity-70" />
-            )}
+            {canAdvance && <span className="absolute inset-0 animate-ping rounded-full bg-[#00ff41] opacity-70" />}
             <span className="absolute inset-[2px] rounded-full bg-[#00ff41] shadow-[0_0_10px_#00ff41]" />
           </div>
-
           <button onClick={skipWithSound} className="pointer-events-auto fixed left-3 top-[72px] z-[903] min-h-11 px-3 text-[10px] font-bold tracking-widest text-[#ff4444] hover:text-[#ff6666] border border-[#ff4444]/40 hover:border-[#ff6666] rounded transition-colors bg-black/60">SKIP TOUR</button>
-
-          {/* Callout — flush above spotlight, fades on step change */}
+          {/* Callout */}
           {callout && (
             <div
               className="pointer-events-none fixed z-[902] bg-[#00ff41] px-3 py-2.5 shadow-[0_0_20px_rgba(0,255,65,0.4)]"
@@ -418,7 +421,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                 borderRadius: callout.above ? '6px 6px 0 0' : '0 0 6px 6px',
                 borderBottom: callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
                 borderTop: !callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
-                transition: 'left 350ms ease, bottom 350ms ease, top 350ms ease, width 350ms ease, opacity 200ms ease',
+                transition: 'left 300ms ease, bottom 300ms ease, top 300ms ease, width 300ms ease, opacity 180ms ease',
                 opacity: calloutVisible ? 1 : 0,
               }}
             >

@@ -4,12 +4,30 @@ function soundAllowed() {
   catch { return false; }
 }
 
+// Reuse a single AudioContext across calls — recreating it each time causes
+// iOS Safari to silently drop sounds when the context isn't yet "unlocked".
+let _ctx: AudioContext | null = null;
+
+function getCtx(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const AC = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext);
+    if (!AC) return null;
+    if (!_ctx) _ctx = new AC();
+    // iOS suspends the context when the page loses focus — resume before use
+    if (_ctx.state === "suspended") _ctx.resume();
+    return _ctx;
+  } catch {
+    return null;
+  }
+}
+
 // Short mechanical click — navigation, button presses, dismissals
 export function playClick() {
   if (!soundAllowed()) return;
   try {
-    const AudioCtx = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!;
-    const ctx = new AudioCtx();
+    const ctx = getCtx();
+    if (!ctx) return;
     const bufferSize = ctx.sampleRate * 0.04;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -37,8 +55,8 @@ export function playClick() {
 export function playChime() {
   if (!soundAllowed()) return;
   try {
-    const AudioCtx = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!;
-    const ctx = new AudioCtx();
+    const ctx = getCtx();
+    if (!ctx) return;
     [1046, 1568].forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -59,8 +77,8 @@ export function playChime() {
 export function playTick() {
   if (!soundAllowed()) return;
   try {
-    const AudioCtx = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)!;
-    const ctx = new AudioCtx();
+    const ctx = getCtx();
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);

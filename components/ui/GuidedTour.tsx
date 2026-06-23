@@ -370,12 +370,12 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             />
           )}
 
-          {/* Dot — outside right edge of spotlight, vertically centered */}
+          {/* Dot — fixed 20px from right border, vertically centered */}
           <div
             className="pointer-events-none absolute z-[902] h-3 w-3"
             style={{
-              left: Math.min(window.innerWidth - 18, spotlight.left + spotlight.width + 6),
-              top: Math.max(8, Math.min(window.innerHeight - 18, spotlight.top + spotlight.height / 2 - 6)),
+              left: spotlight.left + spotlight.width - 20,
+              top: spotlight.top + spotlight.height / 2 - 6,
               transition: 'left 320ms cubic-bezier(0.4,0,0.2,1), top 320ms cubic-bezier(0.4,0,0.2,1)',
             }}
             aria-hidden="true"

@@ -327,7 +327,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             <span className="absolute inset-[2px] rounded-full bg-[#00ff41] shadow-[0_0_10px_#00ff41]" />
           </div>
 
-          <button onClick={skipWithSound} className="pointer-events-auto fixed left-2 top-2 z-[903] min-h-11 px-2 text-[9px] tracking-widest text-[#00ff41]/40 hover:text-[#00ff41]">SKIP TOUR</button>
+          <button onClick={skipWithSound} className="pointer-events-auto fixed left-2 top-2 z-[903] min-h-11 px-3 text-[10px] font-bold tracking-widest text-[#ff4444] hover:text-[#ff6666] border border-[#ff4444]/40 hover:border-[#ff6666] rounded transition-colors">SKIP TOUR</button>
 
           <div className="pointer-events-none fixed z-[902] rounded-md bg-[#00ff41] px-3 py-2.5 shadow-[0_0_20px_rgba(0,255,65,0.4)]" style={callout ?? undefined}>
             <div className="flex items-center justify-between gap-3 text-[#001a08]">

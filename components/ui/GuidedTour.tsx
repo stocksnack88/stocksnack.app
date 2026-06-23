@@ -26,14 +26,11 @@ const STEPS: TourStep[] = [
   { page: 'screener', target: '[data-tour-primary-stock="true"]', action: 'click', navigate: true, instruction: 'Pick a stock and click on it.' },
   { page: 'ticker', target: '[data-tour-id="ticker-header"]', action: 'tap', instruction: 'This is the stock you selected.' },
   { page: 'ticker', target: '[data-tour-id="overview"]', action: 'click', instruction: 'Click here for the stock overview.' },
-  { page: 'ticker', target: '[data-tour-id="price-projection"]', action: 'click', instruction: 'This section estimates the stock\'s future price.' },
-  { page: 'ticker', target: '[data-tour-id="price-projection-data"]', action: 'tap', instruction: 'This shows the estimated stock price five years from now.' },
+  { page: 'ticker', target: '[data-tour-id="price-projection"]', action: 'click', instruction: 'This section estimates the stock\'s future price. Click to expand, then tap to continue.' },
   { page: 'ticker', target: '[data-tour-id="scorecard"]', action: 'click', instruction: 'Click here to understand the stock at a glance.' },
-  { page: 'ticker', target: '[data-tour-id="scorecard-data"]', action: 'tap', instruction: 'An overview of the stock\'s performance.' },
   { page: 'ticker', target: '[data-tour-id="business"]', action: 'click', instruction: 'This section explains what the company does.' },
-  { page: 'ticker', target: '[data-tour-id="business-data"]', action: 'tap', optional: true, instruction: 'See how the business makes money.' },
   { page: 'ticker', target: '[data-tour-id="price-methods"]', action: 'click', instruction: 'How do we calculate the future price?' },
-  { page: 'ticker', target: '[data-tour-id="methodology-toggle"]', action: 'click', instruction: 'Expand to see the valuation methods.' },
+  { page: 'ticker', target: '[data-tour-id="methodology-toggle"]', action: 'click', instruction: 'Click to expand the valuation methods, then tap to continue.' },
   { page: 'ticker', target: '[data-tour-id="method-1"]', action: 'tap', multiple: true, instruction: 'Method 1 uses future EBITDA or P/E to estimate price.' },
   { page: 'ticker', target: '[data-tour-id="method-2"]', action: 'tap', multiple: true, instruction: 'Method 2 uses future Free Cash Flow to estimate price.' },
   { page: 'ticker', target: '[data-tour-id="method-3"]', action: 'tap', multiple: true, instruction: 'Method 3 uses future Dividends when applicable.' },
@@ -48,9 +45,8 @@ const STEPS: TourStep[] = [
   { page: 'ticker', target: '[data-tour-id="health-balance-sheet"]', action: 'tap', instruction: 'Balance Sheet checks cover cash, debt and equity.' },
   { page: 'ticker', target: '[data-tour-id="health-income-statement"]', action: 'tap', instruction: 'Income Statement checks cover profit and earnings quality.' },
   { page: 'ticker', target: '[data-tour-id="health-cash-flow"]', action: 'tap', instruction: 'Cash Flow checks show how reliably the business produces cash.' },
-  { page: 'ticker', target: '[data-tour-id="health-metric"]', action: 'click', optional: true, instruction: 'Expand one check to see its five-year history.' },
-  { page: 'ticker', target: '[data-tour-id="final-layer"]', action: 'click', instruction: 'The final layer combines every score above.' },
-  { page: 'ticker', target: '[data-tour-id="final-score"]', action: 'tap', instruction: 'The final score weights future return, growth and financial health.' },
+  { page: 'ticker', target: '[data-tour-id="health-metric"]', action: 'click', optional: true, instruction: 'Click the arrow to expand a check and see its five-year history, then tap to continue.' },
+  { page: 'ticker', target: '[data-tour-id="final-layer"]', action: 'click', instruction: 'The final layer combines every score above. Click to expand, then tap to continue.' },
 ]
 
 type TourContextValue = {
@@ -234,7 +230,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       targets = step.multiple ? matches : matches.slice(0, 1)
       if (targets.length === 0) {
         attempts += 1
-        if (step.optional && attempts >= 20) {
+        if (step.optional && attempts >= 6) {
           advance()
           return
         }
@@ -390,13 +386,16 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             }}
             aria-hidden="true"
           >
-            {(step.action === 'click' && !controlActivated) || canAdvance ? (
+            {canAdvance ? (
               <span className="absolute inset-0 animate-ping rounded-full bg-[#00ff41] opacity-70" />
             ) : null}
-            <span className="absolute inset-[2px] rounded-full bg-[#00ff41] shadow-[0_0_10px_#00ff41]" />
+            {/* Hide dot while waiting for user to click — avoids blocking clickable UI elements */}
+            {(step.action === 'tap' || controlActivated) && (
+              <span className="absolute inset-[2px] rounded-full bg-[#00ff41] shadow-[0_0_10px_#00ff41]" />
+            )}
           </div>
 
-          <button onClick={skipWithSound} className="pointer-events-auto fixed left-2 top-2 z-[903] min-h-11 px-3 text-[10px] font-bold tracking-widest text-[#ff4444] hover:text-[#ff6666] border border-[#ff4444]/40 hover:border-[#ff6666] rounded transition-colors">SKIP TOUR</button>
+          <button onClick={skipWithSound} className="pointer-events-auto fixed left-3 top-[72px] z-[903] min-h-11 px-3 text-[10px] font-bold tracking-widest text-[#ff4444] hover:text-[#ff6666] border border-[#ff4444]/40 hover:border-[#ff6666] rounded transition-colors bg-black/60">SKIP TOUR</button>
 
           {/* Callout — flush above spotlight, fades on step change */}
           {callout && (

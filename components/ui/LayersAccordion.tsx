@@ -236,13 +236,12 @@ export function ChildCollapsibleLayer({
 export function MethodologyToggle({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   return (
-    <>
+    <div data-tour-id="methodology-toggle">
       <div
         className="flex items-center justify-center py-2"
         style={{ borderBottom: '1px solid rgba(0,255,65,0.1)' }}
       >
         <button
-          data-tour-id="methodology-toggle"
           className="text-[10px] font-mono font-bold tracking-widest px-3 py-1 rounded-full border transition-all duration-200"
           style={{
             background: '#00ff41',
@@ -260,7 +259,7 @@ export function MethodologyToggle({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </div>
-    </>
+    </div>
   )
 }
 

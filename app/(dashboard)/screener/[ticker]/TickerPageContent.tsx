@@ -1169,7 +1169,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             return (
               <>
               <div className="px-5 pb-5" style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
-                <div data-tour-id="growth-yoy" className="pt-4 pb-2 mb-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.3)" }}>
+                <div className="pt-4 pb-2 mb-3" style={{ borderBottom: "1px solid rgba(0,255,65,0.3)" }}>
                   <p className="text-base font-bold leading-tight" style={{ color: "#00ff41" }}>HISTORICAL GROWTH TREND</p>
                   <p className="text-xs tracking-widest mt-0.5" style={{ color: "rgba(0,255,65,0.4)" }}>REVENUE · EBITDA · FREE CASH FLOW</p>
                 </div>
@@ -1322,7 +1322,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                             </div>
                           )
                         })()}
-                        <div className="flex gap-1.5 mt-1.5">
+                        <div className="flex gap-1.5 mt-1.5" data-tour-id={key === 'revenue' ? 'growth-yoy' : undefined}>
                           {vals.map(({ year, v, isNeg }, i) => {
                             const prevV      = i > 0 ? vals[i - 1].v : null
                             const absChange  = v != null && prevV != null ? v - prevV : null

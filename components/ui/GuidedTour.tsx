@@ -161,6 +161,12 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     return () => window.clearTimeout(timer)
   }, [controlActivated, state.step, step])
 
+  // Clear spotlight rect on every step change so the old highlight doesn't
+  // bleed through during page transitions or card-to-card moves
+  useEffect(() => {
+    setRect(null)
+  }, [state.step])
+
   // Fade callout out on step change, then back in after spotlight has slid
   useEffect(() => {
     setCalloutVisible(false)
@@ -341,7 +347,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           <div
             className="pointer-events-none absolute z-[902] h-3 w-3"
             style={{
-              left: spotlight.left + spotlight.width - 20,
+              left: spotlight.left + spotlight.width - 28,
               top: spotlight.top + spotlight.height / 2 - 6,
               transition: 'left 350ms ease, top 350ms ease',
             }}

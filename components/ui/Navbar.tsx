@@ -15,7 +15,7 @@ export default async function Navbar() {
 
   return (
     <nav
-      className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between shrink-0"
+      className="sticky top-0 z-[901] px-6 py-4 flex items-center justify-between shrink-0"
       style={{
         fontFamily: "var(--font-geist-mono), 'Courier New', monospace",
         borderBottom: "1px solid rgba(0,255,65,0.15)",

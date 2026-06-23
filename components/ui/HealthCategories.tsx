@@ -756,7 +756,7 @@ export default function HealthCategories({ cats, fundamentals }: { cats: HealthC
                     const isOpen = openRows.has(rowKey);
 
                     return (
-                      <div key={i}>
+                      <div key={i} data-tour-id={i === 0 && catIdx === 0 && !!detail ? 'health-metric' : undefined}>
                         <div className="flex items-center justify-between gap-3 py-0.5">
                           <span className="text-xs flex-1 min-w-0 leading-relaxed" style={{ color: "rgba(0,255,65,0.65)" }}>
                             {check.name}
@@ -788,7 +788,6 @@ export default function HealthCategories({ cats, fundamentals }: { cats: HealthC
                             )}
                             {detail && (
                               <button
-                                data-tour-id="health-metric"
                                 className="text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors"
                                 style={isOpen
                                   ? { borderColor: "rgba(0,255,65,0.7)", color: "rgba(0,255,65,0.9)" }

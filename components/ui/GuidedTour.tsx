@@ -281,10 +281,14 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     return { top, left, width: right - left, height: bottom - top }
   })() : null
   const callout = spotlight ? (() => {
+    // Match spotlight width exactly (capped to viewport with small margin)
     const width = Math.min(window.innerWidth - 24, Math.max(240, spotlight.width))
-    const centeredLeft = spotlight.left + spotlight.width / 2 - width / 2
-    const left = Math.max(12, Math.min(window.innerWidth - width - 12, centeredLeft))
-    return { top: Math.max(54, spotlight.top - 62), left, width }
+    const left = Math.max(12, Math.min(window.innerWidth - width - 12, spotlight.left))
+    // Place callout flush above spotlight when there's room, otherwise below
+    const above = spotlight.top >= 60
+    return above
+      ? { bottom: window.innerHeight - spotlight.top, left, width, above: true }
+      : { top: spotlight.top + spotlight.height, left, width, above: false }
   })() : null
 
   return (
@@ -302,7 +306,15 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: 0, width: spotlight.left, height: spotlight.height }} />
           <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height }} />
           <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0 }} />
-          <div className="absolute pointer-events-none rounded-md border-2 border-[#00ff41] shadow-[0_0_24px_rgba(0,255,65,0.45)]" style={spotlight} />
+          {/* Spotlight border — square top corners when callout sits flush above */}
+          <div
+            className="absolute pointer-events-none border-2 border-[#00ff41] shadow-[0_0_24px_rgba(0,255,65,0.45)]"
+            style={{
+              ...spotlight,
+              borderRadius: callout?.above ? '0 0 6px 6px' : '6px',
+              borderTop: callout?.above ? 'none' : undefined,
+            }}
+          />
           {(step.action === 'tap' || controlActivated) && (
             <button
               aria-label={canAdvance ? 'Continue tour' : 'Please read this tour step'}
@@ -313,11 +325,12 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             />
           )}
 
+          {/* Dot centered in spotlight */}
           <div
             className="pointer-events-none absolute z-[902] h-3 w-3"
             style={{
-              left: Math.max(4, spotlight.left + spotlight.width - 14),
-              top: Math.max(4, spotlight.top + spotlight.height - 14),
+              left: spotlight.left + spotlight.width / 2 - 6,
+              top: spotlight.top + spotlight.height / 2 - 6,
             }}
             aria-hidden="true"
           >
@@ -329,12 +342,25 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
 
           <button onClick={skipWithSound} className="pointer-events-auto fixed left-2 top-2 z-[903] min-h-11 px-3 text-[10px] font-bold tracking-widest text-[#ff4444] hover:text-[#ff6666] border border-[#ff4444]/40 hover:border-[#ff6666] rounded transition-colors">SKIP TOUR</button>
 
-          <div className="pointer-events-none fixed z-[902] rounded-md bg-[#00ff41] px-3 py-2.5 shadow-[0_0_20px_rgba(0,255,65,0.4)]" style={callout ?? undefined}>
-            <div className="flex items-center justify-between gap-3 text-[#001a08]">
-              <p className="text-xs font-bold leading-snug">{step.instruction}</p>
-              <p className="shrink-0 text-[9px] font-bold tracking-[0.15em] opacity-60">{state.step + 1}/{STEPS.length}</p>
+          {/* Callout — flush above spotlight, square bottom corners to connect */}
+          {callout && (
+            <div
+              className="pointer-events-none fixed z-[902] bg-[#00ff41] px-3 py-2.5 shadow-[0_0_20px_rgba(0,255,65,0.4)]"
+              style={{
+                left: callout.left,
+                width: callout.width,
+                ...(callout.above ? { bottom: (callout as { bottom: number }).bottom } : { top: (callout as { top: number }).top }),
+                borderRadius: callout.above ? '6px 6px 0 0' : '0 0 6px 6px',
+                borderBottom: callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
+                borderTop: !callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
+              }}
+            >
+              <div className="flex items-center justify-between gap-3 text-[#001a08]">
+                <p className="text-xs font-bold leading-snug">{step.instruction}</p>
+                <p className="shrink-0 text-[9px] font-bold tracking-[0.15em] opacity-60">{state.step + 1}/{STEPS.length}</p>
+              </div>
             </div>
-          </div>
+          )}
         </div>,
         document.body,
       )}

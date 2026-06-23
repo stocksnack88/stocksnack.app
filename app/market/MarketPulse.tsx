@@ -410,19 +410,10 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
       <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
         <header className="border-b border-[#00ff41]/10 py-8 sm:py-10">
           <p className="text-[9px] tracking-[0.25em] text-[#00ff41]/35">STOCKSNACK · S&P 500 MARKET PULSE</p>
-          <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mt-5">
             <div>
               <h1 className="text-2xl font-bold tracking-[0.04em] sm:text-3xl">HOW IS THE MARKET DOING RIGHT NOW?</h1>
               <p className="mt-3 max-w-2xl text-[11px] leading-6 text-[#00ff41]/45">Start with valuation, find the sectors causing it, then check whether StockSnack signals and business growth agree.</p>
-            </div>
-            <div className="shrink-0 rounded border px-4 py-3 sm:min-w-[245px]" style={{ color: verdictColor(data.valuationVerdict), borderColor: `${verdictColor(data.valuationVerdict)}77`, background: `${verdictColor(data.valuationVerdict)}12` }}>
-              <p className="text-[10px] font-bold tracking-[0.18em]">MARKET VALUATION</p>
-              <p className="mt-1 text-xl font-bold tracking-[0.12em]">{data.valuationVerdict}</p>
-              <div className="mt-3 grid grid-cols-3 gap-2 border-t pt-2 text-center" style={{ borderColor: `${verdictColor(data.valuationVerdict)}33` }}>
-                <MetricMini label="P/E" value={formatMultiple(currentPe)} />
-                <MetricMini label="FCF" value={formatPercent(currentFcfYield)} />
-                <MetricMini label="DIV" value={formatPercent(currentDivYield)} />
-              </div>
             </div>
           </div>
           <div className="mt-6 grid gap-2 sm:grid-cols-3">
@@ -526,15 +517,6 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
 function meanAvailable(values: Array<number | null>): number | null {
   const available = values.filter((value): value is number => value != null)
   return available.length ? available.reduce((sum, value) => sum + value, 0) / available.length : null
-}
-
-function MetricMini({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[7px] font-bold tracking-wider opacity-60">{label}</p>
-      <p className="mt-0.5 text-[10px] font-bold">{value}</p>
-    </div>
-  )
 }
 
 function SummaryCard({ label, value, color, detail, emphasizeDetail = false }: { label: string; value: string; color: string; detail: string; emphasizeDetail?: boolean }) {

@@ -116,12 +116,12 @@ function chartPoints(points: TrendPoint[], metric: TrendMetric, sp500Cagr: numbe
   })
 }
 
-function SectionHeader({ number, question, note }: { number: string; question: string; note: string }) {
+function SectionHeader({ number, question, note, themeColor }: { number: string; question: string; note: string; themeColor: string }) {
   return (
-    <div className="border-b border-[#00ff41]/10 bg-[#001a00] px-5 py-4">
-      <p className="text-[10px] font-bold tracking-[0.2em] text-[#00ff41]/35">{number}</p>
-      <h2 className="mt-1 text-sm font-bold tracking-[0.08em] text-[#00ff41]">{question}</h2>
-      <p className="mt-1 text-[10px] leading-relaxed text-[#00ff41]/45">{note}</p>
+    <div className="border-b px-5 py-4" style={{ borderColor: `${themeColor}33`, background: `${themeColor}12` }}>
+      <p className="text-[10px] font-bold tracking-[0.2em]" style={{ color: themeColor, opacity: 0.45 }}>{number}</p>
+      <h2 className="mt-1 text-sm font-bold tracking-[0.08em]" style={{ color: themeColor }}>{question}</h2>
+      <p className="mt-1 text-[10px] leading-relaxed" style={{ color: themeColor, opacity: 0.55 }}>{note}</p>
     </div>
   )
 }
@@ -385,14 +385,10 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
 
   const opportunityLabel = data.bullishPct >= 50 ? 'BROAD' : data.bullishPct >= 30 ? 'MIXED' : 'NARROW'
   const opportunityColor = opportunityLabel === 'BROAD' ? GREEN : opportunityLabel === 'MIXED' ? AMBER : RED
-  const averageMarketGrowth = useMemo(() => meanAvailable(METRICS.map(metric => metricCagr(data.marketTrends, metric.key))), [data.marketTrends])
-  const marketGrowth = growthVerdict(averageMarketGrowth, data.sp500Cagr)
   const mostAttractive = data.sectors.slice(0, 3)
   const mostStretched = data.sectors.slice(-3).reverse()
-  const currentPe = data.valuationMetrics.find(metric => metric.key === 'pe')?.current ?? null
-  const currentFcfYield = data.valuationMetrics.find(metric => metric.key === 'fcfYield')?.current ?? null
-  const currentDivYield = data.valuationMetrics.find(metric => metric.key === 'divYield')?.current ?? null
-  const valuationDetail = `P/E ${formatMultiple(currentPe)} · FCF ${formatPercent(currentFcfYield)} · DIV ${formatPercent(currentDivYield)}`
+  const themeColor = verdictColor(data.valuationVerdict)
+  const sectionStyle = { borderColor: `${themeColor}44` }
 
   const revealOnMobile = (target: RefObject<HTMLDivElement | null>) => {
     if (!window.matchMedia('(max-width: 1023px)').matches) return
@@ -408,32 +404,24 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
   }
 
   return (
-    <main className="min-h-screen bg-black font-mono text-[#00ff41]">
+    <main className="min-h-screen bg-black font-mono" style={{ color: themeColor }}>
       <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
-        <header className="border-b border-[#00ff41]/10 py-8 sm:py-10">
-          <p className="text-[9px] tracking-[0.25em] text-[#00ff41]/35">STOCKSNACK · S&P 500 MARKET PULSE</p>
+        <header className="border-b py-8 sm:py-10" style={{ borderColor: `${themeColor}22` }}>
+          <p className="text-[9px] tracking-[0.25em]" style={{ color: themeColor, opacity: 0.4 }}>STOCKSNACK · S&P 500 MARKET PULSE</p>
           <div className="mt-5">
-            <div>
-              <h1 className="text-2xl font-bold tracking-[0.04em] sm:text-3xl">HOW IS THE MARKET DOING RIGHT NOW?</h1>
-              <p className="mt-3 max-w-2xl text-[11px] leading-6 text-[#00ff41]/45">Start with valuation, find the sectors causing it, then check whether StockSnack signals and business growth agree.</p>
-            </div>
-          </div>
-          <div className="mt-6 grid gap-2 sm:grid-cols-3">
-            <SummaryCard label="VALUATION" value={data.valuationVerdict} color={verdictColor(data.valuationVerdict)} detail={valuationDetail} emphasizeDetail />
-            <SummaryCard label="STOCK OPPORTUNITY" value={opportunityLabel} color={opportunityColor} detail={`${data.bullishPct.toFixed(0)}% rated BUY or BUY+`} />
-            <SummaryCard label="BUSINESS GROWTH" value={marketGrowth.label} color={marketGrowth.color} detail="Revenue · EBITDA · free cash flow" />
+            <h1 className="text-2xl font-bold tracking-[0.04em] sm:text-3xl">HOW IS THE MARKET DOING RIGHT NOW?</h1>
           </div>
         </header>
 
-        <section className="mt-8 overflow-hidden rounded border border-[#00ff41]/20">
-          <SectionHeader number="01" question="HOW IS THE MARKET PRICED?" note="Current S&P 500 company averages versus their own five-year history." />
+        <section className="mt-8 overflow-hidden rounded border" style={sectionStyle}>
+          <SectionHeader number="01" question="HOW IS THE MARKET PRICED?" note="Current S&P 500 company averages versus their own five-year history." themeColor={themeColor} />
           <div className="grid gap-3 p-3 lg:grid-cols-3 lg:p-4">
             {data.valuationMetrics.map(metric => <ValuationHistoryCard key={metric.key} metric={metric} history={data.valuationHistory} />)}
           </div>
         </section>
 
-        <section className="mt-8 overflow-hidden rounded border border-[#00ff41]/20">
-          <SectionHeader number="02" question="WHICH SECTORS ARE CAUSING IT?" note="Compare each sector’s P/E, FCF yield and dividend yield with its own five-year valuation." />
+        <section className="mt-8 overflow-hidden rounded border" style={sectionStyle}>
+          <SectionHeader number="02" question="WHICH SECTORS ARE CAUSING IT?" note="Compare each sector’s P/E, FCF yield and dividend yield with its own five-year valuation." themeColor={themeColor} />
           <div className="grid gap-5 p-4 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
               <SectorDeviationPanel sectors={data.sectors} selected={selectedSector} onSelect={selectValuationSector} />
@@ -457,8 +445,8 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
           </div>
         </section>
 
-        <section className="mt-8 overflow-hidden rounded border border-[#00ff41]/20">
-          <SectionHeader number="03" question="WHAT ARE STOCKSNACK SIGNALS SAYING?" note="Breadth shows whether opportunity is spread across the market or concentrated in a few sectors." />
+        <section className="mt-8 overflow-hidden rounded border" style={sectionStyle}>
+          <SectionHeader number="03" question="WHAT ARE STOCKSNACK SIGNALS SAYING?" note="Breadth shows whether opportunity is spread across the market or concentrated in a few sectors." themeColor={themeColor} />
           <div className="p-4">
             <div className="rounded border border-[#00ff41]/15 bg-[#00ff41]/[0.015] p-4">
               <div className="mb-3 flex items-end justify-between gap-3">
@@ -484,8 +472,8 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
           </div>
         </section>
 
-        <section className="mt-8 overflow-hidden rounded border border-[#00ff41]/20">
-          <SectionHeader number="04" question="ARE S&P 500 BUSINESSES GROWING?" note="Combined market fundamentals with the same annual-bar and S&P benchmark language used on stock detail pages." />
+        <section className="mt-8 overflow-hidden rounded border" style={sectionStyle}>
+          <SectionHeader number="04" question="ARE S&P 500 BUSINESSES GROWING?" note="Combined market fundamentals with the same annual-bar and S&P benchmark language used on stock detail pages." themeColor={themeColor} />
           <div className="grid gap-3 p-3 lg:grid-cols-3 lg:p-4">
             {METRICS.map(metric => <GrowthChart key={metric.key} title={`TOTAL ${metric.label}`} points={data.marketTrends} metric={metric.key} sp500Cagr={data.sp500Cagr} subtitle="All covered S&P 500 companies combined" />)}
           </div>
@@ -518,21 +506,6 @@ export default function MarketPulse({ data }: { data: MarketPulseData }) {
         <p className="mt-10 border-t border-[#00ff41]/10 pt-4 text-center text-[8px] tracking-[0.16em] text-[#00ff41]/20">STOCKSNACK · MARKET PULSE · DATA UPDATED WEEKLY</p>
       </div>
     </main>
-  )
-}
-
-function meanAvailable(values: Array<number | null>): number | null {
-  const available = values.filter((value): value is number => value != null)
-  return available.length ? available.reduce((sum, value) => sum + value, 0) / available.length : null
-}
-
-function SummaryCard({ label, value, color, detail, emphasizeDetail = false }: { label: string; value: string; color: string; detail: string; emphasizeDetail?: boolean }) {
-  return (
-    <div className="rounded border border-[#00ff41]/15 bg-[#00ff41]/[0.015] px-4 py-3">
-      <p className="text-[10px] font-bold tracking-[0.18em] text-[#00ff41]/75">{label}</p>
-      <p className="mt-1 text-lg font-bold tracking-wider" style={{ color }}>{value}</p>
-      <p className={`mt-1 ${emphasizeDetail ? 'text-[9px] font-bold text-[#00ff41]/70' : 'text-[8px] text-[#00ff41]/30'}`}>{detail}</p>
-    </div>
   )
 }
 

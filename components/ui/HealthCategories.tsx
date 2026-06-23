@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { playTick } from "@/lib/sounds";
 
 type HealthCheck = {
   name: string;
@@ -661,24 +662,30 @@ export default function HealthCategories({ cats, fundamentals }: { cats: HealthC
   );
   const [openRows, setOpenRows] = useState<Set<string>>(new Set());
 
-  const toggleData = (label: string) =>
+  const toggleData = (label: string) => {
+    playTick();
     setCatState((prev) => {
       const cur = prev[label] ?? { data: true, why: false };
       return { ...prev, [label]: { data: !cur.data, why: cur.data ? false : cur.why } };
     });
+  };
 
-  const toggleWhy = (label: string) =>
+  const toggleWhy = (label: string) => {
+    playTick();
     setCatState((prev) => {
       const cur = prev[label] ?? { data: true, why: false };
       return { ...prev, [label]: { data: true, why: !cur.why } };
     });
+  };
 
-  const toggleRow = (key: string) =>
+  const toggleRow = (key: string) => {
+    playTick();
     setOpenRows((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key); else next.add(key);
       return next;
     });
+  };
 
   return (
     <>

@@ -250,7 +250,7 @@ export function MethodologyToggle({ children }: { children: React.ReactNode }) {
             color: '#001a08',
             boxShadow: '0 0 14px rgba(0,255,65,0.32)',
           }}
-          onClick={() => setOpen(v => !v)}
+          onClick={() => { playTick(); setOpen(v => !v) }}
         >
           {open ? 'HIDE METHODOLOGY ▲' : "HOW IT'S CALCULATED ▼"}
         </button>

@@ -148,6 +148,7 @@ export default function NavDropdown({ userEmail }: Props) {
             <Link
               href="/market"
               role="menuitem"
+              onClick={() => playClick()}
               className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
               style={{ ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }}
             >
@@ -156,6 +157,7 @@ export default function NavDropdown({ userEmail }: Props) {
             <Link
               href="/compare"
               role="menuitem"
+              onClick={() => playClick()}
               className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
               style={{ ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }}
             >
@@ -164,6 +166,7 @@ export default function NavDropdown({ userEmail }: Props) {
             <Link
               href="/account"
               role="menuitem"
+              onClick={() => playClick()}
               className="block px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
               style={{ ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }}
             >

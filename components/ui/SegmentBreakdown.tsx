@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { playTick } from "@/lib/sounds";
 
 type Seg = { name: string; pct: number; cagr: number | null; value: number };
 
@@ -26,7 +27,9 @@ export default function SegmentBreakdown({
   const [localOpen, setLocalOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : localOpen;
-  const toggle = isControlled ? (onToggle ?? (() => {})) : () => setLocalOpen((v) => !v);
+  const toggle = isControlled
+    ? () => { playTick(); (onToggle ?? (() => {}))() }
+    : () => { playTick(); setLocalOpen((v) => !v) };
   return (
     <div
       className="px-5 py-4"

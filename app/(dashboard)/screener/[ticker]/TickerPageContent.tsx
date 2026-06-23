@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 import React, { useState } from 'react'
+import { playClick } from '@/lib/sounds'
 import BackButton from '@/components/ui/BackButton'
 import DescriptionToggle from '@/components/ui/DescriptionToggle'
 import HealthCategories, { type FundRow as HealthFundRow } from '@/components/ui/HealthCategories'
@@ -240,7 +241,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                 <>
                   <button
                     type="button"
-                    onClick={() => setM1Mode(v => !v)}
+                    onClick={() => { playClick(); setM1Mode(v => !v) }}
                     aria-pressed={m1Mode}
                     className="text-[10px] font-mono font-bold tracking-widest px-3 py-1 rounded-full border transition-all duration-200"
                     style={{

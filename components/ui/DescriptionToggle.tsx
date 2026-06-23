@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { playTick } from "@/lib/sounds";
 
 export default function DescriptionToggle({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -10,7 +11,7 @@ export default function DescriptionToggle({ text }: { text: string }) {
         <button
           className="text-[9px] tracking-widest"
           style={{ color: "rgba(0,255,65,0.5)" }}
-          onClick={() => setExpanded((v) => !v)}
+          onClick={() => { playTick(); setExpanded((v) => !v) }}
         >
           {expanded ? "[−]" : "[+]"}
         </button>

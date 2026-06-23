@@ -1,6 +1,7 @@
 import { getCachedUser, getCachedUserProfile } from '@/lib/server-auth'
 import Link from "next/link";
 import NavDropdown from "./NavDropdown";
+import NavSoundLink from "./NavSoundLink";
 
 export default async function Navbar() {
   const user = await getCachedUser()
@@ -21,22 +22,15 @@ export default async function Navbar() {
         background: "#000",
       }}
     >
-      <Link
+      <NavSoundLink
         href="/"
         className="font-bold text-sm tracking-[0.25em] transition-colors"
         style={{ color: "#00ff41" }}
       >
         STOCKSNACK
-      </Link>
+      </NavSoundLink>
 
       <div className="flex items-center gap-3 sm:gap-5 text-xs">
-        <Link
-          href="/blog"
-          className="tracking-widest transition-colors text-[#00ff41]/40 hover:text-[#00ff41]"
-        >
-          BLOG
-        </Link>
-
         {!user && (
           <>
             <Link
@@ -71,7 +65,7 @@ export default async function Navbar() {
           <>
             <span
               className="tracking-widest text-[10px] font-bold px-2 py-0.5 rounded"
-              style={{ background: 'rgba(0,255,65,0.1)', color: '#00ff41', border: '1px solid rgba(0,255,65,0.3)' }}
+              style={{ background: '#00ff41', color: '#001a08', border: '1px solid #00ff41', boxShadow: '0 0 10px rgba(0,255,65,0.3)' }}
             >
               PRO
             </span>

@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { marked } from "marked";
+
+marked.setOptions({ async: false });
 import { supabaseAdmin } from "@/lib/supabase";
 import NewsletterPopup from "@/components/NewsletterPopup";
 
@@ -54,7 +56,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
   if (!post) return notFound();
 
-  const htmlContent = await marked(post.content, { async: true });
+  const htmlContent = marked.parse(post.content) as string;
 
   const jsonLd = {
     "@context": "https://schema.org",

@@ -788,6 +788,7 @@ export default function HealthCategories({ cats, fundamentals }: { cats: HealthC
                             )}
                             {detail && (
                               <button
+                                data-tour-control="true"
                                 className="text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors"
                                 style={isOpen
                                   ? { borderColor: "rgba(0,255,65,0.7)", color: "rgba(0,255,65,0.9)" }

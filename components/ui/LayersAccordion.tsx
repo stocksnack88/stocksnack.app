@@ -113,6 +113,7 @@ export function CollapsibleLayer({
       style={{ ...card, animation: 'fadeInUp 400ms ease-out both' }}
     >
       <div
+        data-tour-control="true"
         className="px-5 py-4 flex items-start justify-between cursor-pointer select-none"
         style={{ background: "#001a00", borderBottom: open ? "1px solid rgba(0,255,65,0.1)" : "none" }}
         onClick={() => toggle(id)}
@@ -158,6 +159,7 @@ export function CollapsibleSectionHeader({
   return (
     <div data-tour-id={id === 0 ? 'overview' : undefined} style={{ animation: 'fadeInUp 400ms ease-out both' }}>
       <div
+        data-tour-control="true"
         className="flex items-center justify-between cursor-pointer select-none py-2"
         onClick={() => toggle(id)}
       >
@@ -205,6 +207,7 @@ export function ChildCollapsibleLayer({
   return (
     <section data-tour-id={tourId} className="rounded overflow-hidden" style={{ ...card, animation: 'fadeInUp 400ms ease-out both' }}>
       <div
+        data-tour-control="true"
         className="px-5 py-4 flex items-start justify-between cursor-pointer select-none"
         style={{ background: "#001a00", borderBottom: open ? "1px solid rgba(0,255,65,0.1)" : "none" }}
         onClick={() => toggle(id)}
@@ -242,6 +245,7 @@ export function MethodologyToggle({ children }: { children: React.ReactNode }) {
         style={{ borderBottom: '1px solid rgba(0,255,65,0.1)' }}
       >
         <button
+          data-tour-control="true"
           className="text-[10px] font-mono font-bold tracking-widest px-3 py-1 rounded-full border transition-all duration-200"
           style={{
             background: '#00ff41',

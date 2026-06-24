@@ -108,6 +108,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const [calloutVisible, setCalloutVisible] = useState(true)   // callout bubble always shown; text inside hidden until arrived
   const [calloutTextVisible, setCalloutTextVisible] = useState(false)
   const [targetReady, setTargetReady] = useState(false)
+  const [displayedText, setDisplayedText] = useState('')
+  const typingTimerRef = useRef<number | null>(null)
 
   // displayRect is the single source of truth for the animated spotlight.
   // It stays live after the transition so expanding accordions and viewport
@@ -275,12 +277,24 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         retryTimer = window.setTimeout(locate, 250)
         return
       }
-      // Place element in upper portion of viewport (~15% below nav) instead of centering
-      const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
-      const usableH = window.innerHeight - navH
-      const targetTopInViewport = navH + usableH * 0.15
-      const currentTopAbsolute = targets[0].getBoundingClientRect().top + window.scrollY
-      window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'auto' })
+      const isLast = state.step === STEPS.length - 1
+      if (isLast) {
+        // Last step — scroll element to top so it's always reachable even at page bottom
+        targets[0].scrollIntoView({ behavior: 'auto', block: 'start' })
+      } else if (targets.length > 1) {
+        // Multiple targets (e.g. method-1/2/3 columns) — center the whole group in viewport
+        const firstTop = targets[0].getBoundingClientRect().top + window.scrollY
+        const lastBottom = targets[targets.length - 1].getBoundingClientRect().bottom + window.scrollY
+        const groupCenter = (firstTop + lastBottom) / 2
+        window.scrollTo({ top: Math.max(0, groupCenter - window.innerHeight * 0.5), behavior: 'auto' })
+      } else {
+        // Single target — place in upper portion of viewport (~15% below nav)
+        const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
+        const usableH = window.innerHeight - navH
+        const targetTopInViewport = navH + usableH * 0.15
+        const currentTopAbsolute = targets[0].getBoundingClientRect().top + window.scrollY
+        window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'auto' })
+      }
       settleTimer = window.setTimeout(() => updateRect(true), 50)
       observer = new ResizeObserver(() => updateRect())
       targets.forEach(t => observer?.observe(t))
@@ -304,11 +318,11 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // Keep callout at full size while rectangle collapses (stableCallout overrides derived)
       setStableCallout(prevCallout)
       const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
-      const calloutAbove = prev.top - navBottom >= 52
-      // Phase 1: collapse rectangle to thin bar at callout edge
+      const calloutAbove = prevCallout.above
+      // Phase 1: collapse rectangle to thin bar — match callout width/left so it hides fully behind the callout box
       setDisplayRect(calloutAbove
-        ? { top: prev.top, left: prev.left, width: prev.width, height: 2 }
-        : { top: prev.top + prev.height - 2, left: prev.left, width: prev.width, height: 2 })
+        ? { top: prev.top, left: prevCallout.left, width: prevCallout.width, height: 2 }
+        : { top: prev.top + prev.height - 2, left: prevCallout.left, width: prevCallout.width, height: 2 })
 
       travelTimer = window.setTimeout(() => {
         if (cancelled || transitionRunRef.current !== run) return
@@ -361,6 +375,23 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       window.removeEventListener('resize', onViewportChange)
     }
   }, [advance, mounted, pageMatches, pathname, state.status, state.step, step])
+
+  // Typewriter effect — types out instruction text whenever it changes
+  useEffect(() => {
+    const text = step?.instruction ?? ''
+    if (typingTimerRef.current !== null) { window.clearTimeout(typingTimerRef.current); typingTimerRef.current = null }
+    setDisplayedText('')
+    if (!text) return
+    let i = 0
+    const tick = () => {
+      i++
+      setDisplayedText(text.slice(0, i))
+      if (i < text.length) typingTimerRef.current = window.setTimeout(tick, 18)
+      else typingTimerRef.current = null
+    }
+    typingTimerRef.current = window.setTimeout(tick, 18)
+    return () => { if (typingTimerRef.current !== null) { window.clearTimeout(typingTimerRef.current); typingTimerRef.current = null } }
+  }, [step?.instruction])
 
   const startTour = useCallback(() => {
     if (!hasCookieChoice()) {
@@ -556,7 +587,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             >
               {calloutTextVisible && (
                 <div className="flex items-center justify-between gap-3 text-[#001a08] px-3 py-2.5">
-                  <p className="text-xs font-bold leading-snug">{step.instruction}</p>
+                  <p className="text-xs font-bold leading-snug">{displayedText}</p>
                   <p className="shrink-0 text-[9px] font-bold tracking-[0.15em] opacity-60">{state.step + 1}/{STEPS.length}</p>
                 </div>
               )}

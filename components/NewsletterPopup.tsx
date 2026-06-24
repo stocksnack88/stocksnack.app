@@ -17,22 +17,30 @@ export default function NewsletterPopup() {
     if (typeof window === "undefined") return;
     if (localStorage.getItem(STORAGE_KEY)) return;
 
-    // Show after 20s or after 40% scroll — whichever comes first
-    const show = () => {
-      if (!localStorage.getItem(STORAGE_KEY)) setVisible(true);
-    };
+    let onScroll: (() => void) | null = null;
+    let cancelled = false;
 
-    timerRef.current = setTimeout(show, 20000);
+    createBrowserSupabase().auth.getUser().then(({ data }) => {
+      if (cancelled) return;
+      if (data.user?.email) {
+        localStorage.setItem(STORAGE_KEY, "1");
+        return;
+      }
+      const show = () => {
+        if (!localStorage.getItem(STORAGE_KEY)) setVisible(true);
+      };
+      timerRef.current = setTimeout(show, 20000);
+      onScroll = () => {
+        const scrolled = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+        if (scrolled >= 0.4) show();
+      };
+      window.addEventListener("scroll", onScroll, { passive: true });
+    });
 
-    const onScroll = () => {
-      const scrolled = window.scrollY / (document.body.scrollHeight - window.innerHeight);
-      if (scrolled >= 0.4) show();
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
+      cancelled = true;
       if (timerRef.current) clearTimeout(timerRef.current);
-      window.removeEventListener("scroll", onScroll);
+      if (onScroll) window.removeEventListener("scroll", onScroll);
     };
   }, []);
 

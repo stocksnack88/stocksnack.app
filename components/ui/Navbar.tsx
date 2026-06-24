@@ -57,7 +57,7 @@ export default async function Navbar() {
             >
               UPGRADE
             </Link>
-            <NavDropdown userEmail={user.email ?? undefined} />
+            <NavDropdown />
           </>
         )}
 
@@ -69,7 +69,7 @@ export default async function Navbar() {
             >
               PRO
             </span>
-            <NavDropdown userEmail={user.email ?? undefined} />
+            <NavDropdown />
           </>
         )}
       </div>

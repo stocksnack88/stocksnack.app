@@ -6,6 +6,7 @@ import { stripe } from "@/lib/stripe";
 import Stripe from "stripe";
 import CancelSubscriptionButton from "@/components/ui/CancelSubscriptionButton";
 import SignOutButton from "@/components/ui/SignOutButton";
+import AccountClientActions from "@/components/ui/AccountClientActions";
 import Link from "next/link";
 
 function fmt(ts: number) {
@@ -166,6 +167,8 @@ export default async function AccountPage() {
           </div>
         )}
       </div>
+
+      <AccountClientActions userEmail={user.email ?? ""} />
     </div>
   );
 }

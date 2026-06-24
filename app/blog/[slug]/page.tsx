@@ -5,6 +5,7 @@ import { marked } from "marked";
 marked.setOptions({ async: false });
 import { supabaseAdmin } from "@/lib/supabase";
 import NewsletterPopup from "@/components/NewsletterPopup";
+import BlogProseWithSound from "@/components/ui/BlogClickSound";
 
 export const revalidate = 60;
 
@@ -134,10 +135,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             </div>
           </div>
 
-          <div
-            className="blog-prose"
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
-          />
+          <BlogProseWithSound html={htmlContent} />
 
           <div className="mt-12 pt-6" style={{ borderTop: "1px solid rgba(0,255,65,0.1)" }}>
             <a

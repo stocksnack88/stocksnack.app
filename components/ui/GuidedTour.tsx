@@ -275,8 +275,12 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         retryTimer = window.setTimeout(locate, 250)
         return
       }
-      const isLast = state.step === STEPS.length - 1
-      targets[0].scrollIntoView({ behavior: 'auto', block: isLast ? 'start' : 'center' })
+      // Place element in upper portion of viewport (~15% below nav) instead of centering
+      const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
+      const usableH = window.innerHeight - navH
+      const targetTopInViewport = navH + usableH * 0.15
+      const currentTopAbsolute = targets[0].getBoundingClientRect().top + window.scrollY
+      window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'auto' })
       settleTimer = window.setTimeout(() => updateRect(true), 50)
       observer = new ResizeObserver(() => updateRect())
       targets.forEach(t => observer?.observe(t))

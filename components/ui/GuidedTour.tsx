@@ -28,11 +28,11 @@ const STEPS: TourStep[] = [
   { page: 'screener', target: '[data-tour-primary-stock="true"]', action: 'click', navigate: true, instruction: 'Pick a stock and click on it.' },
   { page: 'ticker', target: '[data-tour-id="ticker-header"]',        anchor: 'ticker-header',  action: 'tap', instruction: 'This is the stock you selected.' },
   { page: 'ticker', target: '[data-tour-id="overview"]',             anchor: 'ticker-header',  action: 'click', instruction: 'Click here for the stock overview.' },
-  { page: 'ticker', target: '[data-tour-id="price-projection"]',     anchor: 'price-methods',  action: 'click', instruction: 'This section estimates the stock\'s future price. Click to expand, then tap to continue.' },
+  { page: 'ticker', target: '[data-tour-id="price-projection"]',     anchor: 'price-methods',  action: 'click', instruction: 'This section shows the stock\'s estimated future price.' },
   { page: 'ticker', target: '[data-tour-id="scorecard"]',            anchor: 'price-methods',  action: 'click', instruction: 'Click here to understand the stock at a glance.' },
   { page: 'ticker', target: '[data-tour-id="business"]',             anchor: 'price-methods',  action: 'click', instruction: 'This section explains what the company does.' },
   { page: 'ticker', target: '[data-tour-id="price-methods"]',        anchor: 'price-methods',  action: 'click', instruction: 'How do we calculate the future price?' },
-  { page: 'ticker', target: '[data-tour-id="methodology-toggle"]',   anchor: 'price-methods',  action: 'click', instruction: 'Click to expand the valuation methods, then tap to continue.' },
+  { page: 'ticker', target: '[data-tour-id="methodology-toggle"]',   anchor: 'price-methods',  action: 'click', instruction: 'These are the methods we use to calculate the future price.' },
   { page: 'ticker', target: '[data-tour-id="method-1"]',             anchor: 'price-methods',  action: 'tap', multiple: true, instruction: 'Method 1 uses future EBITDA or P/E to estimate price.' },
   { page: 'ticker', target: '[data-tour-id="method-2"]',             anchor: 'price-methods',  action: 'tap', multiple: true, instruction: 'Method 2 uses future Free Cash Flow to estimate price.' },
   { page: 'ticker', target: '[data-tour-id="method-3"]',             anchor: 'price-methods',  action: 'tap', multiple: true, instruction: 'Method 3 uses future Dividends when applicable.' },
@@ -48,7 +48,7 @@ const STEPS: TourStep[] = [
   { page: 'ticker', target: '[data-tour-id="health-income-statement"]', anchor: 'health-layer', action: 'tap', instruction: 'Income Statement checks cover profit and earnings quality.' },
   { page: 'ticker', target: '[data-tour-id="health-cash-flow"]',     anchor: 'health-layer',   action: 'tap', instruction: 'Cash Flow checks show how reliably the business produces cash.' },
   { page: 'ticker', target: '[data-tour-id="health-metric"]',        anchor: 'health-layer',   action: 'click', optional: true, instruction: 'Click the arrow to expand a check and see its five-year history, then tap to continue.' },
-  { page: 'ticker', target: '[data-tour-id="final-layer"]',          anchor: 'final-layer',    action: 'click', instruction: 'The final layer combines every score above. Click to expand, then tap to continue.' },
+  { page: 'ticker', target: '[data-tour-id="final-layer"]',          anchor: 'final-layer',    action: 'click', instruction: 'The final layer combines every score into one verdict.' },
 ]
 
 type TourContextValue = {

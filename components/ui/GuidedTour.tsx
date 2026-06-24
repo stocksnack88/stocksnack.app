@@ -105,7 +105,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const [readyStep, setReadyStep] = useState<number | null>(null)
   const [showTransition, setShowTransition] = useState(false)
   const [tvPhase, setTvPhase] = useState<'off' | 'crush' | 'shrink' | 'done'>('off')
-  const [calloutVisible, setCalloutVisible] = useState(true)
+  const [calloutVisible, setCalloutVisible] = useState(true)   // callout bubble always shown; text inside hidden until arrived
+  const [calloutTextVisible, setCalloutTextVisible] = useState(false)
   const [targetReady, setTargetReady] = useState(false)
 
   // displayRect is the single source of truth for the animated spotlight.
@@ -209,13 +210,15 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const run = ++transitionRunRef.current
-    setCalloutVisible(false)
+    setCalloutTextVisible(false)   // hide text — callout bubble stays shown (UFO)
     setTargetReady(false)
 
     if (!mounted || state.status !== 'active' || !step || !pageMatches) {
       setDisplayRect(null)
+      setCalloutVisible(false)
       return
     }
+    setCalloutVisible(true)
 
     let cancelled = false
     let targets: HTMLElement[] = []
@@ -223,6 +226,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     let retryTimer: number | null = null
     let settleTimer: number | null = null
     let revealTimer: number | null = null
+    let travelTimer: number | null = null
     let attempts = 0
 
     const updateRect = (reveal = false) => {
@@ -238,9 +242,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         revealTimer = window.setTimeout(() => {
           if (cancelled || transitionRunRef.current !== run) return
           setCrossPagePending(false)
-          setCalloutVisible(true)
+          setCalloutTextVisible(true)
           setTargetReady(true)
-        }, step.page === 'ticker' ? 420 : 80)
+        }, 80)
       }
       return true
     }
@@ -258,44 +262,55 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         retryTimer = window.setTimeout(locate, 250)
         return
       }
-
-      // The spotlight performs the animation; the page itself should not slide
-      // up and down behind it.
       targets[0].scrollIntoView({ behavior: 'auto', block: 'center' })
       settleTimer = window.setTimeout(() => updateRect(true), 50)
       observer = new ResizeObserver(() => updateRect())
       targets.forEach(t => observer?.observe(t))
     }
 
-    if (step.page === 'ticker') {
-      // Collapse the green box toward the callout bubble (the user's "header").
-      // Read the previous spotlight position before it changes so we can animate
-      // the box down to a thin bar at the callout edge — giving the retract effect.
-      const prev = spotlightRef.current
-      if (prev) {
-        const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
-        const calloutAbove = prev.top - navBottom >= 52
-        if (calloutAbove) {
-          // Callout is above the box — collapse box upward to its top edge
-          setDisplayRect({ top: prev.top, left: prev.left, width: prev.width, height: 2 })
+    // UFO animation: collapse rectangle into callout → callout travels → rectangle expands
+    const prev = spotlightRef.current
+    if (prev) {
+      const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
+      const calloutAbove = prev.top - navBottom >= 52
+      // Phase 1: collapse rectangle into callout bubble (thin bar at callout edge)
+      setDisplayRect(calloutAbove
+        ? { top: prev.top, left: prev.left, width: prev.width, height: 2 }
+        : { top: prev.top + prev.height - 2, left: prev.left, width: prev.width, height: 2 })
+
+      // Phase 2 (after 320ms — collapse done): travel callout to new target position
+      travelTimer = window.setTimeout(() => {
+        if (cancelled || transitionRunRef.current !== run) return
+        const nextEl = !step.multiple ? document.querySelector<HTMLElement>(step.target) : null
+        if (nextEl) {
+          const b = nextEl.getBoundingClientRect()
+          const newNavBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
+          const newAbove = b.top - newNavBottom >= 52
+          // Move thin bar to new target's callout edge — callout (UFO) flies to destination
+          setDisplayRect(newAbove
+            ? { top: b.top, left: b.left, width: b.width, height: 2 }
+            : { top: b.top + b.height - 2, left: b.left, width: b.width, height: 2 })
+          // Phase 3 (after 320ms — travel done): expand rectangle from callout to full target
+          travelTimer = window.setTimeout(() => {
+            if (cancelled || transitionRunRef.current !== run) return
+            locate()
+          }, 320)
         } else {
-          // Callout is below the box — collapse box downward to its bottom edge
-          setDisplayRect({ top: prev.top + prev.height - 2, left: prev.left, width: prev.width, height: 2 })
+          // Target not on page yet (cross-page nav) — just wait for locate to retry
+          locate()
         }
-      } else {
-        setDisplayRect(null)
-      }
+      }, 320)
     } else {
       setDisplayRect(null)
+      // No previous position — just locate directly (first step or post-page-load)
+      travelTimer = window.setTimeout(locate, step.page === 'ticker' ? 200 : 0)
     }
-
-    const timer = window.setTimeout(locate, step.page === 'ticker' ? 420 : 0)
     const onViewportChange = () => { updateRect() }
     window.addEventListener('scroll', onViewportChange, true)
     window.addEventListener('resize', onViewportChange)
     return () => {
       cancelled = true
-      window.clearTimeout(timer)
+      if (travelTimer !== null) window.clearTimeout(travelTimer)
       if (retryTimer !== null) window.clearTimeout(retryTimer)
       if (settleTimer !== null) window.clearTimeout(settleTimer)
       if (revealTimer !== null) window.clearTimeout(revealTimer)
@@ -479,7 +494,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           {/* Callout */}
           {callout && calloutVisible && (
             <div
-              className="pointer-events-none fixed z-[902] bg-[#00ff41] px-3 py-2.5 shadow-[0_0_20px_rgba(0,255,65,0.4)]"
+              className="pointer-events-none fixed z-[902] bg-[#00ff41] shadow-[0_0_20px_rgba(0,255,65,0.4)]"
               style={{
                 left: callout.left,
                 width: callout.width,
@@ -487,12 +502,17 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                 borderRadius: callout.above ? '6px 6px 0 0' : '0 0 6px 6px',
                 borderBottom: callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
                 borderTop: !callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
+                transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), top 300ms cubic-bezier(0.4,0,0.2,1), bottom 300ms cubic-bezier(0.4,0,0.2,1), width 300ms cubic-bezier(0.4,0,0.2,1)',
+                overflow: 'hidden',
+                minHeight: calloutTextVisible ? undefined : 8,
               }}
             >
-              <div className="flex items-center justify-between gap-3 text-[#001a08]">
-                <p className="text-xs font-bold leading-snug">{step.instruction}</p>
-                <p className="shrink-0 text-[9px] font-bold tracking-[0.15em] opacity-60">{state.step + 1}/{STEPS.length}</p>
-              </div>
+              {calloutTextVisible && (
+                <div className="flex items-center justify-between gap-3 text-[#001a08] px-3 py-2.5">
+                  <p className="text-xs font-bold leading-snug">{step.instruction}</p>
+                  <p className="shrink-0 text-[9px] font-bold tracking-[0.15em] opacity-60">{state.step + 1}/{STEPS.length}</p>
+                </div>
+              )}
             </div>
           )}
         </div>,

@@ -215,7 +215,6 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const run = ++transitionRunRef.current
-    setCalloutTextVisible(false)   // hide text — callout bubble stays shown (UFO)
     setTargetReady(false)
 
     if (!mounted || state.status !== 'active' || !step) {
@@ -314,7 +313,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           // Target is visible — travel callout to its position, then expand
           const newCalloutPos = computeCalloutPos(nextEl)
           const b = nextEl.getBoundingClientRect()
-          const isNearby = Math.abs(b.top - prev.top) < 60 && Math.abs(b.left - prev.left) < 60
+          const isNearby = Math.abs(b.top - prev.top) < 120 && Math.abs(b.left - prev.left) < 60
           if (isNearby) {
             // Same area — skip animation, just locate
             setStableCallout(null)
@@ -371,7 +370,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     save({ status: 'active', step: 0 })
   }, [save])
   const skipTour = useCallback(() => save({ ...state, status: 'completed' }), [save, state])
-  const handleSpotlightClick = useCallback(() => {
+  const handleSpotlightClick = useCallback((e: React.MouseEvent) => {
+    if (e.detail > 1) return   // ignore double-click — only respond to first click of a sequence
     if (!step || !targetReady) return
 
     if (step.action === 'tap' || controlActivated) {

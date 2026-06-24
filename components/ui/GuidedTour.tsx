@@ -21,35 +21,34 @@ type TourStep = {
   optional?: boolean
   multiple?: boolean
   navigate?: boolean
-  anchor?: string  // data-tour-id of the card header to retract to before expanding
 }
 
 const STEPS: TourStep[] = [
   { page: 'screener', target: '[data-tour-id="nav-menu-button"]', action: 'tap', instruction: 'Tap this menu anytime to restart the tour.' },
   { page: 'screener', target: '[data-tour-primary-stock="true"]', action: 'click', navigate: true, instruction: 'Pick a stock and click on it.' },
-  { page: 'ticker', target: '[data-tour-id="ticker-header"]',        anchor: 'ticker-header',  action: 'tap', instruction: 'This is the stock you selected.' },
-  { page: 'ticker', target: '[data-tour-id="overview"]',             anchor: 'ticker-header',  action: 'click', instruction: 'Click here for the stock overview.' },
-  { page: 'ticker', target: '[data-tour-id="price-projection"]',     anchor: 'price-methods-header',  action: 'click', instruction: 'This section shows the stock\'s estimated future price.' },
-  { page: 'ticker', target: '[data-tour-id="scorecard"]',            anchor: 'price-methods-header',  action: 'click', instruction: 'Click here to understand the stock at a glance.' },
-  { page: 'ticker', target: '[data-tour-id="business"]',             anchor: 'price-methods-header',  action: 'click', instruction: 'This section explains what the company does.' },
-  { page: 'ticker', target: '[data-tour-id="price-methods"]',        anchor: 'price-methods-header',  action: 'click', instruction: 'How do we calculate the future price?' },
-  { page: 'ticker', target: '[data-tour-id="methodology-toggle"]',   anchor: 'price-methods-header',  action: 'click', instruction: 'These are the methods we use to calculate the future price.' },
-  { page: 'ticker', target: '[data-tour-id="method-1"]',             anchor: 'price-methods-header',  action: 'tap', multiple: true, instruction: 'Method 1 uses future EBITDA or P/E to estimate price.' },
-  { page: 'ticker', target: '[data-tour-id="method-2"]',             anchor: 'price-methods-header',  action: 'tap', multiple: true, instruction: 'Method 2 uses future Free Cash Flow to estimate price.' },
-  { page: 'ticker', target: '[data-tour-id="method-3"]',             anchor: 'price-methods-header',  action: 'tap', multiple: true, instruction: 'Method 3 uses future Dividends when applicable.' },
-  { page: 'ticker', target: '[data-tour-id="blended-projection"]',   anchor: 'price-methods-header',  action: 'tap', instruction: 'We average all available future prices into one target.' },
-  { page: 'ticker', target: '[data-tour-id="growth-layer"]',         anchor: 'growth-layer-header',   action: 'click', instruction: 'This layer measures the company\'s growth quality.' },
-  { page: 'ticker', target: '[data-tour-id="growth-yoy"]',           anchor: 'growth-layer-header',   action: 'tap', instruction: 'This part shows the year-over-year performance.' },
-  { page: 'ticker', target: '[data-tour-id="growth-sp500"]',         anchor: 'growth-layer-header',   action: 'tap', optional: true, instruction: 'The red line shows the S&P 500 performance.' },
-  { page: 'ticker', target: '[data-tour-id="growth-metrics"]',       anchor: 'growth-layer-header',   action: 'tap', instruction: 'We cover Revenue, EBITDA and Free Cash Flow.' },
-  { page: 'ticker', target: '[data-tour-id="growth-score"]',         anchor: 'growth-layer-header',   action: 'tap', instruction: 'We score their growth performance against the S&P 500.' },
-  { page: 'ticker', target: '[data-tour-id="health-layer"]',         anchor: 'health-layer-header',   action: 'click', instruction: 'This layer checks the company\'s financial strength.' },
-  { page: 'ticker', target: '[data-tour-id="health-summary"]',       anchor: 'health-layer-header',   action: 'tap', instruction: 'This is the overall Financial Health score.' },
-  { page: 'ticker', target: '[data-tour-id="health-balance-sheet"]', anchor: 'health-layer-header',   action: 'tap', instruction: 'Balance Sheet checks cover cash, debt and equity.' },
-  { page: 'ticker', target: '[data-tour-id="health-income-statement"]', anchor: 'health-layer-header', action: 'tap', instruction: 'Income Statement checks cover profit and earnings quality.' },
-  { page: 'ticker', target: '[data-tour-id="health-cash-flow"]',     anchor: 'health-layer-header',   action: 'tap', instruction: 'Cash Flow checks show how reliably the business produces cash.' },
-  { page: 'ticker', target: '[data-tour-id="health-metric"]',        anchor: 'health-layer-header',   action: 'click', optional: true, instruction: 'Click the arrow to expand a check and see its five-year history, then tap to continue.' },
-  { page: 'ticker', target: '[data-tour-id="final-layer"]',          anchor: 'final-layer-header',    action: 'click', instruction: 'The final layer combines every score into one verdict.' },
+  { page: 'ticker', target: '[data-tour-id="ticker-header"]',           action: 'tap',   instruction: 'This is the stock you selected.' },
+  { page: 'ticker', target: '[data-tour-id="overview"]',                action: 'click', instruction: 'Click here for the stock overview.' },
+  { page: 'ticker', target: '[data-tour-id="price-projection"]',        action: 'click', instruction: 'This section shows the stock\'s estimated future price.' },
+  { page: 'ticker', target: '[data-tour-id="scorecard"]',               action: 'click', instruction: 'Click here to understand the stock at a glance.' },
+  { page: 'ticker', target: '[data-tour-id="business"]',                action: 'click', instruction: 'This section explains what the company does.' },
+  { page: 'ticker', target: '[data-tour-id="price-methods"]',           action: 'click', instruction: 'How do we calculate the future price?' },
+  { page: 'ticker', target: '[data-tour-id="methodology-toggle"]',      action: 'click', instruction: 'These are the methods we use to calculate the future price.' },
+  { page: 'ticker', target: '[data-tour-id="method-1"]',                action: 'tap',   multiple: true, instruction: 'Method 1 uses future EBITDA or P/E to estimate price.' },
+  { page: 'ticker', target: '[data-tour-id="method-2"]',                action: 'tap',   multiple: true, instruction: 'Method 2 uses future Free Cash Flow to estimate price.' },
+  { page: 'ticker', target: '[data-tour-id="method-3"]',                action: 'tap',   multiple: true, instruction: 'Method 3 uses future Dividends when applicable.' },
+  { page: 'ticker', target: '[data-tour-id="blended-projection"]',      action: 'tap',   instruction: 'We average all available future prices into one target.' },
+  { page: 'ticker', target: '[data-tour-id="growth-layer"]',            action: 'click', instruction: 'This layer measures the company\'s growth quality.' },
+  { page: 'ticker', target: '[data-tour-id="growth-yoy"]',              action: 'tap',   instruction: 'This part shows the year-over-year performance.' },
+  { page: 'ticker', target: '[data-tour-id="growth-sp500"]',            action: 'tap',   optional: true, instruction: 'The red line shows the S&P 500 performance.' },
+  { page: 'ticker', target: '[data-tour-id="growth-metrics"]',          action: 'tap',   instruction: 'We cover Revenue, EBITDA and Free Cash Flow.' },
+  { page: 'ticker', target: '[data-tour-id="growth-score"]',            action: 'tap',   instruction: 'We score their growth performance against the S&P 500.' },
+  { page: 'ticker', target: '[data-tour-id="health-layer"]',            action: 'click', instruction: 'This layer checks the company\'s financial strength.' },
+  { page: 'ticker', target: '[data-tour-id="health-summary"]',          action: 'tap',   instruction: 'This is the overall Financial Health score.' },
+  { page: 'ticker', target: '[data-tour-id="health-balance-sheet"]',    action: 'tap',   instruction: 'Balance Sheet checks cover cash, debt and equity.' },
+  { page: 'ticker', target: '[data-tour-id="health-income-statement"]', action: 'tap',   instruction: 'Income Statement checks cover profit and earnings quality.' },
+  { page: 'ticker', target: '[data-tour-id="health-cash-flow"]',        action: 'tap',   instruction: 'Cash Flow checks show how reliably the business produces cash.' },
+  { page: 'ticker', target: '[data-tour-id="health-metric"]',           action: 'click', optional: true, instruction: 'Click the arrow to expand a check and see its five-year history, then tap to continue.' },
+  { page: 'ticker', target: '[data-tour-id="final-layer"]',             action: 'click', instruction: 'The final layer combines every score into one verdict.' },
 ]
 
 type TourContextValue = {
@@ -94,24 +93,6 @@ function playTourClick() {
   } catch {}
 }
 
-// Returns the bounding rect of the card header to retract to before expanding.
-// Falls back to the ticker-header if the anchor element isn't found.
-function getAnchorRect(anchorId?: string): HighlightRect {
-  const nav = document.querySelector<HTMLElement>('nav')
-  const navBottom = nav?.getBoundingClientRect().bottom ?? 0
-  const selector = anchorId ? `[data-tour-id="${anchorId}"]` : '[data-tour-id="ticker-header"]'
-  const el = document.querySelector<HTMLElement>(selector)
-  if (el) {
-    const box = el.getBoundingClientRect()
-    if (box.width > 0 && box.height > 0) {
-      return { top: box.top, left: box.left, width: box.width, height: box.height }
-    }
-  }
-  // Fallback: full-width strip just below nav
-  const header = document.querySelector<HTMLElement>('[data-tour-id="ticker-header"]')
-  const h = header ? header.getBoundingClientRect().height || 52 : 52
-  return { top: navBottom + 8, left: 0, width: window.innerWidth, height: Math.max(h, 40) }
-}
 
 export function GuidedTourProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()

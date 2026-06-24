@@ -116,11 +116,13 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const [crossPagePending, setCrossPagePending] = useState(false)
   const transitionRunRef = useRef(0)
   const routeLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Tracks the live spotlight rect so the transition effect can read it synchronously
   const spotlightRef = useRef<{ top: number; left: number; width: number; height: number } | null>(null)
-  // Ref mirror of crossPagePending so the locate effect can read it without adding to deps
   const crossPagePendingRef = useRef(false)
   crossPagePendingRef.current = crossPagePending
+  // Stable callout position — set when step changes so callout travels independently from the collapsing rectangle
+  type CalloutPos = { left: number; width: number; above: boolean; top?: number; bottom?: number }
+  const [stableCallout, setStableCallout] = useState<CalloutPos | null>(null)
+  const calloutRef = useRef<CalloutPos | null>(null)
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -254,6 +256,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         revealTimer = window.setTimeout(() => {
           if (cancelled || transitionRunRef.current !== run) return
           setCrossPagePending(false)
+          setStableCallout(null)  // callout now derived from expanded spotlight
           setCalloutTextVisible(true)
           setTargetReady(true)
         }, 80)
@@ -261,54 +264,78 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       return true
     }
 
+    const isInViewport = (b: DOMRect) => b.width > 0 && b.top >= 0 && b.bottom <= window.innerHeight
+
     const locate = () => {
       const matches = Array.from(document.querySelectorAll<HTMLElement>(step.target))
       targets = step.multiple ? matches : matches.slice(0, 1)
-      const hasVisibleTarget = targets.some(target => {
-        const box = target.getBoundingClientRect()
-        return box.width > 0 && box.height > 0
-      })
+      const hasVisibleTarget = targets.some(t => { const b = t.getBoundingClientRect(); return b.width > 0 && b.height > 0 })
       if (targets.length === 0 || !hasVisibleTarget) {
         attempts += 1
         if (step.optional && attempts >= 6) { advance(); return }
         retryTimer = window.setTimeout(locate, 250)
         return
       }
-      targets[0].scrollIntoView({ behavior: 'auto', block: 'center' })
+      const isLast = state.step === STEPS.length - 1
+      targets[0].scrollIntoView({ behavior: 'auto', block: isLast ? 'start' : 'center' })
       settleTimer = window.setTimeout(() => updateRect(true), 50)
       observer = new ResizeObserver(() => updateRect())
       targets.forEach(t => observer?.observe(t))
     }
 
-    // UFO animation: collapse rectangle into callout → callout travels → rectangle expands
+    const computeCalloutPos = (el: HTMLElement): CalloutPos => {
+      const b = el.getBoundingClientRect()
+      const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
+      const above = b.top - navBottom >= 52
+      const width = Math.min(window.innerWidth - 24, Math.max(240, b.width))
+      const left = Math.max(12, Math.min(window.innerWidth - width - 12, b.left))
+      return above
+        ? { left, width, above: true, bottom: window.innerHeight - b.top }
+        : { left, width, above: false, top: b.top + b.height }
+    }
+
+    // UFO animation: collapse rectangle → callout travels at full size → rectangle expands
     const prev = spotlightRef.current
-    if (prev) {
+    const prevCallout = calloutRef.current  // full-size callout before collapse
+    if (prev && prevCallout) {
+      // Keep callout at full size while rectangle collapses (stableCallout overrides derived)
+      setStableCallout(prevCallout)
       const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
       const calloutAbove = prev.top - navBottom >= 52
-      // Phase 1: collapse rectangle into callout bubble (thin bar at callout edge)
+      // Phase 1: collapse rectangle to thin bar at callout edge
       setDisplayRect(calloutAbove
         ? { top: prev.top, left: prev.left, width: prev.width, height: 2 }
         : { top: prev.top + prev.height - 2, left: prev.left, width: prev.width, height: 2 })
 
-      // Phase 2 (after 320ms — collapse done): travel callout to new target position
       travelTimer = window.setTimeout(() => {
         if (cancelled || transitionRunRef.current !== run) return
         const nextEl = !step.multiple ? document.querySelector<HTMLElement>(step.target) : null
-        if (nextEl) {
+        if (nextEl && isInViewport(nextEl.getBoundingClientRect())) {
+          // Target is visible — travel callout to its position, then expand
+          const newCalloutPos = computeCalloutPos(nextEl)
           const b = nextEl.getBoundingClientRect()
-          const newNavBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
-          const newAbove = b.top - newNavBottom >= 52
-          // Move thin bar to new target's callout edge — callout (UFO) flies to destination
-          setDisplayRect(newAbove
-            ? { top: b.top, left: b.left, width: b.width, height: 2 }
-            : { top: b.top + b.height - 2, left: b.left, width: b.width, height: 2 })
-          // Phase 3 (after 320ms — travel done): expand rectangle from callout to full target
-          travelTimer = window.setTimeout(() => {
-            if (cancelled || transitionRunRef.current !== run) return
+          const isNearby = Math.abs(b.top - prev.top) < 60 && Math.abs(b.left - prev.left) < 60
+          if (isNearby) {
+            // Same area — skip animation, just locate
+            setStableCallout(null)
             locate()
-          }, 320)
+          } else {
+            // Phase 2: callout travels to new position (stays full size)
+            setStableCallout(newCalloutPos)
+            const newAbove = newCalloutPos.above
+            setDisplayRect(newAbove
+              ? { top: b.top, left: b.left, width: b.width, height: 2 }
+              : { top: b.top + b.height - 2, left: b.left, width: b.width, height: 2 })
+            // Phase 3: expand rectangle
+            travelTimer = window.setTimeout(() => {
+              if (cancelled || transitionRunRef.current !== run) return
+              setStableCallout(null)
+              locate()
+            }, 320)
+          }
         } else {
-          // Target not on page yet (cross-page nav) — just wait for locate to retry
+          // Off-screen or cross-page — skip travel, let locate() scroll+expand
+          if (nextEl) setStableCallout(computeCalloutPos(nextEl))
           locate()
         }
       }, 320)
@@ -395,7 +422,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     return { top, left, width: right - left, height: bottom - top }
   })() : null
   spotlightRef.current = spotlight  // always current for transition effect
-  const callout = spotlight ? (() => {
+  const derivedCallout = spotlight ? (() => {
     const width = Math.min(window.innerWidth - 24, Math.max(240, spotlight.width))
     const left = Math.max(12, Math.min(window.innerWidth - width - 12, spotlight.left))
     const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
@@ -404,6 +431,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       ? { bottom: window.innerHeight - spotlight.top, left, width, above: true }
       : { top: spotlight.top + spotlight.height, left, width, above: false }
   })() : null
+  // Keep calloutRef up to date so the effect can read the pre-collapse callout position
+  if (derivedCallout) calloutRef.current = derivedCallout
+  // stableCallout overrides during travel so callout moves independently of rectangle
+  const callout = stableCallout ?? derivedCallout
 
   const routeLoading = mounted && state.status === 'active' && !!step && (!pageMatches || crossPagePending)
 
@@ -456,11 +487,11 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       )}
       {mounted && state.status === 'active' && step && pageMatches && spotlight && createPortal(
         <div className="pointer-events-none fixed inset-0 z-[1200] font-mono" aria-live="polite">
-          {/* Overlay panels — CSS-transition the hole position for smooth retract/expand */}
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: 0, left: 0, right: 0, height: spotlight.top, transition: 'height 300ms cubic-bezier(0.4,0,0.2,1)' }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: 0, width: spotlight.left, height: spotlight.height, transition: TRANSITION }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height, transition: TRANSITION }} />
-          <div className="pointer-events-auto absolute bg-black/80" style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0, transition: 'top 300ms cubic-bezier(0.4,0,0.2,1)' }} />
+          {/* Overlay panels — block all clicks outside spotlight so menus/dropdowns can't be dismissed */}
+          <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: 0, left: 0, right: 0, height: spotlight.top, transition: 'height 300ms cubic-bezier(0.4,0,0.2,1)' }} />
+          <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: spotlight.top, left: 0, width: spotlight.left, height: spotlight.height, transition: TRANSITION }} />
+          <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height, transition: TRANSITION }} />
+          <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0, transition: 'top 300ms cubic-bezier(0.4,0,0.2,1)' }} />
           {/* Spotlight border */}
           <div
             className="absolute pointer-events-none border-2 border-[#00ff41] shadow-[0_0_24px_rgba(0,255,65,0.45)]"
@@ -514,7 +545,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                 borderRadius: callout.above ? '6px 6px 0 0' : '0 0 6px 6px',
                 borderBottom: callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
                 borderTop: !callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
-                transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), top 300ms cubic-bezier(0.4,0,0.2,1), bottom 300ms cubic-bezier(0.4,0,0.2,1), width 300ms cubic-bezier(0.4,0,0.2,1)',
+                transition: 'left 320ms cubic-bezier(0.4,0,0.2,1), top 320ms cubic-bezier(0.4,0,0.2,1), bottom 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1)',
                 overflow: 'hidden',
                 minHeight: calloutTextVisible ? undefined : 8,
               }}

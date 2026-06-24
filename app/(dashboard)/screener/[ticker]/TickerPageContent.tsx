@@ -116,20 +116,39 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
   const currentPrice: number | null = price?.current_price ?? null
   const blendedPrice: number | null = score?.ppm_blended_price ?? null
 
-  // ShareButton always shows blended view
+  // Cumulative dividend income over 5 years (per share)
+  const cumDivPs: number = (() => {
+    const db = score?.m_cumulative_div_ps != null ? Number(score.m_cumulative_div_ps) : 0
+    if (db > 0) return db
+    const yld = score?.div_yield_5y_avg != null ? Number(score.div_yield_5y_avg)
+               : score?.div_yield != null ? Number(score.div_yield) : 0
+    return yld > 0 && currentPrice ? currentPrice * yld * 5 : 0
+  })()
+
+  // Total return price = price target + cumulative dividends
+  const totalReturnPrice: number | null = blendedPrice != null ? blendedPrice + cumDivPs : null
+
+  // ShareButton always shows total return
+  const totalReturnMult = totalReturnPrice != null && currentPrice != null && currentPrice > 0
+    ? totalReturnPrice / currentPrice : null
+  const totalReturnCagr = totalReturnMult != null ? Math.pow(totalReturnMult, 0.2) - 1 : null
+
   const shareProps = {
     ticker,
     companyName: stock?.name ?? null,
     signal: score?.signal ?? null,
-    projectedReturn: blendedPrice != null && currentPrice != null && currentPrice > 0 ? blendedPrice / currentPrice : null,
-    cagr: score?.ppm_cagr != null ? Number(score.ppm_cagr) : null,
+    projectedReturn: totalReturnMult,
+    cagr: totalReturnCagr,
   }
 
   // M1 derived values
   const sp500Cagr = score?.sp500_cagr != null ? Number(score.sp500_cagr) : null
   const m1PriceNum = score?.ppm_m1_price != null ? Number(score.ppm_m1_price) : null
   const m1Available = m1PriceNum != null && m1PriceNum > 0 && currentPrice != null && currentPrice > 0
-  const m1Cagr = m1Available ? Math.pow(m1PriceNum! / currentPrice!, 0.2) - 1 : null
+  // M1 total return includes dividends too
+  const m1TotalReturnPrice = m1Available ? m1PriceNum! + cumDivPs : null
+  const m1Cagr = m1TotalReturnPrice != null && currentPrice != null
+    ? Math.pow(m1TotalReturnPrice / currentPrice, 0.2) - 1 : null
   const m1PpmScore = (m1Cagr != null && sp500Cagr != null) ? cagrToScore(m1Cagr, sp500Cagr) : null
   const growthScore = score?.growth_score != null ? Number(score.growth_score) : 0
   const healthScore = score?.health_score != null ? Number(score.health_score) : 0
@@ -138,8 +157,14 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
   const m1Signal = (m1Cagr != null && sp500Cagr != null) ? deriveSignal(m1Cagr, sp500Cagr, healthPasses, growthScore) : null
 
   // Display values — switch when M1 mode active
+  // displayPrice stays as the price target (not total return) — used for the $ figure shown
   const displayPrice = m1Mode && m1PriceNum != null ? m1PriceNum : blendedPrice
-  const displayCagr = m1Mode && m1Cagr != null ? m1Cagr : (score?.ppm_cagr != null ? Number(score.ppm_cagr) : null)
+  // displayCagr now reflects total return (price + dividends)
+  const displayCagr = m1Mode && m1Cagr != null ? m1Cagr : totalReturnCagr
+  // displayReturnMult: total return multiplier shown on arrow graphic and scorecard
+  const displayTotalReturnPrice = displayPrice != null ? displayPrice + cumDivPs : null
+  const displayReturnMult = displayTotalReturnPrice != null && currentPrice != null && currentPrice > 0
+    ? displayTotalReturnPrice / currentPrice : null
   const displayPpmScore = m1Mode && m1PpmScore != null ? m1PpmScore : (score?.ppm_score != null ? Number(score.ppm_score) : null)
   const displayFinalScore = m1Mode && m1FinalScore != null ? m1FinalScore : (score?.final_score != null ? Number(score.final_score) : null)
   const displaySignal = m1Mode && m1Signal != null ? m1Signal : (score?.signal ?? null)
@@ -191,8 +216,8 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               ticker={ticker}
               companyName={stock?.name ?? null}
               signal={score?.signal ?? null}
-              projectedReturn={blendedPrice != null && currentPrice != null && currentPrice > 0 ? blendedPrice / currentPrice : null}
-              cagr={score?.ppm_cagr != null ? Number(score.ppm_cagr) : null}
+              projectedReturn={totalReturnMult}
+              cagr={totalReturnCagr}
               growthScore={score?.growth_score != null ? Number(score.growth_score) : null}
               healthPasses={score?.health_passes ?? null}
               scoredTotal={scoredTotal}
@@ -217,14 +242,21 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                   {fmtDollar(currentPrice)}
                 </p>
               </div>
-              <div className="flex flex-col items-center justify-center shrink-0 gap-0.5">
-                <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
-                  {displayCagr != null ? `CAGR (5Y) ${fmtCagr(displayCagr)}` : ""}
-                </p>
-                <p className="text-2xl font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>→</p>
-                <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
-                  {currentPrice && displayPrice ? `${(displayPrice / currentPrice).toFixed(1)}x` : ""}
-                </p>
+              <div className="flex flex-col items-center justify-center shrink-0">
+                <svg width="88" height="60" viewBox="0 0 88 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {displayCagr != null && (
+                    <text x="44" y="13" textAnchor="middle" fontSize="8" fontWeight="bold" letterSpacing="1.2" fill="rgba(0,255,65,0.7)">
+                      {fmtCagr(displayCagr)} CAGR
+                    </text>
+                  )}
+                  <line x1="2" y1="30" x2="70" y2="30" stroke="rgba(0,255,65,0.55)" strokeWidth="1.5" strokeDasharray="4,3"/>
+                  <polygon points="80,30 68,24 68,36" fill="rgba(0,255,65,0.55)"/>
+                  {displayReturnMult != null && (
+                    <text x="44" y="50" textAnchor="middle" fontSize="8" letterSpacing="1" fill="rgba(0,255,65,0.45)">
+                      {displayReturnMult.toFixed(1)}x return
+                    </text>
+                  )}
+                </svg>
               </div>
               <div className="flex-1 text-center">
                 <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>
@@ -272,8 +304,8 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           } shareButton={<BlockShareButton captureIds={['capture-7']} mode="single" fileName={`${ticker}-scorecard`} blockTitle="WHAT YOU ARE BUYING" {...shareProps} />}>
           <div id="capture-7" data-tour-id="scorecard-data">
           {(() => {
-            // 5Y RETURN color
-            const stockMult = currentPrice && displayPrice ? displayPrice / currentPrice : null
+            // 5Y RETURN color — uses total return (price + dividends)
+            const stockMult = displayReturnMult
             const sp500Mult = score?.sp500_5y_return != null ? Number(score.sp500_5y_return) : null
             const multDiff  = stockMult != null && sp500Mult != null ? stockMult - sp500Mult : null
             const multColor = multDiff == null ? "#00ff41"
@@ -717,7 +749,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           <p className="text-center text-[9px] font-mono tracking-widest py-2.5" style={{ color: "rgba(0,255,65,0.45)", borderBottom: "1px solid rgba(0,255,65,0.1)" }}>
             {displayCagr != null ? `~${(displayCagr * 100).toFixed(1)}% PER YEAR` : "—"}
             {" · "}
-            {currentPrice && displayPrice ? `~${(displayPrice / currentPrice).toFixed(1)}x RETURN` : "—"}
+            {displayReturnMult != null ? `~${displayReturnMult.toFixed(1)}x RETURN` : "—"}
           </p>
 
           <MethodologyToggle>
@@ -741,11 +773,28 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               ? m3CurTotalDiv * Math.pow(1 + m3GrowthRate, 5) : null
             const isPeMode = ["PYPL", "HOOD"].includes(ticker)
 
+            // 5-year cumulative dividend per share for ALL dividend payers.
+            // DB field m_cumulative_div_ps is only populated for M3-applicable (yield ≥ 4.5%) stocks.
+            // For the rest we approximate using the 5-year average yield × current price × 5 years.
+            const divYield5yAvg = score?.div_yield_5y_avg != null ? Number(score.div_yield_5y_avg) : null
+            const divYieldCur   = score?.div_yield      != null ? Number(score.div_yield)      : null
+            const effectiveCumDivPs: number = (() => {
+              if (cumDivPs > 0) return cumDivPs
+              const yld = divYield5yAvg ?? divYieldCur ?? 0
+              if (yld > 0 && currentPrice) return currentPrice * yld * 5
+              return 0
+            })()
+            const hasDividend = effectiveCumDivPs > 0.01
+
             const m1Price = score?.ppm_m1_price ? Number(score.ppm_m1_price) : null
             const m2Price = !m2na && score?.ppm_m2_price ? Number(score.ppm_m2_price) : null
             const m3Price = !m3na && score?.ppm_m3_price ? Number(score.ppm_m3_price) : null
-            const m1Return = m1Price != null && currentPrice ? m1Price / currentPrice : null
-            const m2Return = m2Price != null && currentPrice ? m2Price / currentPrice : null
+
+            // Total return = price target + cumulative dividends received over 5 years
+            const m1Total = m1Price != null ? m1Price + effectiveCumDivPs : null
+            const m2Total = m2Price != null ? m2Price + effectiveCumDivPs : null
+            const m1Return = m1Total != null && currentPrice ? m1Total / currentPrice : null
+            const m2Return = m2Total != null && currentPrice ? m2Total / currentPrice : null
             const m3Return = m3Price != null && currentPrice ? m3Price / currentPrice : null
             const m1Cagr = m1Return != null ? Math.pow(m1Return, 0.2) - 1 : null
             const m2Cagr = m2Return != null ? Math.pow(m2Return, 0.2) - 1 : null
@@ -898,11 +947,30 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                           ? <span style={mut}>Div yield &lt; 4.5%</span>
                           : <>
                               <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.55)", width: "72px", padding: "2px 0", textAlign: "center", color: "#00ff41", fontSize: "10px", fontWeight: "bold" }}>{fmtDollar(score?.ppm_m3_price)}</span>
-                              <div style={{ color: "rgba(0,255,65,0.3)", fontSize: "7px", marginTop: "4px" }}>incl. ${cumDivPs.toFixed(2)}/sh divs</div>
                             </>
                         }
                       </td>
                     </tr>
+                    {hasDividend && arrowRow()}
+                    {hasDividend && row({}, "DIV INCOME (5Y)",
+                      <span style={{ display: "inline-block", border: "1px dashed rgba(0,255,65,0.4)", width: "72px", padding: "2px 0", textAlign: "center", color: "rgba(0,255,65,0.7)", fontSize: "10px" }}>
+                        +{fmtDollar(effectiveCumDivPs)}
+                      </span>,
+                      m2na ? mv("—") : <span style={{ display: "inline-block", border: "1px dashed rgba(0,255,65,0.4)", width: "72px", padding: "2px 0", textAlign: "center", color: "rgba(0,255,65,0.7)", fontSize: "10px" }}>
+                        +{fmtDollar(effectiveCumDivPs)}
+                      </span>,
+                      m3na ? mv("—") : <span style={{ color: "rgba(0,255,65,0.35)", fontSize: "9px" }}>incl. in price</span>
+                    )}
+                    {hasDividend && arrowRow()}
+                    {hasDividend && (() => {
+                      const tot1 = m1Total != null ? fmtDollar(m1Total) : "—"
+                      const tot2 = m2Total != null && !m2na ? fmtDollar(m2Total) : null
+                      return row({ background: "rgba(0,255,65,0.04)" }, "PRICE + DIV",
+                        <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.7)", width: "72px", padding: "2px 0", textAlign: "center", color: "#00ff41", fontSize: "10px", fontWeight: "bold" }}>{tot1}</span>,
+                        m2na ? mv("—") : <span style={{ display: "inline-block", background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.7)", width: "72px", padding: "2px 0", textAlign: "center", color: "#00ff41", fontSize: "10px", fontWeight: "bold" }}>{tot2 ?? "—"}</span>,
+                        m3na ? mv("—") : <span style={{ color: "rgba(0,255,65,0.35)", fontSize: "9px" }}>{fmtDollar(m3Price)}</span>
+                      )
+                    })()}
                     {arrowRow(vsClr(m1Cagr), vsClr(m2Cagr), vsClr(m3Cagr))}
                     {row({}, "FUTURE RETURN (5Y)",
                       bvc(retX(m1Return), vsClr(m1Cagr)),
@@ -955,7 +1023,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               </p>
               <p className="text-2xl font-mono" style={{ color: "rgba(0,255,65,0.3)" }}>→</p>
               <p className="text-[9px] font-bold tracking-[0.2em]" style={{ color: "rgba(0,255,65,0.5)" }}>
-                {currentPrice && displayPrice ? `${(displayPrice / currentPrice).toFixed(1)}x` : ""}
+                {displayReturnMult != null ? `${displayReturnMult.toFixed(1)}x` : ""}
               </p>
             </div>
             <div className="flex-1 text-center">

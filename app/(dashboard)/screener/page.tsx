@@ -31,6 +31,9 @@ const getStockData = unstable_cache(
           updated_at,
           has_anomaly,
           anomaly_reasons,
+          m_cumulative_div_ps,
+          div_yield_5y_avg,
+          div_yield,
           stocks ( name )
         `)
         .order("final_score", { ascending: false }),
@@ -100,6 +103,9 @@ export default async function ScreenerPage({
     updated_at: r.updated_at,
     has_anomaly: r.has_anomaly ?? null,
     anomaly_reasons: r.anomaly_reasons ?? null,
+    m_cumulative_div_ps: r.m_cumulative_div_ps ?? null,
+    div_yield_5y_avg: r.div_yield_5y_avg ?? null,
+    div_yield: r.div_yield ?? null,
     rank: i + 1,
   }));
 

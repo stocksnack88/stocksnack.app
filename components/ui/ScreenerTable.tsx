@@ -21,8 +21,40 @@ export type ScreenerRow = {
   updated_at: string | null;
   has_anomaly: boolean | null;
   anomaly_reasons: string | null;
+  m_cumulative_div_ps: number | null;
+  div_yield_5y_avg: number | null;
+  div_yield: number | null;
   rank: number;
 };
+
+// Compute effective 5-year cumulative dividend per share for any stock.
+// Uses DB field when available (high-yield stocks), falls back to yield × price × 5.
+function effectiveCumDiv(stock: ScreenerRow): number {
+  if (stock.m_cumulative_div_ps && stock.m_cumulative_div_ps > 0) return stock.m_cumulative_div_ps;
+  const yld = stock.div_yield_5y_avg ?? stock.div_yield ?? 0;
+  if (yld > 0 && stock.current_price) return stock.current_price * yld * 5;
+  return 0;
+}
+
+// Total return price = projected price + cumulative dividends received
+function totalReturnPrice(stock: ScreenerRow): number | null {
+  if (!stock.ppm_blended_price) return null;
+  return stock.ppm_blended_price + effectiveCumDiv(stock);
+}
+
+// Total return multiplier (e.g. 2.54x)
+function totalReturnMult(stock: ScreenerRow): number | null {
+  const total = totalReturnPrice(stock);
+  if (!total || !stock.current_price) return null;
+  return total / stock.current_price;
+}
+
+// Total return CAGR derived from the multiplier (annualised over 5 years)
+function totalReturnCagr(stock: ScreenerRow): number | null {
+  const mult = totalReturnMult(stock);
+  if (mult == null) return null;
+  return Math.pow(mult, 0.2) - 1;
+}
 
 // ── Filter types & config ─────────────────────────────────────────────────────
 
@@ -96,14 +128,13 @@ function applyFilters(stocks: ScreenerRow[], filters: FilterRow[]): ScreenerRow[
         case "cagr": {
           const v = parseFloat(f.value);
           if (isNaN(v)) return true;
-          const cagr = (stock.ppm_cagr ?? 0) * 100;
+          const cagr = (totalReturnCagr(stock) ?? 0) * 100;
           return f.condition === "gte" ? cagr >= v : cagr <= v;
         }
         case "return": {
           const v = parseFloat(f.value);
           if (isNaN(v)) return true;
-          const ret = stock.ppm_blended_price && stock.current_price
-            ? stock.ppm_blended_price / stock.current_price : 0;
+          const ret = totalReturnMult(stock) ?? 0;
           return f.condition === "gte" ? ret >= v : ret <= v;
         }
         case "growth": {
@@ -133,10 +164,10 @@ function applyFilters(stocks: ScreenerRow[], filters: FilterRow[]): ScreenerRow[
     result = [...result].sort((a, b) => {
       switch (sortFilter.column) {
         case "cagr":
-          return ((a.ppm_cagr ?? -Infinity) - (b.ppm_cagr ?? -Infinity)) * dir;
+          return ((totalReturnCagr(a) ?? -Infinity) - (totalReturnCagr(b) ?? -Infinity)) * dir;
         case "return": {
-          const ra = a.ppm_blended_price && a.current_price ? a.ppm_blended_price / a.current_price : 0;
-          const rb = b.ppm_blended_price && b.current_price ? b.ppm_blended_price / b.current_price : 0;
+          const ra = totalReturnMult(a) ?? 0;
+          const rb = totalReturnMult(b) ?? 0;
           return (ra - rb) * dir;
         }
         case "growth":
@@ -191,23 +222,25 @@ function HealthPassesCell({ value }: { value: number | null }) {
   return <span className={`font-mono font-bold ${color}`}>{value}/24</span>;
 }
 
-function CagrCell({ value }: { value: number | null }) {
+function CagrCell({ stock }: { stock: ScreenerRow }) {
+  const value = totalReturnCagr(stock);
   if (value === null) return <span className="text-gray-600">—</span>;
   const color = value >= 0.2 ? "text-[#00ff41]" : value >= 0.1 ? "text-yellow-300" : "text-red-400";
   return <span className={`font-mono font-bold ${color}`}>{(value * 100).toFixed(1)}%</span>;
 }
 
-function ReturnCell({ blended, current }: { blended: number | null; current: number | null }) {
-  if (!blended || !current) return <span className="text-gray-600">—</span>;
-  const mult  = blended / current;
+function ReturnCell({ stock }: { stock: ScreenerRow }) {
+  const mult = totalReturnMult(stock);
+  if (mult == null) return <span className="text-gray-600">—</span>;
   const color = mult >= 2 ? "text-[#00ff41]" : mult >= 1.5 ? "text-yellow-300" : "text-red-400";
   return <span className={`font-mono font-bold ${color}`}>{mult.toFixed(1)}x</span>;
 }
 
 function stockSummary(stock: ScreenerRow, rank: number): string {
-  const ret    = (stock.ppm_blended_price && stock.current_price)
-    ? `${(stock.ppm_blended_price / stock.current_price).toFixed(1)}x` : "—";
-  const cagr   = stock.ppm_cagr !== null ? `${(stock.ppm_cagr * 100).toFixed(1)}%` : "—";
+  const retMult = totalReturnMult(stock);
+  const ret  = retMult != null ? `${retMult.toFixed(1)}x` : "—";
+  const cagrVal = totalReturnCagr(stock);
+  const cagr = cagrVal != null ? `${(cagrVal * 100).toFixed(1)}%` : "—";
   const health = stock.health_passes !== null ? `${stock.health_passes}/24` : "—";
   const g      = stock.growth_score;
   const filled = g === null ? 0 : g >= 80 ? 5 : g >= 60 ? 4 : g >= 40 ? 3 : g >= 20 ? 2 : 1;
@@ -782,10 +815,10 @@ export default function ScreenerTable({
                     </span>
                   </td>
                   <td className="px-1 py-3 text-right bg-[#001a00]/40">
-                    <CagrCell value={stock.ppm_cagr} />
+                    <CagrCell stock={stock} />
                   </td>
                   <td className="px-1 py-3 text-right bg-[#001a00]/40">
-                    <ReturnCell blended={stock.ppm_blended_price} current={stock.current_price} />
+                    <ReturnCell stock={stock} />
                   </td>
                   {showQuality && (
                     <td className="px-1 py-3 text-right">

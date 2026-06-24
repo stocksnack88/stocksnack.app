@@ -317,7 +317,6 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     if (prev && prevCallout) {
       // Keep callout at full size while rectangle collapses (stableCallout overrides derived)
       setStableCallout(prevCallout)
-      const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
       const calloutAbove = prevCallout.above
       // Phase 1: collapse rectangle to thin bar — match callout width/left so it hides fully behind the callout box
       setDisplayRect(calloutAbove

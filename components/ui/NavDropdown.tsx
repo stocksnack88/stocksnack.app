@@ -31,6 +31,7 @@ export default function NavDropdown() {
     <div ref={ref} className="relative flex items-center">
       {/* trigger */}
       <button
+        data-tour-id="nav-menu-button"
         onClick={() => { playClick(); setOpen(o => !o) }}
         aria-label="Open menu"
         aria-expanded={open}
@@ -91,6 +92,7 @@ export default function NavDropdown() {
             BLOG
           </Link>
           <button
+            data-tour-id="nav-tour-button"
             role="menuitem"
             onClick={() => { setOpen(false); startTour() }}
             className="block w-full text-left px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors cursor-pointer"

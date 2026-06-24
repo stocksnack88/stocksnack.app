@@ -25,6 +25,8 @@ type TourStep = {
 }
 
 const STEPS: TourStep[] = [
+  { page: 'screener', target: '[data-tour-id="nav-menu-button"]', action: 'click', instruction: 'Open the menu — your tour controls live here.' },
+  { page: 'screener', target: '[data-tour-id="nav-tour-button"]', action: 'tap', instruction: 'This button lets you restart the tour anytime.' },
   { page: 'screener', target: '[data-tour-primary-stock="true"]', action: 'click', navigate: true, instruction: 'Pick a stock and click on it.' },
   { page: 'ticker', target: '[data-tour-id="ticker-header"]',        anchor: 'ticker-header',  action: 'tap', instruction: 'This is the stock you selected.' },
   { page: 'ticker', target: '[data-tour-id="overview"]',             anchor: 'ticker-header',  action: 'click', instruction: 'Click here for the stock overview.' },
@@ -270,8 +272,15 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       targets.forEach(t => observer?.observe(t))
     }
 
-    if (step.page === 'ticker') setDisplayRect(getAnchorRect(step.anchor))
-    else setDisplayRect(null)
+    if (step.page === 'ticker') {
+      // Scroll anchor into view first (instant) so the retract animation is visible
+      const anchorSel = step.anchor ? `[data-tour-id="${step.anchor}"]` : '[data-tour-id="ticker-header"]'
+      const anchorEl = document.querySelector<HTMLElement>(anchorSel)
+      if (anchorEl) anchorEl.scrollIntoView({ behavior: 'auto', block: 'nearest' })
+      setDisplayRect(getAnchorRect(step.anchor))
+    } else {
+      setDisplayRect(null)
+    }
 
     const timer = window.setTimeout(locate, step.page === 'ticker' ? 320 : 0)
     const onViewportChange = () => { updateRect() }
@@ -295,6 +304,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       return
     }
     try { localStorage.removeItem(INTENT_KEY) } catch {}
+    // Clear any active screener filters so tour stock is visible
+    try { localStorage.removeItem('stocksnack_screener_filters') } catch {}
+    window.dispatchEvent(new Event('tour-reset-filters'))
     save({ status: 'active', step: 0 })
     if (pathname !== '/screener') router.push('/screener')
   }, [pathname, router, save])

@@ -399,6 +399,11 @@ export default function ScreenerTable({
     localStorage.setItem('ss_sound', soundOn ? '1' : '0');
   }, [soundOn]);
 
+  useEffect(() => {
+    const onTourReset = () => { setFilters([]); setSearchQuery(''); }
+    window.addEventListener('tour-reset-filters', onTourReset)
+    return () => window.removeEventListener('tour-reset-filters', onTourReset)
+  }, []);
 
   useEffect(() => {
     // UPSELL TOAST — show only when: logged-in, not pro, trial_used=true,

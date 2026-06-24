@@ -116,6 +116,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const routeLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Tracks the live spotlight rect so the transition effect can read it synchronously
   const spotlightRef = useRef<{ top: number; left: number; width: number; height: number } | null>(null)
+  const calloutFreezeRef = useRef<{ left: number; width: number; above: boolean; top?: number; bottom?: number } | null>(null)
+  const instructionFreezeRef = useRef<string>('')
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -377,6 +379,13 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       : { top: spotlight.top + spotlight.height, left, width, above: false }
   })() : null
 
+  // Freeze callout position + instruction text while fading out so it stays
+  // at the old position rather than jumping to the collapsed thin-bar position.
+  if (calloutVisible && callout) calloutFreezeRef.current = callout
+  if (calloutVisible && step?.instruction) instructionFreezeRef.current = step.instruction
+  const renderedCallout = calloutVisible ? callout : calloutFreezeRef.current
+  const renderedInstruction = calloutVisible ? (step?.instruction ?? '') : instructionFreezeRef.current
+
   const routeLoading = mounted && state.status === 'active' && !!step && (!pageMatches || crossPagePending)
 
   // Safety: if routeLoading persists for >4s the page never arrived — abort the tour
@@ -466,22 +475,22 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           </div>
           <button onClick={skipWithSound} className="pointer-events-auto fixed left-4 top-[14px] z-[1203] min-h-11 px-3 text-[10px] font-bold tracking-widest text-black border border-[#ff4d4d] rounded transition-colors bg-[#ff4d4d] hover:bg-[#ff6666] shadow-[0_0_14px_rgba(255,77,77,0.35)]">SKIP TOUR</button>
           {/* Callout */}
-          {callout && (
+          {renderedCallout && (
             <div
               className="pointer-events-none fixed z-[902] bg-[#00ff41] px-3 py-2.5 shadow-[0_0_20px_rgba(0,255,65,0.4)]"
               style={{
-                left: callout.left,
-                width: callout.width,
-                ...(callout.above ? { bottom: (callout as { bottom: number }).bottom } : { top: (callout as { top: number }).top }),
-                borderRadius: callout.above ? '6px 6px 0 0' : '0 0 6px 6px',
-                borderBottom: callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
-                borderTop: !callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
-                transition: 'left 300ms ease, bottom 300ms ease, top 300ms ease, width 300ms ease, opacity 180ms ease',
+                left: renderedCallout.left,
+                width: renderedCallout.width,
+                ...(renderedCallout.above ? { bottom: (renderedCallout as { bottom: number }).bottom } : { top: (renderedCallout as { top: number }).top }),
+                borderRadius: renderedCallout.above ? '6px 6px 0 0' : '0 0 6px 6px',
+                borderBottom: renderedCallout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
+                borderTop: !renderedCallout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
+                transition: 'opacity 300ms ease',
                 opacity: calloutVisible ? 1 : 0,
               }}
             >
               <div className="flex items-center justify-between gap-3 text-[#001a08]">
-                <p className="text-xs font-bold leading-snug">{step.instruction}</p>
+                <p className="text-xs font-bold leading-snug">{renderedInstruction}</p>
                 <p className="shrink-0 text-[9px] font-bold tracking-[0.15em] opacity-60">{state.step + 1}/{STEPS.length}</p>
               </div>
             </div>

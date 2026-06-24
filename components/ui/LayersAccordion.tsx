@@ -114,6 +114,7 @@ export function CollapsibleLayer({
     >
       <div
         data-tour-control="true"
+        data-tour-id={tourId ? `${tourId}-header` : undefined}
         className="px-5 py-4 flex items-start justify-between cursor-pointer select-none"
         style={{ background: "#001a00", borderBottom: open ? "1px solid rgba(0,255,65,0.1)" : "none" }}
         onClick={() => toggle(id)}

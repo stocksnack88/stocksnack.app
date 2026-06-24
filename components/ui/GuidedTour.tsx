@@ -134,6 +134,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const [crossPagePending, setCrossPagePending] = useState(false)
   const transitionRunRef = useRef(0)
   const routeLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Tracks the live spotlight rect so the transition effect can read it synchronously
+  const spotlightRef = useRef<{ top: number; left: number; width: number; height: number } | null>(null)
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -245,7 +247,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           setCrossPagePending(false)
           setCalloutVisible(true)
           setTargetReady(true)
-        }, step.page === 'ticker' ? 320 : 80)
+        }, step.page === 'ticker' ? 420 : 80)
       }
       return true
     }
@@ -273,16 +275,28 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     }
 
     if (step.page === 'ticker') {
-      // Scroll anchor into view first (instant) so the retract animation is visible
-      const anchorSel = step.anchor ? `[data-tour-id="${step.anchor}"]` : '[data-tour-id="ticker-header"]'
-      const anchorEl = document.querySelector<HTMLElement>(anchorSel)
-      if (anchorEl) anchorEl.scrollIntoView({ behavior: 'auto', block: 'nearest' })
-      setDisplayRect(getAnchorRect(step.anchor))
+      // Collapse the green box toward the callout bubble (the user's "header").
+      // Read the previous spotlight position before it changes so we can animate
+      // the box down to a thin bar at the callout edge — giving the retract effect.
+      const prev = spotlightRef.current
+      if (prev) {
+        const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
+        const calloutAbove = prev.top - navBottom >= 52
+        if (calloutAbove) {
+          // Callout is above the box — collapse box upward to its top edge
+          setDisplayRect({ top: prev.top, left: prev.left, width: prev.width, height: 2 })
+        } else {
+          // Callout is below the box — collapse box downward to its bottom edge
+          setDisplayRect({ top: prev.top + prev.height - 2, left: prev.left, width: prev.width, height: 2 })
+        }
+      } else {
+        setDisplayRect(null)
+      }
     } else {
       setDisplayRect(null)
     }
 
-    const timer = window.setTimeout(locate, step.page === 'ticker' ? 320 : 0)
+    const timer = window.setTimeout(locate, step.page === 'ticker' ? 420 : 0)
     const onViewportChange = () => { updateRect() }
     window.addEventListener('scroll', onViewportChange, true)
     window.addEventListener('resize', onViewportChange)
@@ -361,6 +375,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const bottom = Math.max(top, Math.min(window.innerHeight, displayRect.top + displayRect.height + pad))
     return { top, left, width: right - left, height: bottom - top }
   })() : null
+  spotlightRef.current = spotlight  // always current for transition effect
   const callout = spotlight ? (() => {
     const width = Math.min(window.innerWidth - 24, Math.max(240, spotlight.width))
     const left = Math.max(12, Math.min(window.innerWidth - width - 12, spotlight.left))

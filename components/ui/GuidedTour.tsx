@@ -118,6 +118,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const routeLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Tracks the live spotlight rect so the transition effect can read it synchronously
   const spotlightRef = useRef<{ top: number; left: number; width: number; height: number } | null>(null)
+  // Ref mirror of crossPagePending so the locate effect can read it without adding to deps
+  const crossPagePendingRef = useRef(false)
+  crossPagePendingRef.current = crossPagePending
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -213,9 +216,18 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     setCalloutTextVisible(false)   // hide text — callout bubble stays shown (UFO)
     setTargetReady(false)
 
-    if (!mounted || state.status !== 'active' || !step || !pageMatches) {
+    if (!mounted || state.status !== 'active' || !step) {
       setDisplayRect(null)
       setCalloutVisible(false)
+      return
+    }
+    if (!pageMatches) {
+      // Cross-page navigation in progress — keep callout bubble alive at its last position
+      // so the UFO stays visible above the TV loading screen during page transition.
+      if (!crossPagePendingRef.current) {
+        setDisplayRect(null)
+        setCalloutVisible(false)
+      }
       return
     }
     setCalloutVisible(true)
@@ -494,7 +506,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           {/* Callout */}
           {callout && calloutVisible && (
             <div
-              className="pointer-events-none fixed z-[902] bg-[#00ff41] shadow-[0_0_20px_rgba(0,255,65,0.4)]"
+              className="pointer-events-none fixed z-[1350] bg-[#00ff41] shadow-[0_0_20px_rgba(0,255,65,0.4)]"
               style={{
                 left: callout.left,
                 width: callout.width,

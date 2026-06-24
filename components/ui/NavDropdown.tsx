@@ -60,6 +60,7 @@ export default function NavDropdown() {
       {open && (
         <div
           role="menu"
+          data-tour-id="nav-menu-panel"
           style={{
             position: 'absolute',
             top: 'calc(100% + 10px)',

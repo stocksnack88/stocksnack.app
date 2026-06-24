@@ -21,10 +21,11 @@ type TourStep = {
   optional?: boolean
   multiple?: boolean
   navigate?: boolean
+  dotTarget?: string  // separate selector for pulsing dot position
 }
 
 const STEPS: TourStep[] = [
-  { page: 'any', target: '[data-tour-id="nav-tour-button"]', action: 'tap', instruction: 'Tap this button anytime to restart the tour.' },
+  { page: 'any', target: '[data-tour-id="nav-menu-panel"]', dotTarget: '[data-tour-id="nav-tour-button"]', action: 'tap', instruction: 'The menu is always here. Tap anywhere to continue.' },
   { page: 'screener', target: '[data-tour-primary-stock="true"]', action: 'click', navigate: true, instruction: 'Pick a stock and click on it.' },
   { page: 'ticker', target: '[data-tour-id="ticker-header"]',           action: 'tap',   instruction: 'This is the stock you selected.' },
   { page: 'ticker', target: '[data-tour-id="overview"]',                action: 'click', instruction: 'Click here for the stock overview.' },
@@ -460,19 +461,29 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             className="pointer-events-auto absolute cursor-pointer touch-pan-y bg-transparent disabled:cursor-default"
             style={{ ...spotlight, transition: TRANSITION }}
           />
-          {/* Dot — fixed 20px from right border, vertically centered */}
-          <div
-            className="pointer-events-none absolute z-[902] h-3 w-3"
-            style={{
-              left: spotlight.left + spotlight.width - 20,
-              top: spotlight.top + spotlight.height / 2 - 6,
-              transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), top 300ms cubic-bezier(0.4,0,0.2,1)',
-            }}
-            aria-hidden="true"
-          >
-            {canAdvance && <span className="absolute inset-0 animate-ping rounded-full bg-[#00ff41] opacity-70" />}
-            <span className="absolute inset-[2px] rounded-full bg-[#00ff41] shadow-[0_0_10px_#00ff41]" />
-          </div>
+          {/* Dot — on dotTarget element if specified, otherwise right-center of spotlight */}
+          {(() => {
+            let dotLeft = spotlight.left + spotlight.width - 20
+            let dotTop = spotlight.top + spotlight.height / 2 - 6
+            if (step.dotTarget) {
+              const dotEl = document.querySelector<HTMLElement>(step.dotTarget)
+              if (dotEl) {
+                const b = dotEl.getBoundingClientRect()
+                dotLeft = b.left + b.width / 2 - 6
+                dotTop = b.top + b.height / 2 - 6
+              }
+            }
+            return (
+              <div
+                className="pointer-events-none absolute z-[902] h-3 w-3"
+                style={{ left: dotLeft, top: dotTop, transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), top 300ms cubic-bezier(0.4,0,0.2,1)' }}
+                aria-hidden="true"
+              >
+                {canAdvance && <span className="absolute inset-0 animate-ping rounded-full bg-[#00ff41] opacity-70" />}
+                <span className="absolute inset-[2px] rounded-full bg-[#00ff41] shadow-[0_0_10px_#00ff41]" />
+              </div>
+            )
+          })()}
           <button onClick={skipWithSound} className="pointer-events-auto fixed left-4 top-[14px] z-[1203] min-h-11 px-3 text-[10px] font-bold tracking-widest text-black border border-[#ff4d4d] rounded transition-colors bg-[#ff4d4d] hover:bg-[#ff6666] shadow-[0_0_14px_rgba(255,77,77,0.35)]">SKIP TOUR</button>
           {/* Callout */}
           {renderedCallout && (

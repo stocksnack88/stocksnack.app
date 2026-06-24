@@ -16,7 +16,7 @@ type TourAction = 'click' | 'tap'
 type TourStep = {
   instruction: string
   target: string
-  page: 'screener' | 'ticker'
+  page: 'screener' | 'ticker' | 'any'
   action: TourAction
   optional?: boolean
   multiple?: boolean
@@ -24,7 +24,7 @@ type TourStep = {
 }
 
 const STEPS: TourStep[] = [
-  { page: 'screener', target: '[data-tour-id="nav-menu-button"]', action: 'tap', instruction: 'Tap this menu anytime to restart the tour.' },
+  { page: 'any', target: '[data-tour-id="nav-menu-button"]', action: 'tap', instruction: 'Tap this menu anytime to restart the tour.' },
   { page: 'screener', target: '[data-tour-primary-stock="true"]', action: 'click', navigate: true, instruction: 'Pick a stock and click on it.' },
   { page: 'ticker', target: '[data-tour-id="ticker-header"]',           action: 'tap',   instruction: 'This is the stock you selected.' },
   { page: 'ticker', target: '[data-tour-id="overview"]',                action: 'click', instruction: 'Click here for the stock overview.' },
@@ -161,7 +161,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   }, [activateFromIntent, save])
 
   const step = STEPS[state.step]
-  const pageMatches = step && (step.page === 'screener' ? pathname === '/screener' : /^\/screener\/[^/]+$/.test(pathname))
+  const pageMatches = step && (step.page === 'any' ? true : step.page === 'screener' ? pathname === '/screener' : /^\/screener\/[^/]+$/.test(pathname))
   const controlActivated = activatedStep === state.step
   const canAdvance = readyStep === state.step
 
@@ -188,11 +188,14 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       return
     }
     const nextStep = state.step + 1
-    const ticker = state.step === 0
-      ? document.querySelector<HTMLElement>(STEPS[0].target)?.dataset.tourTicker
+    const ticker = state.step === 1
+      ? document.querySelector<HTMLElement>(STEPS[1].target)?.dataset.tourTicker
       : state.ticker
     save({ status: 'active', step: nextStep, ticker })
-  }, [router, save, state.step, state.ticker])
+    const nextDef = STEPS[nextStep]
+    if (nextDef?.page === 'screener' && pathname !== '/screener') router.push('/screener')
+    else if (nextDef?.page === 'ticker' && ticker && pathname !== `/screener/${ticker}`) router.push(`/screener/${ticker}`)
+  }, [pathname, router, save, state.step, state.ticker])
 
   useEffect(() => {
     const run = ++transitionRunRef.current
@@ -302,8 +305,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     try { localStorage.removeItem('stocksnack_screener_filters') } catch {}
     window.dispatchEvent(new Event('tour-reset-filters'))
     save({ status: 'active', step: 0 })
-    if (pathname !== '/screener') router.push('/screener')
-  }, [pathname, router, save])
+  }, [save])
   const skipTour = useCallback(() => save({ ...state, status: 'completed' }), [save, state])
   const handleSpotlightClick = useCallback(() => {
     if (!step || !targetReady) return

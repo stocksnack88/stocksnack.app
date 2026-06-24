@@ -24,7 +24,7 @@ type TourStep = {
 }
 
 const STEPS: TourStep[] = [
-  { page: 'any', target: '[data-tour-id="nav-menu-button"]', action: 'tap', instruction: 'Tap this menu anytime to restart the tour.' },
+  { page: 'any', target: '[data-tour-id="nav-tour-button"]', action: 'tap', instruction: 'Tap this button anytime to restart the tour.' },
   { page: 'screener', target: '[data-tour-primary-stock="true"]', action: 'click', navigate: true, instruction: 'Pick a stock and click on it.' },
   { page: 'ticker', target: '[data-tour-id="ticker-header"]',           action: 'tap',   instruction: 'This is the stock you selected.' },
   { page: 'ticker', target: '[data-tour-id="overview"]',                action: 'click', instruction: 'Click here for the stock overview.' },
@@ -141,6 +141,12 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   }, [activateFromIntent])
 
   useEffect(() => {
+    if (state.status === 'active' && state.step === 0) {
+      window.dispatchEvent(new Event('tour-open-menu'))
+    }
+  }, [state.status, state.step])
+
+  useEffect(() => {
     const onOnboarding = (event: Event) => {
       const choice = (event as CustomEvent<'start' | 'skip'>).detail
       if (choice === 'skip') save({ status: 'completed', step: 0 })
@@ -193,8 +199,11 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       : state.ticker
     save({ status: 'active', step: nextStep, ticker })
     const nextDef = STEPS[nextStep]
-    if (nextDef?.page === 'screener' && pathname !== '/screener') router.push('/screener')
-    else if (nextDef?.page === 'ticker' && ticker && pathname !== `/screener/${ticker}`) router.push(`/screener/${ticker}`)
+    const currentDef = STEPS[state.step]
+    if (!currentDef?.navigate) {
+      if (nextDef?.page === 'screener' && pathname !== '/screener') router.push('/screener')
+      else if (nextDef?.page === 'ticker' && ticker && pathname !== `/screener/${ticker}`) router.push(`/screener/${ticker}`)
+    }
   }, [pathname, router, save, state.step, state.ticker])
 
   useEffect(() => {
@@ -438,6 +447,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             aria-label={step.action === 'click' && !controlActivated ? 'Activate highlighted control' : canAdvance ? 'Continue tour' : 'Please read this tour step'}
             disabled={!targetReady || ((step.action === 'tap' || controlActivated) && !canAdvance)}
             onClick={handleSpotlightClick}
+            data-tour-spotlight="true"
             className="pointer-events-auto absolute cursor-pointer touch-pan-y bg-transparent disabled:cursor-default"
             style={{ ...spotlight, transition: TRANSITION }}
           />

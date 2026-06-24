@@ -12,9 +12,18 @@ export default function NavDropdown() {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    const onTourOpen = () => setOpen(true)
+    window.addEventListener('tour-open-menu', onTourOpen)
+    return () => window.removeEventListener('tour-open-menu', onTourOpen)
+  }, [])
+
+  useEffect(() => {
     if (!open) return
     function onOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        if ((e.target as HTMLElement)?.closest?.('[data-tour-spotlight]')) return
+        setOpen(false)
+      }
     }
     function onEscape(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false)

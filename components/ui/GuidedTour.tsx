@@ -25,8 +25,7 @@ type TourStep = {
 }
 
 const STEPS: TourStep[] = [
-  { page: 'screener', target: '[data-tour-id="nav-menu-button"]', action: 'click', instruction: 'Open the menu — your tour controls live here.' },
-  { page: 'screener', target: '[data-tour-id="nav-tour-button"]', action: 'tap', instruction: 'This button lets you restart the tour anytime.' },
+  { page: 'screener', target: '[data-tour-id="nav-menu-button"]', action: 'tap', instruction: 'Tap this menu anytime to restart the tour.' },
   { page: 'screener', target: '[data-tour-primary-stock="true"]', action: 'click', navigate: true, instruction: 'Pick a stock and click on it.' },
   { page: 'ticker', target: '[data-tour-id="ticker-header"]',        anchor: 'ticker-header',  action: 'tap', instruction: 'This is the stock you selected.' },
   { page: 'ticker', target: '[data-tour-id="overview"]',             anchor: 'ticker-header',  action: 'click', instruction: 'Click here for the stock overview.' },

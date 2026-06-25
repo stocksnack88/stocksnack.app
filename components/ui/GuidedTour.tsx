@@ -328,8 +328,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // so it's visually hidden behind the callout, not peeking above/below it.
       const collapseX = Math.round(prevCallout.left + prevCallout.width / 2 - 1)
       setDisplayRect(calloutAbove
-        ? { top: prev.top - 20, left: collapseX, width: 2, height: 2 }   // 20px inside callout from its bottom
-        : { top: prevCallout.top + 4, left: collapseX, width: 2, height: 2 }) // 4px inside callout from its top
+        ? { top: prev.top - 20, left: collapseX, width: 2, height: 2 }
+        : { top: (prevCallout.top ?? prev.top + prev.height) + 4, left: collapseX, width: 2, height: 2 })
 
       travelTimer = window.setTimeout(() => {
         if (cancelled || transitionRunRef.current !== run) return

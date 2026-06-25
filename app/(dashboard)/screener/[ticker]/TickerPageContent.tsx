@@ -252,7 +252,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                   <line x1="2" y1="30" x2="70" y2="30" stroke="rgba(0,255,65,0.55)" strokeWidth="1.5" strokeDasharray="4,3"/>
                   <polygon points="80,30 68,24 68,36" fill="rgba(0,255,65,0.55)"/>
                   {displayReturnMult != null && (
-                    <text x="44" y="50" textAnchor="middle" fontSize="8" letterSpacing="1" fill="rgba(0,255,65,0.45)">
+                    <text x="44" y="50" textAnchor="middle" fontSize="8" fontWeight="bold" letterSpacing="1" fill="rgba(0,255,65,0.7)">
                       {displayReturnMult.toFixed(1)}x return
                     </text>
                   )}

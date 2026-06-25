@@ -1,6 +1,6 @@
 import { Metadata } from "next";
-import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabase";
+import BlogCardLink from "@/components/ui/BlogCardLink";
 
 export const metadata: Metadata = {
   title: "Blog | StockSnack",
@@ -45,7 +45,7 @@ export default async function BlogIndexPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {posts.map((post) => (
-            <Link
+            <BlogCardLink
               key={post.slug}
               href={`/blog/${post.slug}`}
               className="block rounded overflow-hidden transition-colors group"
@@ -100,7 +100,7 @@ export default async function BlogIndexPage() {
                   )}
                 </div>
               </div>
-            </Link>
+            </BlogCardLink>
           ))}
         </div>
       )}

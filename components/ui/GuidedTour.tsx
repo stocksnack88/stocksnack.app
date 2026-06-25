@@ -43,8 +43,7 @@ const STEPS: TourStep[] = [
   { page: 'ticker', target: '[data-tour-id="growth-sp500"]',            action: 'tap',   optional: true, instruction: 'The red line shows the S&P 500 performance.' },
   { page: 'ticker', target: '[data-tour-id="growth-metrics"]',          action: 'tap',   instruction: 'We cover Revenue, EBITDA and Free Cash Flow.' },
   { page: 'ticker', target: '[data-tour-id="growth-score"]',            action: 'tap',   instruction: 'We score their growth performance against the S&P 500.' },
-  { page: 'ticker', target: '[data-tour-id="health-layer"]',            action: 'click', instruction: 'This layer checks the company\'s financial strength.' },
-  { page: 'ticker', target: '[data-tour-id="health-summary"]',          action: 'tap',   instruction: 'This is the overall Financial Health score.' },
+  { page: 'ticker', target: '[data-tour-id="health-summary"]',          action: 'tap',   instruction: 'This layer checks the company\'s financial strength.' },
   { page: 'ticker', target: '[data-tour-id="health-balance-sheet"]',    action: 'tap',   instruction: 'Balance Sheet checks cover cash, debt and equity.' },
   { page: 'ticker', target: '[data-tour-id="health-income-statement"]', action: 'tap',   instruction: 'Income Statement checks cover profit and earnings quality.' },
   { page: 'ticker', target: '[data-tour-id="health-cash-flow"]',        action: 'tap',   instruction: 'Cash Flow checks show how reliably the business produces cash.' },
@@ -273,16 +272,23 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       const hasVisibleTarget = targets.some(t => { const b = t.getBoundingClientRect(); return b.width > 0 && b.height > 0 })
       if (targets.length === 0 || !hasVisibleTarget) {
         attempts += 1
+        // On first retry, try to expand a collapsed ancestor accordion
+        if (attempts === 1 && targets.length > 0) {
+          let el = targets[0].parentElement
+          while (el) {
+            const ctrl = el.querySelector<HTMLElement>('[data-tour-control]')
+            if (ctrl && ctrl !== el) { ctrl.click(); break }
+            el = el.parentElement
+          }
+        }
         if (step.optional && attempts >= 6) { advance(); return }
         retryTimer = window.setTimeout(locate, 250)
         return
       }
-      const isLast = state.step === STEPS.length - 1
-      if (isLast) {
-        // Last step — scroll element to top so it's always reachable even at page bottom
-        targets[0].scrollIntoView({ behavior: 'auto', block: 'start' })
-      } else if (targets.length > 1) {
-        // Multiple targets (e.g. method-1/2/3 columns) — center the whole group in viewport
+      if (targets.length > 1) {
+        // Multiple targets (e.g. method-1/2/3 columns) — scroll first into horizontal view,
+        // then center the whole group vertically
+        targets[0].scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' })
         const firstTop = targets[0].getBoundingClientRect().top + window.scrollY
         const lastBottom = targets[targets.length - 1].getBoundingClientRect().bottom + window.scrollY
         const groupCenter = (firstTop + lastBottom) / 2
@@ -318,10 +324,11 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // Keep callout at full size while rectangle collapses (stableCallout overrides derived)
       setStableCallout(prevCallout)
       const calloutAbove = prevCallout.above
-      // Phase 1: collapse rectangle to thin bar — match callout width/left so it hides fully behind the callout box
+      // Phase 1: collapse rectangle to a tiny dot at callout center — essentially invisible
+      const collapseX = Math.round(prevCallout.left + prevCallout.width / 2 - 1)
       setDisplayRect(calloutAbove
-        ? { top: prev.top, left: prevCallout.left, width: prevCallout.width, height: 2 }
-        : { top: prev.top + prev.height - 2, left: prevCallout.left, width: prevCallout.width, height: 2 })
+        ? { top: prev.top, left: collapseX, width: 2, height: 2 }
+        : { top: prev.top + prev.height - 2, left: collapseX, width: 2, height: 2 })
 
       travelTimer = window.setTimeout(() => {
         if (cancelled || transitionRunRef.current !== run) return

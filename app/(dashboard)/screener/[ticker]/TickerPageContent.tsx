@@ -210,7 +210,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
         </div>
 
         {/* ── Overview + Layers 1–5 ───────────────────────────────────────────── */}
-        <LayerProvider count={14} briefExpand={{ startMs: 400, durationMs: 800 }} defaultOpenIds={[5]} childMap={{ 0: [6, 7, 8, 12, 13], 1: [9, 10, 11] }}>
+        <LayerProvider count={14} briefExpand={{ startMs: 400, durationMs: 800 }} defaultOpenIds={[5, 12, 13]} childMap={{ 0: [6, 7, 8, 12, 13], 1: [9, 10, 11] }}>
           <div className="flex items-center justify-end gap-2">
             <ShareButton
               ticker={ticker}
@@ -910,7 +910,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                     {arrowRow()}
                     {row({}, "HIST. GROWTH (L5Y)",
                       bv(pct(score?.m1_growth_rate)),
-                      m2na ? mv("—") : bv(pct(score?.m2_growth_rate)),
+                      m2na ? mv("—") : bv(pct(score?.fcf_cagr_5y)),
                       m3na ? mv("—") : bv(pct(score?.m3_growth_rate))
                     )}
                     {arrowRow()}

@@ -4,6 +4,17 @@ This file is for Claude Code agents. Read before working on anything n8n or depl
 
 ---
 
+## Data Sources — Critical
+
+**FMP (Financial Modeling Prep) is NOT available for commercial use.** No subscription. Quota is very limited. Do NOT suggest FMP as a data source or fallback for any feature. This is the entire reason the SEC EDGAR pipeline was built.
+
+- `pipeline/run.py` currently uses FMP for the main scoring pipeline — this is legacy/transitional
+- `pipeline/sec/` is the target architecture: all data direct from SEC EDGAR (free, public domain, no quota)
+- For product/geo segments: `pipeline/sec/segment_extractor.py` is the correct source — SEC XBRL only, no FMP fallback
+- When the SEC pipeline goes live, FMP calls should be removed, not supplemented
+
+---
+
 ## n8n Workflow
 
 n8n runs in **Docker** (container: `n8n-docker`), not natively.
@@ -128,6 +139,40 @@ curl -s -X POST http://localhost:3001/render \
 ## Blog SVG rules
 
 SVG is XML — `&` must always be escaped as `&amp;` in text content. Unescaped `&` (e.g. `S&P 500`) causes browsers to reject the entire file as malformed XML even though HTTP returns 200. Always write `S&amp;P 500` in SVG strings.
+
+---
+
+## Blog Engine — SVG chart architecture
+
+All charts are built in the **`Stitch Article`** n8n node (jsCode). Key functions:
+
+| Function | Chart | Key constants |
+|---|---|---|
+| `buildChart0` | Price projection arrow | W=800, H=260, boxW=190 |
+| `buildChart1` | 5-year price targets (bar) | W=640, H=210+70, sp5yMulti baseline |
+| `buildChart2` | Historical growth trend (3 stacked) | W=520, CHART_H=130, INC=240 |
+| `buildChart3` | Valuation (EV/EBITDA or P/E + FCF yield) | W=380, H=90, stacked sub-charts |
+| `buildChart4` | Product segments (horizontal bars) | W=400, LABEL_W=120, truncate at 13 chars |
+| `buildChart5` | Verdict scorecard | W=640, H=390 |
+
+**`singleGroupChart` in buildChart3:** each group has `{ label, cur, avg, isStock }`. For non-PE approach (EV/EBITDA), the top sub-chart uses `evGroups` (model multiple vs S&P 500 ~16x); for PE approach it uses `peGroups`.
+
+**Valuation data field names** (in `valuation_comparison` / `src.valuation_comparison`):
+- `pe_current`, `pe_5y_average`, `industry_pe_current`, `industry_pe_5y_average`
+- `fcf_yield_current`, `fcf_5y_avg`, `industry_fcf_yield`, `industry_fcf_5y_avg`
+
+These must match what `Build Article Skeleton` reads (`val.pe_current` etc.) AND what `Stitch Article` reads directly from `val.*` in peGroups.
+
+**Gemini FCF yield bug pattern:** Gemini receives `fcf_yield: 0.009158` (raw decimal) and may write `"0.9158%"` (treating the decimal as already a percentage). `cleanDecimals` then matches `0.9158` in `"0.9158%"` and converts → `"91.6%%"`. Fix: `cleanDecimals` uses `(?!%)` negative lookahead to skip decimals already followed by `%`.
+
+**valSection logic (Stitch Article):**
+- `isPeApproach = d.multipleLabel === 'P/E'`
+- For EV/EBITDA approach: shows EV/EBITDA section + FCF Yield only (no P/E)
+- `metricsLine`: PE → `'P/E Ratio and FCF Yield'`; EV/EBITDA → `'EV/EBITDA and FCF Yield'`
+
+**TickerPageContent — HIST. GROWTH (L5Y) for FCF:**
+- Use `score.fcf_cagr_5y` (decimal CAGR, e.g. 0.544 = 54.4%)
+- Do NOT use `score.m2_growth_rate` — that stores an absolute dollar growth value, not a rate
 
 ---
 

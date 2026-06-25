@@ -234,6 +234,15 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     }
     setCalloutVisible(true)
 
+    // Failsafe: if crossPagePending is still set once the correct page has loaded,
+    // force-clear it after 2.5s so the loading screen never gets permanently stuck.
+    let crossPageClearTimer: number | null = null
+    if (crossPagePendingRef.current) {
+      crossPageClearTimer = window.setTimeout(() => {
+        if (!cancelled && transitionRunRef.current === run) setCrossPagePending(false)
+      }, 2500)
+    }
+
     let cancelled = false
     let targets: HTMLElement[] = []
     let observer: ResizeObserver | null = null
@@ -295,11 +304,21 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         window.scrollTo({ top: Math.max(0, groupCenter - window.innerHeight * 0.5), behavior: 'auto' })
       } else {
         // Single target — place in upper portion of viewport (~15% below nav)
-        const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
-        const usableH = window.innerHeight - navH
-        const targetTopInViewport = navH + usableH * 0.15
-        const currentTopAbsolute = targets[0].getBoundingClientRect().top + window.scrollY
-        window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'auto' })
+        const scrollToTarget = () => {
+          const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
+          const usableH = window.innerHeight - navH
+          const targetTopInViewport = navH + usableH * 0.15
+          const currentTopAbsolute = targets[0].getBoundingClientRect().top + window.scrollY
+          window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'auto' })
+        }
+        scrollToTarget()
+        // Re-scroll after accordion animations settle (~250ms), then capture final rect
+        settleTimer = window.setTimeout(() => {
+          if (cancelled || transitionRunRef.current !== run) return
+          scrollToTarget()
+          updateRect(true)
+        }, 300)
+        return
       }
       settleTimer = window.setTimeout(() => updateRect(true), 50)
       observer = new ResizeObserver(() => updateRect())
@@ -324,12 +343,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // Keep callout at full size while rectangle collapses (stableCallout overrides derived)
       setStableCallout(prevCallout)
       const calloutAbove = prevCallout.above
-      // Phase 1: collapse rectangle to a tiny dot positioned inside the callout box
-      // so it's visually hidden behind the callout, not peeking above/below it.
-      const collapseX = Math.round(prevCallout.left + prevCallout.width / 2 - 1)
+      // Phase 1: collapse rectangle height to 0 at callout width, so it flattens into the callout edge.
       setDisplayRect(calloutAbove
-        ? { top: prev.top - 20, left: collapseX, width: 2, height: 2 }
-        : { top: (prevCallout.top ?? prev.top + prev.height) + 4, left: collapseX, width: 2, height: 2 })
+        ? { top: prev.top, left: prevCallout.left, width: prevCallout.width, height: 0 }
+        : { top: (prevCallout.top ?? prev.top + prev.height), left: prevCallout.left, width: prevCallout.width, height: 0 })
 
       travelTimer = window.setTimeout(() => {
         if (cancelled || transitionRunRef.current !== run) return
@@ -377,6 +394,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       if (retryTimer !== null) window.clearTimeout(retryTimer)
       if (settleTimer !== null) window.clearTimeout(settleTimer)
       if (revealTimer !== null) window.clearTimeout(revealTimer)
+      if (crossPageClearTimer !== null) window.clearTimeout(crossPageClearTimer)
       observer?.disconnect()
       window.removeEventListener('scroll', onViewportChange, true)
       window.removeEventListener('resize', onViewportChange)
@@ -480,13 +498,13 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
 
   const routeLoading = mounted && state.status === 'active' && !!step && (!pageMatches || crossPagePending)
 
-  // Safety: if routeLoading persists for >4s the page never arrived — abort the tour
-  // so the screen doesn't stay permanently black.
+  // Safety: if routeLoading persists for >6s the page never arrived — pause the tour
+  // so the user can resume manually rather than losing progress.
   useEffect(() => {
     if (routeLoading) {
       routeLoadingTimerRef.current = setTimeout(() => {
-        save({ ...state, status: 'completed' })
-      }, 4000)
+        save({ ...state, status: 'paused' })
+      }, 6000)
     } else {
       if (routeLoadingTimerRef.current !== null) {
         clearTimeout(routeLoadingTimerRef.current)

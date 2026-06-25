@@ -58,6 +58,19 @@ export function LayerProvider({
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const onOpenLayer = (e: Event) => {
+      const ids: number[] = (e as CustomEvent<number[]>).detail ?? []
+      setOpens(prev => {
+        const next = [...prev]
+        ids.forEach(id => { next[id] = true })
+        return next
+      })
+    }
+    window.addEventListener('tour-open-layer', onOpenLayer)
+    return () => window.removeEventListener('tour-open-layer', onOpenLayer)
+  }, [])
+
   const toggle = (i: number) => { playTick(); setOpens(prev => {
     const wasOpen = prev[i]
     const next = prev.map((v, j): boolean => (j === i ? !v : v))

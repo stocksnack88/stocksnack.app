@@ -13,8 +13,13 @@ export default function NavDropdown() {
 
   useEffect(() => {
     const onTourOpen = () => setOpen(true)
+    const onTourClose = () => setOpen(false)
     window.addEventListener('tour-open-menu', onTourOpen)
-    return () => window.removeEventListener('tour-open-menu', onTourOpen)
+    window.addEventListener('tour-close-menu', onTourClose)
+    return () => {
+      window.removeEventListener('tour-open-menu', onTourOpen)
+      window.removeEventListener('tour-close-menu', onTourClose)
+    }
   }, [])
 
   useEffect(() => {

@@ -320,11 +320,14 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'auto' })
         }
         scrollToTarget()
-        // Re-scroll after accordion animations settle (~250ms), then capture final rect
+        // Re-scroll after accordion animations settle (~300ms), then capture final rect and attach ResizeObserver
         settleTimer = window.setTimeout(() => {
           if (cancelled || transitionRunRef.current !== run) return
           scrollToTarget()
           updateRect(true)
+          // Watch for subsequent size changes (accordion expanding after click)
+          observer = new ResizeObserver(() => { updateRect() })
+          targets.forEach(t => observer?.observe(t))
         }, 300)
         return
       }
@@ -495,7 +498,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const width = Math.min(window.innerWidth - 24, Math.max(240, spotlight.width))
     const left = Math.max(12, Math.min(window.innerWidth - width - 12, spotlight.left))
     const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
-    const above = spotlight.top - navBottom >= 52
+    // Force callout above when: enough nav-gap exists, OR not enough room below (near page bottom)
+    const above = (spotlight.top - navBottom >= 52) || (spotlight.top + spotlight.height + 60 > window.innerHeight)
     return above
       ? { bottom: window.innerHeight - spotlight.top, left, width, above: true }
       : { top: spotlight.top + spotlight.height, left, width, above: false }

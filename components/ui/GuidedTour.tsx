@@ -320,6 +320,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'auto' })
         }
         scrollToTarget()
+        updateRect()  // immediate snapshot so spotlight follows the instant scroll (behavior:'auto')
         // Re-scroll after accordion animations settle (~300ms), then capture final rect and attach ResizeObserver
         settleTimer = window.setTimeout(() => {
           if (cancelled || transitionRunRef.current !== run) return
@@ -369,8 +370,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           const b = nextEl.getBoundingClientRect()
           const isNearby = Math.abs(b.top - prev.top) < 120 && Math.abs(b.left - prev.left) < 60
           if (isNearby) {
-            // Same area — skip animation, just locate
-            setStableCallout(null)
+            // Same area — skip animation, just locate.
+            // Keep stableCallout (prevCallout) so callout stays visible; revealTimer clears it.
             locate()
           } else {
             // Phase 2: callout travels to new position (stays full size)
@@ -379,16 +380,18 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             setDisplayRect(newAbove
               ? { top: b.top, left: b.left, width: b.width, height: 2 }
               : { top: b.top + b.height - 2, left: b.left, width: b.width, height: 2 })
-            // Phase 3: expand rectangle
+            // Phase 3: expand rectangle.
+            // Keep stableCallout (newCalloutPos) so it stays at the traveled position
+            // while locate() does its scroll; revealTimer clears it once settled.
             travelTimer = window.setTimeout(() => {
               if (cancelled || transitionRunRef.current !== run) return
-              setStableCallout(null)
               locate()
             }, 320)
           }
         } else {
-          // Off-screen or cross-page — skip travel, let locate() scroll+expand
-          if (nextEl) setStableCallout(computeCalloutPos(nextEl))
+          // Off-screen — skip travel and don't compute off-screen callout position
+          // (would produce a negative/invisible position). Keep prevCallout via stableCallout
+          // until locate() settles and revealTimer clears it.
           locate()
         }
       }, 320)

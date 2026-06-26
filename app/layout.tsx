@@ -47,8 +47,27 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // iOS PWA splash screens — custom text instead of icon
+  const splashSizes = [
+    [640, 1136], [750, 1334], [828, 1792], [1080, 1920],
+    [1125, 2436], [1170, 2532], [1179, 2556], [1242, 2208],
+    [1242, 2688], [1284, 2778], [1290, 2796], [1320, 2868],
+    [2048, 2732], [1668, 2388], [1536, 2048],
+  ]
   return (
     <html lang="en" style={{ backgroundColor: '#000000' }}>
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {splashSizes.map(([w, h]) => (
+          <link
+            key={`${w}x${h}`}
+            rel="apple-touch-startup-image"
+            href={`/api/splash?w=${w}&h=${h}`}
+            media={`(device-width: ${Math.round(w / 2)}px) and (device-height: ${Math.round(h / 2)}px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)`}
+          />
+        ))}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ backgroundColor: '#000000' }}

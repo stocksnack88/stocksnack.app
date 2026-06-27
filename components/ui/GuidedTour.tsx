@@ -273,6 +273,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     let expandTimer: number | null = null
     let ufoMode = false   // true during UFO transition — spotlight stays as sliver until callout arrives
     let attempts = 0
+    // Scroll-idle reveal callback — set by single-target locate(); cleared once reveal fires.
+    // onViewportChange resets the idle timer on every scroll event so reveal only fires
+    // after the page has actually stopped moving (150ms of silence).
+    let onScrollReveal: (() => void) | null = null
 
     const updateRect = (reveal = false) => {
       if (cancelled || transitionRunRef.current !== run || targets.length === 0) return false
@@ -371,19 +375,24 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         }
         scrollToTarget()
         updateRect()
-        // Re-scroll after accordion animations settle, then capture final rect and attach ResizeObserver.
-        // 600ms: gives smooth-scroll enough time to complete on long pages (steps 14, 24) before reveal.
-        settleTimer = window.setTimeout(() => {
+        // Scroll-idle reveal: fire only after the page has stopped scrolling for 150ms.
+        // Prevents the callout from appearing mid-scroll when the target is far down the page.
+        // onViewportChange resets this timer on every scroll event.
+        const doReveal = () => {
+          onScrollReveal = null
           if (cancelled || transitionRunRef.current !== run) return
           scrollToTarget()
           updateRect(true)
-          // Watch for subsequent size changes (accordion expanding after click)
           observer = new ResizeObserver(() => { updateRect() })
           targets.forEach(t => observer?.observe(t))
-        }, 600)
+        }
+        onScrollReveal = doReveal
+        // Fallback: if element is already in view (no scroll events fire), reveal after 200ms.
+        settleTimer = window.setTimeout(doReveal, 200)
         return
       }
-      settleTimer = window.setTimeout(() => updateRect(true), 50)
+      // 600ms: matches single-target settle — smooth scroll for group centering needs time to complete.
+      settleTimer = window.setTimeout(() => updateRect(true), 600)
       observer = new ResizeObserver(() => updateRect())
       targets.forEach(t => observer?.observe(t))
     }
@@ -426,7 +435,14 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       setDisplayRect(null)
       travelTimer = window.setTimeout(locate, step.page === 'ticker' ? 200 : 0)
     }
-    const onViewportChange = () => { updateRect() }
+    const onViewportChange = () => {
+      updateRect()
+      // If waiting for scroll-idle to reveal, reset the idle timer on each scroll event.
+      if (onScrollReveal) {
+        if (settleTimer !== null) window.clearTimeout(settleTimer)
+        settleTimer = window.setTimeout(onScrollReveal, 150)
+      }
+    }
     window.addEventListener('scroll', onViewportChange, true)
     window.addEventListener('resize', onViewportChange)
     return () => {

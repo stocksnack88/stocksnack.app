@@ -32,7 +32,7 @@ const STEPS: TourStep[] = [
   { page: 'ticker',   target: '[data-tour-id="overview"]',                                                               action: 'click', instruction: 'Click here for the stock overview.' },
   { page: 'ticker',   target: '[data-tour-id="price-projection"]',        openLayerIds: [0],                             action: 'click', instruction: 'This section shows the stock\'s estimated future price.' },
   { page: 'ticker',   target: '[data-tour-id="scorecard"]',               openLayerIds: [0],                             action: 'click', instruction: 'Click here to understand the stock at a glance.' },
-  { page: 'ticker',   target: '[data-tour-id="business"]',                openLayerIds: [0],                             action: 'click', instruction: 'This section explains what the company does.' },
+  { page: 'ticker',   target: '[data-tour-id="business"]',                openLayerIds: [0, 8, 12],                      action: 'tap',   instruction: 'This shows what the company does and sells.' },
   { page: 'ticker',   target: '[data-tour-id="price-methods"]',                                                          action: 'click', instruction: 'How do we calculate the future price?' },
   { page: 'ticker',   target: '[data-tour-id="methodology-toggle"]',      openLayerIds: [2],                             action: 'click', instruction: 'These are the methods we use to calculate the future price.' },
   { page: 'ticker',   target: '[data-tour-id="method-1"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, instruction: 'Method 1 uses future EBITDA or P/E to estimate price.' },
@@ -116,15 +116,19 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   // changes cannot leave the tutorial hit-area behind.
   const [displayRect, setDisplayRect] = useState<HighlightRect | null>(null)
   const [crossPagePending, setCrossPagePending] = useState(false)
+  const [showCompletionLoader, setShowCompletionLoader] = useState(false)
   const transitionRunRef = useRef(0)
   const routeLoadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const spotlightRef = useRef<{ top: number; left: number; width: number; height: number } | null>(null)
   const crossPagePendingRef = useRef(false)
   crossPagePendingRef.current = crossPagePending
   // Stable callout position — set when step changes so callout travels independently from the collapsing rectangle
-  type CalloutPos = { left: number; width: number; above: boolean; top?: number; bottom?: number }
+  // Always uses `top` positioning (never `bottom`) so CSS can transition smoothly when above/below flips.
+  type CalloutPos = { left: number; width: number; above: boolean; top: number }
   const [stableCallout, setStableCallout] = useState<CalloutPos | null>(null)
+  const [spotlightHidden, setSpotlightHidden] = useState(false)
   const calloutRef = useRef<CalloutPos | null>(null)
+  const calloutElRef = useRef<HTMLDivElement>(null)  // DOM ref to measure actual callout height
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -195,14 +199,21 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     return () => { window.clearTimeout(t1); window.clearTimeout(t2); window.clearTimeout(t3) }
   }, [showTransition])
 
+  // Hide completion loader once the screener page has actually loaded (variable time)
+  useEffect(() => {
+    if (!showCompletionLoader || pathname !== '/screener') return
+    const t = window.setTimeout(() => setShowCompletionLoader(false), 500)
+    return () => window.clearTimeout(t)
+  }, [showCompletionLoader, pathname])
+
   const advance = useCallback(() => {
     // Close nav menu when leaving step 0
     if (state.step === 0) window.dispatchEvent(new Event('tour-close-menu'))
 
     if (state.step >= STEPS.length - 1) {
-      setShowTransition(true)
+      setShowCompletionLoader(true)
       save({ status: 'completed', step: STEPS.length - 1, ticker: state.ticker })
-      window.setTimeout(() => router.push('/screener'), 560)
+      window.setTimeout(() => router.push('/screener'), 1200)
       return
     }
     const nextStep = state.step + 1
@@ -258,6 +269,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     let settleTimer: number | null = null
     let revealTimer: number | null = null
     let travelTimer: number | null = null
+    let expandTimer: number | null = null
+    let ufoMode = false   // true during UFO transition — spotlight stays as sliver until callout arrives
     let attempts = 0
 
     const updateRect = (reveal = false) => {
@@ -268,20 +281,53 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       const left = Math.min(...boxes.map(b => b.left))
       const right = Math.max(...boxes.map(b => b.right))
       const bottom = Math.max(...boxes.map(b => b.bottom))
-      setDisplayRect({ top, left, width: right - left, height: bottom - top })
+      if (ufoMode) {
+        // Always anchor the sliver at the element TOP so expansion always goes downward.
+        // Previously the sliver was placed at element bottom when the callout is below,
+        // causing a "shoot down then shoot up" artifact during the CSS transition.
+        setDisplayRect({ top: top, left, width: right - left, height: 2 })
+      } else {
+        setDisplayRect({ top, left, width: right - left, height: bottom - top })
+      }
       if (reveal) {
         revealTimer = window.setTimeout(() => {
           if (cancelled || transitionRunRef.current !== run) return
           setCrossPagePending(false)
-          setStableCallout(null)  // callout now derived from expanded spotlight
+          setStableCallout(null)    // callout CSS-transitions to final position (320ms)
           setCalloutTextVisible(true)
           setTargetReady(true)
+          if (ufoMode) {
+            // After callout arrives (~320ms), expand spotlight visibly from sliver to full
+            expandTimer = window.setTimeout(() => {
+              if (cancelled || transitionRunRef.current !== run) return
+              ufoMode = false
+              const expandBoxes = targets.map(t => t.getBoundingClientRect()).filter(b => b.width > 0 && b.height > 0)
+              // Step 1: swap full-screen panel → 4-panel overlay at SLIVER dimensions.
+              // This creates the cutout at sliver size so CSS transitions have a starting point.
+              setSpotlightHidden(false)
+              // Step 2: one rAF later, update displayRect to full element size.
+              // The 4 panels are now mounted and their CSS transitions animate the expansion.
+              window.requestAnimationFrame(() => {
+                window.requestAnimationFrame(() => {
+                  if (cancelled || transitionRunRef.current !== run) return
+                  if (expandBoxes.length > 0) {
+                    setDisplayRect({
+                      top: Math.min(...expandBoxes.map(b => b.top)),
+                      left: Math.min(...expandBoxes.map(b => b.left)),
+                      width: Math.max(...expandBoxes.map(b => b.right)) - Math.min(...expandBoxes.map(b => b.left)),
+                      height: Math.max(...expandBoxes.map(b => b.bottom)) - Math.min(...expandBoxes.map(b => b.top)),
+                    })
+                  }
+                })
+              })
+            }, 320)
+          } else {
+            setSpotlightHidden(false)  // no UFO animation, reveal immediately
+          }
         }, 80)
       }
       return true
     }
-
-    const isInViewport = (b: DOMRect) => b.width > 0 && b.top >= 0 && b.bottom <= window.innerHeight
 
     const locate = () => {
       const matches = Array.from(document.querySelectorAll<HTMLElement>(step.target))
@@ -305,22 +351,22 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       if (targets.length > 1) {
         // Multiple targets (e.g. method-1/2/3 columns) — scroll first into horizontal view,
         // then center the whole group vertically
-        targets[0].scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' })
+        targets[0].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
         const firstTop = targets[0].getBoundingClientRect().top + window.scrollY
         const lastBottom = targets[targets.length - 1].getBoundingClientRect().bottom + window.scrollY
         const groupCenter = (firstTop + lastBottom) / 2
-        window.scrollTo({ top: Math.max(0, groupCenter - window.innerHeight * 0.5), behavior: 'auto' })
+        window.scrollTo({ top: Math.max(0, groupCenter - window.innerHeight * 0.5), behavior: 'smooth' })
       } else {
         // Single target — place in upper portion of viewport (~15% below nav)
         const scrollToTarget = () => {
           const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
           const usableH = window.innerHeight - navH
-          const targetTopInViewport = navH + usableH * 0.15
+          const targetTopInViewport = navH + usableH * 0.25
           const currentTopAbsolute = targets[0].getBoundingClientRect().top + window.scrollY
-          window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'auto' })
+          window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'smooth' })
         }
         scrollToTarget()
-        updateRect()  // immediate snapshot so spotlight follows the instant scroll (behavior:'auto')
+        updateRect()
         // Re-scroll after accordion animations settle (~300ms), then capture final rect and attach ResizeObserver
         settleTimer = window.setTimeout(() => {
           if (cancelled || transitionRunRef.current !== run) return
@@ -337,67 +383,31 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       targets.forEach(t => observer?.observe(t))
     }
 
-    const computeCalloutPos = (el: HTMLElement): CalloutPos => {
-      const b = el.getBoundingClientRect()
-      const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
-      const above = b.top - navBottom >= 52
-      const width = Math.min(window.innerWidth - 24, Math.max(240, b.width))
-      const left = Math.max(12, Math.min(window.innerWidth - width - 12, b.left))
-      return above
-        ? { left, width, above: true, bottom: window.innerHeight - b.top }
-        : { left, width, above: false, top: b.top + b.height }
-    }
 
-    // UFO animation: collapse rectangle → callout travels at full size → rectangle expands
+
+    // UFO animation:
+    // Phase 1 (0–320ms): hide border + collapse spotlight height to 0. Callout stays at old position.
+    // Phase 2 (320ms+): locate() scrolls page and expands spotlight at new element (border still hidden).
+    // Reveal (settle+80ms): callout slides to new position (320ms CSS), border fades in (120ms CSS).
+    // Callout moves exactly ONCE, only after the spotlight is fully settled — never during scroll.
     const prev = spotlightRef.current
-    const prevCallout = calloutRef.current  // full-size callout before collapse
+    const prevCallout = calloutRef.current
     if (prev && prevCallout) {
-      // Keep callout at full size while rectangle collapses (stableCallout overrides derived)
+      ufoMode = true
+      setSpotlightHidden(true)
       setStableCallout(prevCallout)
       const calloutAbove = prevCallout.above
-      // Phase 1: collapse rectangle height to 0 at callout width.
-      // Subtract 2×pad so that after the pad is re-added in the spotlight calc the rendered width = callout width.
       setDisplayRect(calloutAbove
         ? { top: prev.top, left: prevCallout.left + pad, width: Math.max(0, prevCallout.width - 2 * pad), height: 0 }
-        : { top: (prevCallout.top ?? prev.top + prev.height), left: prevCallout.left + pad, width: Math.max(0, prevCallout.width - 2 * pad), height: 0 })
-
+        : { top: prevCallout.top, left: prevCallout.left + pad, width: Math.max(0, prevCallout.width - 2 * pad), height: 0 })
+      // After collapse, locate the next element regardless of distance or viewport position.
       travelTimer = window.setTimeout(() => {
         if (cancelled || transitionRunRef.current !== run) return
-        const nextEl = !step.multiple ? document.querySelector<HTMLElement>(step.target) : null
-        if (nextEl && isInViewport(nextEl.getBoundingClientRect())) {
-          // Target is visible — travel callout to its position, then expand
-          const newCalloutPos = computeCalloutPos(nextEl)
-          const b = nextEl.getBoundingClientRect()
-          const isNearby = Math.abs(b.top - prev.top) < 120 && Math.abs(b.left - prev.left) < 60
-          if (isNearby) {
-            // Same area — skip animation, just locate.
-            // Keep stableCallout (prevCallout) so callout stays visible; revealTimer clears it.
-            locate()
-          } else {
-            // Phase 2: callout travels to new position (stays full size)
-            setStableCallout(newCalloutPos)
-            const newAbove = newCalloutPos.above
-            setDisplayRect(newAbove
-              ? { top: b.top, left: b.left, width: b.width, height: 2 }
-              : { top: b.top + b.height - 2, left: b.left, width: b.width, height: 2 })
-            // Phase 3: expand rectangle.
-            // Keep stableCallout (newCalloutPos) so it stays at the traveled position
-            // while locate() does its scroll; revealTimer clears it once settled.
-            travelTimer = window.setTimeout(() => {
-              if (cancelled || transitionRunRef.current !== run) return
-              locate()
-            }, 320)
-          }
-        } else {
-          // Off-screen — skip travel and don't compute off-screen callout position
-          // (would produce a negative/invisible position). Keep prevCallout via stableCallout
-          // until locate() settles and revealTimer clears it.
-          locate()
-        }
+        locate()
       }, 320)
     } else {
+      setSpotlightHidden(false)
       setDisplayRect(null)
-      // No previous position — just locate directly (first step or post-page-load)
       travelTimer = window.setTimeout(locate, step.page === 'ticker' ? 200 : 0)
     }
     const onViewportChange = () => { updateRect() }
@@ -409,6 +419,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       if (retryTimer !== null) window.clearTimeout(retryTimer)
       if (settleTimer !== null) window.clearTimeout(settleTimer)
       if (revealTimer !== null) window.clearTimeout(revealTimer)
+      if (expandTimer !== null) window.clearTimeout(expandTimer)
       if (crossPageClearTimer !== null) window.clearTimeout(crossPageClearTimer)
       observer?.disconnect()
       window.removeEventListener('scroll', onViewportChange, true)
@@ -426,10 +437,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const tick = () => {
       i++
       setDisplayedText(text.slice(0, i))
-      if (i < text.length) typingTimerRef.current = window.setTimeout(tick, 18)
+      if (i < text.length) typingTimerRef.current = window.setTimeout(tick, 10)
       else typingTimerRef.current = null
     }
-    typingTimerRef.current = window.setTimeout(tick, 18)
+    typingTimerRef.current = window.setTimeout(tick, 10)
     return () => { if (typingTimerRef.current !== null) { window.clearTimeout(typingTimerRef.current); typingTimerRef.current = null } }
   }, [step?.instruction])
 
@@ -501,11 +512,11 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const width = Math.min(window.innerWidth - 24, Math.max(240, spotlight.width))
     const left = Math.max(12, Math.min(window.innerWidth - width - 12, spotlight.left))
     const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
+    const calloutH = calloutElRef.current?.offsetHeight ?? 48
     // Force callout above when: enough nav-gap exists, OR not enough room below (near page bottom)
-    const above = (spotlight.top - navBottom >= 52) || (spotlight.top + spotlight.height + 60 > window.innerHeight)
-    return above
-      ? { bottom: window.innerHeight - spotlight.top, left, width, above: true }
-      : { top: spotlight.top + spotlight.height, left, width, above: false }
+    const above = (spotlight.top - navBottom >= 52) || (spotlight.top + spotlight.height + calloutH + 12 > window.innerHeight)
+    const top = above ? spotlight.top - calloutH : spotlight.top + spotlight.height
+    return { top, left, width, above }
   })() : null
   // Keep calloutRef up to date so the effect can read the pre-collapse callout position
   if (derivedCallout) calloutRef.current = derivedCallout
@@ -538,7 +549,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   return (
     <TourContext.Provider value={context}>
       {children}
-      {mounted && (showTransition || routeLoading) && createPortal(
+      {mounted && (showTransition || routeLoading || showCompletionLoader) && createPortal(
         <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black overflow-hidden font-mono">
           <style>{`
             @keyframes ss-tv-crush {
@@ -551,7 +562,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
               100% { width: 0px;   opacity: 0; }
             }
           `}</style>
-          {routeLoading && !showTransition && <StockSnackLoader />}
+          {(routeLoading || showCompletionLoader) && !showTransition && <StockSnackLoader />}
           {showTransition && tvPhase === 'crush' && (
             <div style={{ position: 'absolute', width: '100vw', background: 'white', boxShadow: '0 0 60px 20px white', animation: 'ss-tv-crush 160ms cubic-bezier(0.4,0,1,1) forwards' }} />
           )}
@@ -563,19 +574,25 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       )}
       {mounted && state.status === 'active' && step && pageMatches && spotlight && createPortal(
         <div className="pointer-events-none fixed inset-0 z-[1200] font-mono" aria-live="polite">
-          {/* Overlay panels — block all clicks outside spotlight so menus/dropdowns can't be dismissed */}
-          <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: 0, left: 0, right: 0, height: spotlight.top, transition: 'height 300ms cubic-bezier(0.4,0,0.2,1)' }} />
-          <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: spotlight.top, left: 0, width: spotlight.left, height: spotlight.height, transition: TRANSITION }} />
-          <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: spotlight.height, transition: TRANSITION }} />
-          <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: spotlight.top + spotlight.height, left: 0, right: 0, bottom: 0, transition: 'top 300ms cubic-bezier(0.4,0,0.2,1)' }} />
-          {/* Spotlight border */}
+          {/* Overlay panels — always 4-panel so the cutout collapses with CSS animation when UFO starts.
+              When spotlightHidden (UFO travel), close the gap so the sliver doesn't show through. */}
+          {(() => {
+            const h = spotlightHidden ? 0 : spotlight.height
+            return <>
+              <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: 0, left: 0, right: 0, height: spotlight.top, transition: 'height 300ms cubic-bezier(0.4,0,0.2,1)' }} />
+              <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: spotlight.top, left: 0, width: spotlight.left, height: h, transition: TRANSITION }} />
+              <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: spotlight.top, left: spotlight.left + spotlight.width, right: 0, height: h, transition: TRANSITION }} />
+              <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: spotlight.top + h, left: 0, right: 0, bottom: 0, transition: 'top 300ms cubic-bezier(0.4,0,0.2,1)' }} />
+            </>
+          })()}
+          {/* Spotlight border — hidden during UFO animation so the collapsing/traveling box is invisible */}
           <div
             className="absolute pointer-events-none border-2 border-[#00ff41] shadow-[0_0_24px_rgba(0,255,65,0.45)]"
             style={{
               ...spotlight,
-              borderRadius: callout?.above ? '0 0 6px 6px' : '6px',
-              borderTop: callout?.above ? 'none' : undefined,
-              transition: TRANSITION,
+              borderRadius: '6px',
+              opacity: spotlightHidden ? 0 : 1,
+              transition: TRANSITION + ', opacity 120ms ease',
             }}
           />
           <button
@@ -601,7 +618,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             return (
               <div
                 className="pointer-events-none absolute z-[902] h-3 w-3"
-                style={{ left: dotLeft, top: dotTop, transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), top 300ms cubic-bezier(0.4,0,0.2,1)' }}
+                style={{ left: dotLeft, top: dotTop, opacity: spotlightHidden ? 0 : 1, transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), top 300ms cubic-bezier(0.4,0,0.2,1), opacity 120ms ease' }}
                 aria-hidden="true"
               >
                 {canAdvance && <span className="absolute inset-0 animate-ping rounded-full bg-[#00ff41] opacity-70" />}
@@ -613,15 +630,14 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           {/* Callout */}
           {callout && calloutVisible && (
             <div
+              ref={calloutElRef}
               className="pointer-events-none fixed z-[1350] bg-[#00ff41] shadow-[0_0_20px_rgba(0,255,65,0.4)]"
               style={{
                 left: callout.left,
                 width: callout.width,
-                ...(callout.above ? { bottom: (callout as { bottom: number }).bottom } : { top: (callout as { top: number }).top }),
-                borderRadius: callout.above ? '6px 6px 0 0' : '0 0 6px 6px',
-                borderBottom: callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
-                borderTop: !callout.above ? '1px solid rgba(0,0,0,0.15)' : undefined,
-                transition: 'left 320ms cubic-bezier(0.4,0,0.2,1), top 320ms cubic-bezier(0.4,0,0.2,1), bottom 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1)',
+                top: callout.top,
+                borderRadius: '6px',
+                transition: 'left 320ms cubic-bezier(0.4,0,0.2,1), top 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1)',
                 overflow: 'hidden',
                 minHeight: calloutTextVisible ? undefined : 8,
               }}

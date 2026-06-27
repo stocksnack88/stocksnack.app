@@ -23,6 +23,7 @@ type TourStep = {
   navigate?: boolean
   dotTarget?: string  // separate selector for pulsing dot position
   openLayerIds?: number[]  // layer IDs to open before locating this step's target
+  skipUfo?: boolean  // skip UFO travel; collapse then expand upward in-place
 }
 
 const STEPS: TourStep[] = [
@@ -35,9 +36,9 @@ const STEPS: TourStep[] = [
   { page: 'ticker',   target: '[data-tour-id="business"]',                openLayerIds: [0, 8, 12],                      action: 'tap',   instruction: 'This shows what the company does and sells.' },
   { page: 'ticker',   target: '[data-tour-id="price-methods"]',                                                          action: 'click', instruction: 'How do we calculate the future price?' },
   { page: 'ticker',   target: '[data-tour-id="methodology-toggle"]',      openLayerIds: [2],                             action: 'click', instruction: 'These are the methods we use to calculate the future price.' },
-  { page: 'ticker',   target: '[data-tour-id="method-1"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, instruction: 'Method 1 uses future EBITDA or P/E to estimate price.' },
-  { page: 'ticker',   target: '[data-tour-id="method-2"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, instruction: 'Method 2 uses future Free Cash Flow to estimate price.' },
-  { page: 'ticker',   target: '[data-tour-id="method-3"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, instruction: 'Method 3 uses future Dividends when applicable.' },
+  { page: 'ticker',   target: '[data-tour-id="method-1"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, skipUfo: true, instruction: 'Method 1 uses future EBITDA or P/E to estimate price.' },
+  { page: 'ticker',   target: '[data-tour-id="method-2"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, skipUfo: true, instruction: 'Method 2 uses future Free Cash Flow to estimate price.' },
+  { page: 'ticker',   target: '[data-tour-id="method-3"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, skipUfo: true, instruction: 'Method 3 uses future Dividends when applicable.' },
   { page: 'ticker',   target: '[data-tour-id="blended-projection"]',      openLayerIds: [2],                             action: 'tap',   instruction: 'We average all available future prices into one target.' },
   { page: 'ticker',   target: '[data-tour-id="growth-layer"]',                                                           action: 'click', instruction: 'This layer measures the company\'s growth quality.' },
   { page: 'ticker',   target: '[data-tour-id="growth-yoy"]',              openLayerIds: [3],                             action: 'tap',   instruction: 'This part shows the year-over-year performance.' },
@@ -282,10 +283,13 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       const right = Math.max(...boxes.map(b => b.right))
       const bottom = Math.max(...boxes.map(b => b.bottom))
       if (ufoMode) {
-        // Always anchor the sliver at the element TOP so expansion always goes downward.
-        // Previously the sliver was placed at element bottom when the callout is below,
-        // causing a "shoot down then shoot up" artifact during the CSS transition.
-        setDisplayRect({ top: top, left, width: right - left, height: 2 })
+        if (step.skipUfo) {
+          // skipUfo steps: anchor sliver at element BOTTOM so expansion goes upward.
+          setDisplayRect({ top: bottom - 2, left, width: right - left, height: 2 })
+        } else {
+          // Standard UFO: anchor sliver at element TOP so expansion goes downward.
+          setDisplayRect({ top: top, left, width: right - left, height: 2 })
+        }
       } else {
         setDisplayRect({ top, left, width: right - left, height: bottom - top })
       }
@@ -367,7 +371,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         }
         scrollToTarget()
         updateRect()
-        // Re-scroll after accordion animations settle (~300ms), then capture final rect and attach ResizeObserver
+        // Re-scroll after accordion animations settle, then capture final rect and attach ResizeObserver.
+        // 600ms: gives smooth-scroll enough time to complete on long pages (steps 14, 24) before reveal.
         settleTimer = window.setTimeout(() => {
           if (cancelled || transitionRunRef.current !== run) return
           scrollToTarget()
@@ -375,7 +380,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           // Watch for subsequent size changes (accordion expanding after click)
           observer = new ResizeObserver(() => { updateRect() })
           targets.forEach(t => observer?.observe(t))
-        }, 300)
+        }, 600)
         return
       }
       settleTimer = window.setTimeout(() => updateRect(true), 50)
@@ -390,9 +395,20 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     // Phase 2 (320ms+): locate() scrolls page and expands spotlight at new element (border still hidden).
     // Reveal (settle+80ms): callout slides to new position (320ms CSS), border fades in (120ms CSS).
     // Callout moves exactly ONCE, only after the spotlight is fully settled — never during scroll.
+    //
+    // skipUfo steps (method-1/2/3): collapse in-place → expand upward from bottom sliver. No travel.
     const prev = spotlightRef.current
     const prevCallout = calloutRef.current
-    if (prev && prevCallout) {
+    if (prev && prevCallout && step.skipUfo) {
+      // skipUfo: Phase 1 collapse (no spotlightHidden — 4-panel stays visible), then locate immediately.
+      ufoMode = true
+      setStableCallout(prevCallout)
+      setDisplayRect({ top: prev.top, left: prev.left, width: prev.width, height: 0 })
+      travelTimer = window.setTimeout(() => {
+        if (cancelled || transitionRunRef.current !== run) return
+        locate()
+      }, 320)
+    } else if (prev && prevCallout) {
       ufoMode = true
       setSpotlightHidden(true)
       setStableCallout(prevCallout)

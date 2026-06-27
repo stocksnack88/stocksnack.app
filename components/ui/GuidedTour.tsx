@@ -381,7 +381,6 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         const doReveal = () => {
           onScrollReveal = null
           if (cancelled || transitionRunRef.current !== run) return
-          scrollToTarget()
           updateRect(true)
           observer = new ResizeObserver(() => { updateRect() })
           targets.forEach(t => observer?.observe(t))
@@ -415,7 +414,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       ufoMode = true
       setSpotlightHidden(false)
       setStableCallout(prevCallout)
-      const collapseTop = prevCallout.above ? prev.top + 8 : prev.top + prev.height - 8
+      // Sliver must end inside the callout so it's fully hidden:
+      // above → sliver bottom = callout bottom (prev.top = prevCallout.top + calloutH)
+      // below → sliver top = callout top
+      const collapseTop = prevCallout.above ? prev.top - 8 : prevCallout.top + 8
       setDisplayRect({ top: collapseTop, left: prev.left + 8, width: prev.width - 16, height: 0 })
       travelTimer = window.setTimeout(() => {
         if (cancelled || transitionRunRef.current !== run) return

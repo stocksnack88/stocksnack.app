@@ -67,7 +67,7 @@ _NULL_RESULT = {"product_segments": None, "geo_segments": None}
 
 # Segment names that are roll-up rows, not real segments.
 # Lowercased exact matches — anything starting with "total" is also excluded.
-_NAME_ROLLUPS = {"worldwide", "consolidated"}
+_NAME_ROLLUPS = {"worldwide", "consolidated", "revenue to unaffiliated customers,", "revenues"}
 
 # Regex used to truncate verbose segment names (e.g. BKNG stores full SEC
 # paragraph text as XBRL labels).  Split at first verb/preposition.
@@ -350,6 +350,7 @@ def _clean_member_name(member: str, labels: dict[str, str]) -> str:
     if member in labels:
         name = labels[member]
         name = re.sub(r"\s*\[Member\]\.?$", "", name).strip()
+        name = re.sub(r"\.\s*$", "", name).strip()   # strip trailing period (e.g. "Pharmaceutical segment.")
         name = re.sub(r"\s+Segment$", "", name).strip()
         # Some companies (e.g. INCY) store documentation text as the label:
         # "Represents information pertaining to JAKAFI, ruxolitinib…"
@@ -439,18 +440,39 @@ def _parse_contexts(root: ET.Element) -> dict[str, dict]:
                 axis   = other[0]
                 member = dims[axis]
 
-            # Pattern 2: NFLX/single-product style — ProductOrService + Geo.
-            # Companies that have one product line report geo breakdowns as 2-dim
-            # contexts (e.g. ProductOrServiceAxis=StreamingMember +
-            # GeographicalAxis=EMEAMember). Extract the geo dimension.
+            # Pattern 2: ProductOrService + Geo 2-dim contexts.
+            # Two sub-cases:
+            #  (a) NFLX style: one product, many geos → extract geo dimension.
+            #  (b) LLY style: many drugs × many geos → extract product dimension
+            #      so we can sum geo regions to get total per-drug revenue.
+            # We emit TWO entries for case (b): one for geo (2dim_geo) and one
+            # for the product (2dim_product). The product entry is deduplicated
+            # by summing in _build_segments.
             elif (any(k in (_PRODUCT_AXES | _BIZ_SEGMENT_AXES) for k in dims) and
                   any(k in _GEO_AXES for k in dims)):
-                geo_keys = [k for k in dims if k in _GEO_AXES]
+                geo_keys  = [k for k in dims if k in _GEO_AXES]
+                prod_keys = [k for k in dims if k in (_PRODUCT_AXES | _BIZ_SEGMENT_AXES)]
                 if len(geo_keys) != 1:
                     continue
+                # Store geo view. Also embed product info so _extract_revenue_facts
+                # can emit a second product-axis fact for the same element.
                 axis   = geo_keys[0]
                 member = dims[axis]
                 source = "2dim_geo"
+                entry: dict = {
+                    "axis": axis, "member": member,
+                    "period_end": period_end, "source": source,
+                }
+                if len(prod_keys) == 1:
+                    entry["also_product"] = {
+                        "axis":   prod_keys[0],
+                        "member": dims[prod_keys[0]],
+                    }
+                axis   = geo_keys[0]
+                member = dims[axis]
+                source = "2dim_geo"
+                ctx_map[cid] = entry
+                continue
 
             else:
                 continue
@@ -540,6 +562,18 @@ def _extract_revenue_facts(
                     "value":      val,
                     "source":     ctx.get("source", "1dim"),
                 })
+                # For 2dim Product+Geo contexts, also emit a product-axis fact
+                # so drug-level revenue can be summed across geo regions.
+                if ctx.get("also_product"):
+                    ap = ctx["also_product"]
+                    facts.append({
+                        "tag":        rev_tag,
+                        "axis":       ap["axis"],
+                        "member":     ap["member"],
+                        "period_end": ctx["period_end"],
+                        "value":      val,
+                        "source":     "2dim_product",
+                    })
 
     return facts
 
@@ -595,6 +629,12 @@ def _drop_rollups(
         m = s.get("member", "")
         return m.startswith("us-gaap:") or m.startswith("srt:")
 
+    def _is_complement_member(m: str) -> bool:
+        """True for aggregate members that are the complement of a specific country."""
+        ml = m.lower()
+        return (m == "us-gaap:NonUsMember" or "nonusmember" in ml or "nonus" in ml
+                or "excluding" in ml or "ex-us" in ml)
+
     n_total   = len(segments)
     candidates = [s for s in segments if _is_std(s) or n_total <= _SMALL_N]
     if not candidates:
@@ -607,8 +647,15 @@ def _drop_rollups(
         tol = v * (0.02 if _is_std(candidate) else 0.005)
         lo, hi = v - tol, v + tol
 
-        # All other segments are potential children (STD or company-specific).
-        others = [s for s in segments if s is not candidate]
+        # When testing a country:XX member, exclude complement members (e.g.
+        # us-gaap:NonUsMember) from the "others" pool.  A country can never be
+        # a rollup of (NonUS + children) — the numeric coincidence that
+        # NonUS + EMEA + Japan ≈ US would otherwise falsely drop the US row.
+        if candidate.get("member", "").startswith("country:"):
+            others = [s for s in segments
+                      if s is not candidate and not _is_complement_member(s.get("member", ""))]
+        else:
+            others = [s for s in segments if s is not candidate]
         if not others:
             continue
 
@@ -620,9 +667,13 @@ def _drop_rollups(
             to_drop.add(id(candidate))
             continue
 
-        # Subset search
+        # Subset search.
+        # For company-specific members, start at size=3 (not 2) to avoid
+        # coincidental 2-element matches (e.g. NFLX: EMEA+LatAm ≈ USCanada).
+        # Standard taxonomy members are more rigidly defined, so size=2 is fine.
+        min_size = 2 if _is_std(candidate) else 3
         found = False
-        for size in range(2, min(_MAX_CHILDREN, n) + 1):
+        for size in range(min_size, min(_MAX_CHILDREN, n) + 1):
             for combo in combinations(child_vals, size):
                 if lo <= sum(combo) <= hi:
                     found = True
@@ -652,13 +703,56 @@ def _build_segments(
     if not relevant:
         return None
 
-    # When some facts came from 2-dim Product+Geo contexts (e.g. NFLX reports
-    # geo revenue as ProductOrServiceAxis + GeographicalAxis), prefer those over
-    # any 1-dim geo facts (e.g. country:US) that may also be in the filing.
-    # The 1-dim facts are typically a finer-grained or overlapping subset and
-    # would produce incorrect totals if mixed with the 2-dim regional breakdown.
-    if any(f.get("source") == "2dim_geo" for f in relevant):
-        relevant = [f for f in relevant if f.get("source") == "2dim_geo"]
+    # ── Geo source preference ─────────────────────────────────────────────────
+    # 1dim geo = company's own top-level geographic segments — always preferred.
+    # 2dim_geo = revenue tagged as product × geo — useful only when a company
+    #   files no meaningful 1dim geo (e.g. NFLX, BIIB). When 1dim and 2dim_geo
+    #   coexist, 2dim_geo can double-count because the product axis has rollup
+    #   hierarchy (e.g. GILD's HIV-portfolio US + Biktarvy US + Descovy US all
+    #   tag country:US, inflating the total).
+    # Rule: use 1dim if it gives ≥ 2 unique members for the most-recent year;
+    # fall back to 2dim_geo otherwise (NFLX, BIIB).
+    if axes & _GEO_AXES:
+        dim1  = [f for f in relevant if f.get("source") == "1dim"]
+        dim2g = [f for f in relevant if f.get("source") == "2dim_geo"]
+        if dim1 and dim2g:
+            yr = max(f["period_end"] for f in relevant)[:4]
+            if len({f["member"] for f in dim1 if f["period_end"][:4] == yr}) >= 2:
+                relevant = dim1
+            else:
+                relevant = dim2g
+
+    # Geo deduplication: companies file BOTH company-defined regional members
+    # (meta:USCanadaMember) AND country-level members (country:US) for concentration
+    # risk disclosures. A country:XX member is subsumed when a non-complement,
+    # non-country member is strictly larger (≥ 90% of country value). Complement
+    # members (NonUsMember, "Excluding United States") are explicitly excluded
+    # from this check — they represent the opposite side of the split, not a superset.
+    if axes & _GEO_AXES:
+        country_facts    = [f for f in relevant if f["member"].startswith("country:")]
+        noncountry_facts = [f for f in relevant if not f["member"].startswith("country:")]
+        if country_facts and noncountry_facts:
+            yr = max(f["period_end"] for f in relevant)[:4]
+
+            def _is_complement(member: str) -> bool:
+                m = member.lower()
+                return ("nonusmember" in m or "non-us" in m or "nonus" in m
+                        or "excluding" in m or "ex-us" in m
+                        or member == "us-gaap:NonUsMember")
+
+            to_drop = set()
+            for cf in country_facts:
+                cv = next((f["value"] for f in country_facts
+                           if f["member"] == cf["member"] and f["period_end"][:4] == yr), None)
+                if cv is None:
+                    continue
+                if any(f["period_end"][:4] == yr
+                       and not _is_complement(f["member"])
+                       and f["value"] > cv * 0.90
+                       for f in noncountry_facts):
+                    to_drop.add(id(cf))
+            if to_drop:
+                relevant = [f for f in relevant if id(f) not in to_drop]
 
     # Group by period_end year — pick the year from the date string
     def year_of(period_end: str) -> int:
@@ -676,24 +770,46 @@ def _build_segments(
     n_years      = most_recent_year - oldest_year  # 0 if only 1 year
 
     # Build {member: {year: value}} — for each member keep most preferred tag
-    # (earlier tag in _REVENUE_TAGS list is more preferred)
+    # (earlier tag in _REVENUE_TAGS list is more preferred).
+    # 2dim_product facts (drug × geo) are summed across geo regions to get
+    # total per-drug revenue. 1dim facts take precedence over 2dim_product
+    # if both exist for the same member (avoids double-counting).
     member_year_val: dict[str, dict[int, float]] = {}
     tag_priority = {t: i for i, t in enumerate(_REVENUE_TAGS)}
 
-    member_tag: dict[str, str] = {}  # track which tag each member used
+    member_tag:    dict[str, str]  = {}  # track which tag each member used
+    member_source: dict[str, str]  = {}  # track source type per member
 
     for f in relevant:
         y = year_of(f["period_end"])
         if y not in years:
             continue
-        m = f["member"]
-        # Only store if this tag is better (lower priority index) than current
+        m      = f["member"]
+        src    = f.get("source", "1dim")
         cur_tag = member_tag.get(m)
+        cur_src = member_source.get(m, "")
+
+        # 1dim always beats 2dim_product for same member
+        if src == "2dim_product" and cur_src == "1dim":
+            continue
+
         if cur_tag is None or tag_priority.get(f["tag"], 99) < tag_priority.get(cur_tag, 99):
             member_year_val.setdefault(m, {})[y] = f["value"]
-            member_tag[m] = f["tag"]
+            member_tag[m]    = f["tag"]
+            member_source[m] = src
         elif f["tag"] == cur_tag:
-            member_year_val.setdefault(m, {})[y] = f["value"]
+            if src == "2dim_product" and cur_src == "2dim_product":
+                # Sum geo slices to build total drug revenue
+                member_year_val.setdefault(m, {})[y] = member_year_val[m].get(y, 0) + f["value"]
+            elif src == "2dim_geo" and cur_src == "2dim_geo":
+                # 2dim_geo fallback: multiple product slices for same geo member.
+                # Take MAX rather than summing — the largest value is the most
+                # comprehensive (highest-level rollup), avoiding hierarchy double-count.
+                member_year_val.setdefault(m, {})[y] = max(
+                    member_year_val[m].get(y, 0), f["value"]
+                )
+            else:
+                member_year_val.setdefault(m, {})[y] = f["value"]
 
     # Only keep members that have a value in the most recent year
     members_with_recent = {
@@ -702,6 +818,31 @@ def _build_segments(
     }
     if not members_with_recent:
         return None
+
+    # If 2dim_product drug-level facts are present, drop 1dim standard-taxonomy
+    # aggregate members (us-gaap:ProductMember, us-gaap:ServiceMember) that are
+    # rollups of the individual drug/product members. The subset-sum rollup check
+    # fails when there are >10 children, so we handle this explicitly.
+    has_2dim_product = any(member_source.get(m) == "2dim_product" for m in members_with_recent)
+    _STD_AGGREGATE_MEMBERS = {
+        "us-gaap:ProductMember",
+        "us-gaap:ServiceMember",
+        "us-gaap:AllProductsAndServicesMember",
+        "us-gaap:RevenuesMember",  # BIIB: generic rollup member used as top-level
+    }
+    if has_2dim_product:
+        members_with_recent -= _STD_AGGREGATE_MEMBERS
+
+    # If every remaining member is a standard taxonomy member (us-gaap:/srt: prefixed),
+    # this is a generic Product/Service or revenue line-item split — not a company-specific
+    # breakdown. Return None to avoid showing meaningless "Product / Service" rows.
+    # (Applies to product and business-segment axes only, not geo axes.)
+    if axes & (_PRODUCT_AXES | _BIZ_SEGMENT_AXES) and not (axes & _GEO_AXES):
+        if members_with_recent and all(
+            m.startswith("us-gaap:") or m.startswith("srt:")
+            for m in members_with_recent
+        ):
+            return None
 
     # Total revenue for most recent year (sum across members)
     total_recent = sum(
@@ -740,17 +881,35 @@ def _build_segments(
 
     # Drop name-based rollup markers: anything starting with "total",
     # or exact matches for "worldwide" / "consolidated".
+    # Also filter boilerplate documentation labels that appear instead of real names
+    # (CAT: "Represents the aggregate total of...", TGT: "Disclosures related to...").
+    _BOILERPLATE_PREFIXES = ("represents ", "disclosures ")
     segments = [
         s for s in segments
         if not s["name"].lower().startswith("total")
         and s["name"].lower() not in _NAME_ROLLUPS
+        and not any(s["name"].lower().startswith(p) for p in _BOILERPLATE_PREFIXES)
     ]
+
+    # Drop us-gaap:NonUsMember when ≥2 other geo segments are present.
+    # NonUsMember is always a complement/aggregate and is redundant alongside
+    # specific country (country:XX) or named regional segments (EMEA, LatAm, etc.).
+    if axes & _GEO_AXES:
+        non_us_segs = [s for s in segments if s.get("member") != "us-gaap:NonUsMember"]
+        if len(non_us_segs) >= 2:
+            segments = non_us_segs
 
     # Recalculate pct against the post-rollup total and strip internal key
     real_total = sum(s["value"] for s in segments)
     for s in segments:
         s["pct"] = round(s["value"] / real_total * 100, 1) if real_total > 0 else 0.0
         s.pop("member", None)
+
+    # If only one segment remains and it's a catch-all "other" bucket, it means
+    # the company doesn't XBRL-tag meaningful segments — return None rather than
+    # showing a single 100% "other" row (e.g. ABBV's OtherProductsMember).
+    if len(segments) == 1 and segments[0]["name"].lower().startswith("other"):
+        return None
 
     return segments if segments else None
 
@@ -801,9 +960,19 @@ def parse_segments(
     # (many companies like AAPL report geographic revenue under StatementBusinessSegmentsAxis).
     # Skip the BizSegments fallback if it was already consumed for product above.
     geo = _build_segments(facts, _GEO_AXES, labels, parent_child_map)
+    # A single-segment geo result (US-only) is not a meaningful breakdown — it's
+    # a concentration-risk disclosure, not true geographic segmentation.  Treat it
+    # the same as None so the BizSegments fallback can produce a richer breakdown
+    # (e.g. NKE's North America / EMEA / Greater China / APLA).
+    if geo is not None and len(geo) < 2:
+        geo = None
     if geo is None and not product_used_biz:
-        geo = _build_segments(facts, _BIZ_SEGMENT_AXES, labels, parent_child_map)
-        if geo:
+        biz_geo = _build_segments(facts, _BIZ_SEGMENT_AXES, labels, parent_child_map)
+        if biz_geo and len(biz_geo) >= 3:
+            # Require ≥3 segments to avoid using brand/business segments (e.g. NKE's
+            # "NIKE Brand / Converse" which has only 2 entries on BizSegments axis).
+            # Geographic breakdowns typically have ≥3 regions.
+            geo = biz_geo
             log.info("[%s] Geo segments sourced from StatementBusinessSegmentsAxis", ticker)
 
     return {"product_segments": product, "geo_segments": geo}

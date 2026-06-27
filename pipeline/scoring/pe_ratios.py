@@ -60,7 +60,7 @@ def compute_pe_ratios(client) -> None:
     # ── Bulk fetches (paginated — stock_fundamentals alone has 2,500+ rows) ──
     fund_rows = _fetch_all(
         client, "stock_fundamentals",
-        "ticker, fiscal_year, eps, net_income, free_cash_flow, dividends_paid, market_cap_at_year",
+        "ticker, fiscal_year, eps, net_income, free_cash_flow, dividends_paid, market_cap_at_year, ebitda",
         order_by="ticker",
     )
     price_rows  = _fetch_all(client, "stock_prices",  "ticker, current_price, market_cap")
@@ -104,12 +104,14 @@ def compute_pe_ratios(client) -> None:
         rows   = fund_by_ticker.get(ticker, [])
 
         result: dict = {
-            "pe_ratio":        None,
-            "pe_5y_avg":       None,
-            "fcf_yield":       None,
-            "fcf_5y_avg":      None,
-            "div_yield":       None,
-            "div_yield_5y_avg": None,
+            "pe_ratio":           None,
+            "pe_5y_avg":          None,
+            "fcf_yield":          None,
+            "fcf_5y_avg":         None,
+            "div_yield":          None,
+            "div_yield_5y_avg":   None,
+            "ev_ebitda_current":  None,
+            "ev_ebitda_5y_avg":   None,
         }
 
         # Foreign ADRs report financials in non-USD currencies — skip all ratios.
@@ -185,17 +187,44 @@ def compute_pe_ratios(client) -> None:
         if historical_div_yield:
             result["div_yield_5y_avg"] = round(sum(historical_div_yield) / len(historical_div_yield), 6)
 
+        # ev_ebitda_current: current market_cap / most recent ebitda (EV proxy)
+        if mktcap and mktcap > 0:
+            most_recent_ebitda = next(
+                (r["ebitda"] for r in rows if r.get("ebitda") and float(r["ebitda"]) > 0),
+                None,
+            )
+            if most_recent_ebitda:
+                ev_c = round(mktcap / float(most_recent_ebitda), 2)
+                if ev_c <= 200:
+                    result["ev_ebitda_current"] = ev_c
+
+        # ev_ebitda_5y_avg: avg(market_cap_at_year / ebitda) over last 5 fiscal years
+        # Uses market_cap as EV proxy (consistent, split-neutral). Cap at 200x to exclude
+        # distorted years (near-zero EBITDA), same spirit as _PE_SECTOR_CAP for P/E.
+        historical_ev_ebitda = [
+            float(r["market_cap_at_year"]) / float(r["ebitda"])
+            for r in rows[:5]
+            if r.get("market_cap_at_year") and r.get("ebitda")
+            and float(r["market_cap_at_year"]) > 0
+            and float(r["ebitda"]) > 0
+            and float(r["market_cap_at_year"]) / float(r["ebitda"]) <= 200
+        ]
+        if historical_ev_ebitda:
+            result["ev_ebitda_5y_avg"] = round(sum(historical_ev_ebitda) / len(historical_ev_ebitda), 2)
+
         ticker_metrics[ticker] = result
 
     # ── Sector averages (market-cap weighted) ────────────────────────────────
     # Each bucket stores (metric_value, market_cap) pairs.
     Pair = tuple[float, float]
-    sector_pe_pairs:     dict[str, list[Pair]] = defaultdict(list)
-    sector_pe_5y_pairs:  dict[str, list[Pair]] = defaultdict(list)
-    sector_fcf_pairs:    dict[str, list[Pair]] = defaultdict(list)
-    sector_fcf_5y_pairs: dict[str, list[Pair]] = defaultdict(list)
-    sector_div_pairs:    dict[str, list[Pair]] = defaultdict(list)
-    sector_div_5y_pairs: dict[str, list[Pair]] = defaultdict(list)
+    sector_pe_pairs:          dict[str, list[Pair]] = defaultdict(list)
+    sector_pe_5y_pairs:       dict[str, list[Pair]] = defaultdict(list)
+    sector_fcf_pairs:         dict[str, list[Pair]] = defaultdict(list)
+    sector_fcf_5y_pairs:      dict[str, list[Pair]] = defaultdict(list)
+    sector_div_pairs:         dict[str, list[Pair]] = defaultdict(list)
+    sector_div_5y_pairs:      dict[str, list[Pair]] = defaultdict(list)
+    sector_ev_ebitda_pairs:    dict[str, list[Pair]] = defaultdict(list)
+    sector_ev_ebitda_5y_pairs: dict[str, list[Pair]] = defaultdict(list)
 
     for ticker, m in ticker_metrics.items():
         sector = sector_map.get(ticker)
@@ -215,6 +244,10 @@ def compute_pe_ratios(client) -> None:
             sector_div_pairs[sector].append((m["div_yield"], mktcap))
         if m["div_yield_5y_avg"] is not None and m["div_yield_5y_avg"] > 0:
             sector_div_5y_pairs[sector].append((m["div_yield_5y_avg"], mktcap))
+        if m["ev_ebitda_current"] is not None and m["ev_ebitda_current"] > 0:
+            sector_ev_ebitda_pairs[sector].append((m["ev_ebitda_current"], mktcap))
+        if m["ev_ebitda_5y_avg"] is not None and m["ev_ebitda_5y_avg"] > 0:
+            sector_ev_ebitda_5y_pairs[sector].append((m["ev_ebitda_5y_avg"], mktcap))
 
     def _wavg(pairs: list[Pair], decimals: int) -> float | None:
         if not pairs:
@@ -224,12 +257,14 @@ def compute_pe_ratios(client) -> None:
             return None
         return round(sum(v * w for v, w in pairs) / total_w, decimals)
 
-    industry_pe_map          = {s: _wavg(p, 2) for s, p in sector_pe_pairs.items()}
-    industry_pe_5y_map       = {s: _wavg(p, 2) for s, p in sector_pe_5y_pairs.items()}
-    industry_fcf_map         = {s: _wavg(p, 6) for s, p in sector_fcf_pairs.items()}
-    industry_fcf_5y_map      = {s: _wavg(p, 6) for s, p in sector_fcf_5y_pairs.items()}
-    industry_div_map         = {s: _wavg(p, 6) for s, p in sector_div_pairs.items()}
-    industry_div_5y_map      = {s: _wavg(p, 6) for s, p in sector_div_5y_pairs.items()}
+    industry_pe_map               = {s: _wavg(p, 2) for s, p in sector_pe_pairs.items()}
+    industry_pe_5y_map            = {s: _wavg(p, 2) for s, p in sector_pe_5y_pairs.items()}
+    industry_fcf_map              = {s: _wavg(p, 6) for s, p in sector_fcf_pairs.items()}
+    industry_fcf_5y_map           = {s: _wavg(p, 6) for s, p in sector_fcf_5y_pairs.items()}
+    industry_div_map              = {s: _wavg(p, 6) for s, p in sector_div_pairs.items()}
+    industry_div_5y_map           = {s: _wavg(p, 6) for s, p in sector_div_5y_pairs.items()}
+    industry_ev_ebitda_map        = {s: _wavg(p, 2) for s, p in sector_ev_ebitda_pairs.items()}
+    industry_ev_ebitda_5y_map     = {s: _wavg(p, 2) for s, p in sector_ev_ebitda_5y_pairs.items()}
 
     # ── Write back to stock_scores ────────────────────────────────────────────
     updates = []
@@ -251,6 +286,9 @@ def compute_pe_ratios(client) -> None:
             "div_yield_5y_avg":          m.get("div_yield_5y_avg"),
             "industry_div_yield":        industry_div_map.get(sector)    if sector else None,
             "industry_div_yield_5y_avg": industry_div_5y_map.get(sector) if sector else None,
+            "ev_ebitda_5y_avg":          m.get("ev_ebitda_5y_avg"),
+            "industry_ev_ebitda":        industry_ev_ebitda_map.get(sector)    if sector else None,
+            "industry_ev_ebitda_5y_avg": industry_ev_ebitda_5y_map.get(sector) if sector else None,
         })
 
     if updates:

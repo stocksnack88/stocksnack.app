@@ -365,21 +365,23 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         const groupCenter = (firstTop + lastBottom) / 2
         window.scrollTo({ top: Math.max(0, groupCenter - window.innerHeight * 0.5), behavior: 'smooth' })
       } else {
-        // Single target — place element below nav with enough room for the callout to sit above it.
+        // Single target — place in upper portion of viewport (~25% below nav)
         const scrollToTarget = () => {
           const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
-          const calloutH = calloutElRef.current?.offsetHeight ?? 48
-          const targetTopInViewport = navH + calloutH + 20
+          const usableH = window.innerHeight - navH
+          const targetTopInViewport = navH + usableH * 0.25
           const currentTopAbsolute = targets[0].getBoundingClientRect().top + window.scrollY
           window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'smooth' })
         }
         scrollToTarget()
         updateRect()
         // Scroll-idle reveal: fire only after the page has stopped scrolling for 150ms.
-        // Element is already settled at this point — no second scrollToTarget() needed.
+        // Prevents the callout from appearing mid-scroll when the target is far down the page.
+        // onViewportChange resets this timer on every scroll event.
         const doReveal = () => {
           onScrollReveal = null
           if (cancelled || transitionRunRef.current !== run) return
+          scrollToTarget()
           updateRect(true)
           observer = new ResizeObserver(() => { updateRect() })
           targets.forEach(t => observer?.observe(t))

@@ -40,7 +40,7 @@ const STEPS: TourStep[] = [
   { page: 'ticker',   target: '[data-tour-id="method-2"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, skipUfo: true, instruction: 'Method 2 uses future Free Cash Flow to estimate price.' },
   { page: 'ticker',   target: '[data-tour-id="method-3"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, skipUfo: true, instruction: 'Method 3 uses future Dividends when applicable.' },
   { page: 'ticker',   target: '[data-tour-id="blended-projection"]',      openLayerIds: [2],                             action: 'tap',   instruction: 'We average all available future prices into one target.' },
-  { page: 'ticker',   target: '[data-tour-id="growth-layer"]',                                                           action: 'click', instruction: 'This layer measures the company\'s growth quality.' },
+  { page: 'ticker',   target: '[data-tour-id="growth-layer-header"]',                                                    action: 'click', instruction: 'This layer measures the company\'s growth quality.' },
   { page: 'ticker',   target: '[data-tour-id="growth-yoy"]',              openLayerIds: [3],                             action: 'tap',   instruction: 'This part shows the year-over-year performance.' },
   { page: 'ticker',   target: '[data-tour-id="growth-sp500"]',            openLayerIds: [3],                             action: 'tap',   optional: true, instruction: 'The red line shows the S&P 500 performance.' },
   { page: 'ticker',   target: '[data-tour-id="growth-metrics"]',          openLayerIds: [3],                             action: 'tap',   instruction: 'We cover Revenue, EBITDA and Free Cash Flow.' },
@@ -50,7 +50,7 @@ const STEPS: TourStep[] = [
   { page: 'ticker',   target: '[data-tour-id="health-income-statement"]', openLayerIds: [4],                             action: 'tap',   instruction: 'Income Statement checks cover profit and earnings quality.' },
   { page: 'ticker',   target: '[data-tour-id="health-cash-flow"]',        openLayerIds: [4],                             action: 'tap',   instruction: 'Cash Flow checks show how reliably the business produces cash.' },
   { page: 'ticker',   target: '[data-tour-id="health-metric"]',           openLayerIds: [4],                             action: 'click', optional: true, instruction: 'Click the arrow to expand a check and see its five-year history, then tap to continue.' },
-  { page: 'ticker',   target: '[data-tour-id="final-layer"]',                                                            action: 'click', instruction: 'The final layer combines every score into one verdict.' },
+  { page: 'ticker',   target: '[data-tour-id="final-layer-header"]',   openLayerIds: [5],                             action: 'click', instruction: 'The final layer combines every score into one verdict.' },
 ]
 
 type TourContextValue = {

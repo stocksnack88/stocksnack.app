@@ -365,23 +365,21 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         const groupCenter = (firstTop + lastBottom) / 2
         window.scrollTo({ top: Math.max(0, groupCenter - window.innerHeight * 0.5), behavior: 'smooth' })
       } else {
-        // Single target — place in upper portion of viewport (~15% below nav)
+        // Single target — place element below nav with enough room for the callout to sit above it.
         const scrollToTarget = () => {
           const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
-          const usableH = window.innerHeight - navH
-          const targetTopInViewport = navH + usableH * 0.25
+          const calloutH = calloutElRef.current?.offsetHeight ?? 48
+          const targetTopInViewport = navH + calloutH + 20
           const currentTopAbsolute = targets[0].getBoundingClientRect().top + window.scrollY
           window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'smooth' })
         }
         scrollToTarget()
         updateRect()
         // Scroll-idle reveal: fire only after the page has stopped scrolling for 150ms.
-        // Prevents the callout from appearing mid-scroll when the target is far down the page.
-        // onViewportChange resets this timer on every scroll event.
+        // Element is already settled at this point — no second scrollToTarget() needed.
         const doReveal = () => {
           onScrollReveal = null
           if (cancelled || transitionRunRef.current !== run) return
-          scrollToTarget()
           updateRect(true)
           observer = new ResizeObserver(() => { updateRect() })
           targets.forEach(t => observer?.observe(t))
@@ -409,12 +407,17 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const prev = spotlightRef.current
     const prevCallout = calloutRef.current
     if (prev && prevCallout && step.skipUfo) {
-      // skipUfo: Phase 1 collapse (no spotlightHidden — 4-panel stays visible), then locate immediately.
+      // skipUfo: collapse toward the callout direction (visible), then hide and locate.
+      // If callout is above: top edge stays fixed, bottom rises up to meet it (height→0).
+      // If callout is below: bottom edge stays fixed, top falls down to meet it (height→0).
       ufoMode = true
+      setSpotlightHidden(false)
       setStableCallout(prevCallout)
-      setDisplayRect({ top: prev.top, left: prev.left, width: prev.width, height: 0 })
+      const collapseTop = prevCallout.above ? prev.top + 8 : prev.top + prev.height - 8
+      setDisplayRect({ top: collapseTop, left: prev.left + 8, width: prev.width - 16, height: 0 })
       travelTimer = window.setTimeout(() => {
         if (cancelled || transitionRunRef.current !== run) return
+        setSpotlightHidden(true)
         locate()
       }, 320)
     } else if (prev && prevCallout) {

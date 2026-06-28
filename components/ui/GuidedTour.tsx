@@ -277,6 +277,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     // onViewportChange resets the idle timer on every scroll event so reveal only fires
     // after the page has actually stopped moving (150ms of silence).
     let onScrollReveal: (() => void) | null = null
+    // Boxes captured at reveal time — reused by expandTimer so drift between reveal and
+    // expand doesn't flip the callout above/below.
+    let revealBoxes: DOMRect[] | null = null
 
     const updateRect = (reveal = false) => {
       if (cancelled || transitionRunRef.current !== run || targets.length === 0) return false
@@ -309,7 +312,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             expandTimer = window.setTimeout(() => {
               if (cancelled || transitionRunRef.current !== run) return
               ufoMode = false
-              const expandBoxes = targets.map(t => t.getBoundingClientRect()).filter(b => b.width > 0 && b.height > 0)
+              // Use reveal-time positions so accordion drift can't flip above/below after reveal
+              const expandBoxes = (revealBoxes && revealBoxes.length > 0 ? revealBoxes : targets.map(t => t.getBoundingClientRect())).filter(b => b.width > 0 && b.height > 0)
               // Step 1: swap full-screen panel → 4-panel overlay at SLIVER dimensions.
               // This creates the cutout at sliver size so CSS transitions have a starting point.
               setSpotlightHidden(false)
@@ -381,6 +385,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         const doReveal = () => {
           onScrollReveal = null
           if (cancelled || transitionRunRef.current !== run) return
+          revealBoxes = targets.map(t => t.getBoundingClientRect()).filter(b => b.width > 0 && b.height > 0)
           updateRect(true)
           observer = new ResizeObserver(() => { updateRect() })
           targets.forEach(t => observer?.observe(t))

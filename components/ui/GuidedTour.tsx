@@ -552,9 +552,12 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const left = Math.max(12, Math.min(window.innerWidth - width - 12, spotlight.left))
     const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
     const calloutH = calloutElRef.current?.offsetHeight ?? 48
-    // Force callout above when: enough nav-gap exists, OR not enough room below (near page bottom)
-    const above = (spotlight.top - navBottom >= 52) || (spotlight.top + spotlight.height + calloutH + 12 > window.innerHeight)
-    const top = above ? spotlight.top - calloutH : spotlight.top + spotlight.height
+    // Prefer above whenever there's room; only go below if element is too close to nav
+    const canBeAbove = spotlight.top - navBottom >= calloutH + 4
+    const mustBeAbove = spotlight.top + spotlight.height + calloutH + 12 > window.innerHeight
+    const above = canBeAbove || mustBeAbove
+    // Position flush against the element (no gap) — use displayRect instead of spotlight to skip the 8px pad
+    const top = above ? displayRect.top - calloutH : displayRect.top + displayRect.height
     return { top, left, width, above }
   })() : null
   // Keep calloutRef up to date so the effect can read the pre-collapse callout position
@@ -609,6 +612,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             <div style={{ position: 'absolute', height: '2px', background: 'white', boxShadow: '0 0 30px 8px white', animation: 'ss-tv-shrink 140ms cubic-bezier(0.4,0,1,1) forwards' }} />
           )}
         </div>,
+        document.body,
+      )}
+      {mounted && state.status === 'active' && !spotlight && !routeLoading && !showTransition && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1199, background: 'transparent', pointerEvents: 'all' }} />,
         document.body,
       )}
       {mounted && state.status === 'active' && step && pageMatches && spotlight && createPortal(

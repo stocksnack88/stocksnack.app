@@ -557,7 +557,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const mustBeAbove = spotlight.top + spotlight.height + calloutH + 12 > window.innerHeight
     const above = canBeAbove || mustBeAbove
     // Position flush against the element (no gap) — use displayRect instead of spotlight to skip the 8px pad
-    const top = above ? displayRect.top - calloutH : displayRect.top + displayRect.height
+    const top = above ? displayRect!.top - calloutH : displayRect!.top + displayRect!.height
     return { top, left, width, above }
   })() : null
   // Keep calloutRef up to date so the effect can read the pre-collapse callout position

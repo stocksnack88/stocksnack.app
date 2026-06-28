@@ -2,6 +2,122 @@
 
 This file is for Claude Code agents. Read before working on anything n8n or deployment related.
 
+**START HERE:** Read `stocksnack-handoffv9.md` first. It contains the full session handover — vocabulary, solved problems, pending tasks, tour bug rules, and priority order for the next session.
+
+---
+
+## Working with Tong — Communication Rules
+
+**If feedback is not specific enough, push back and ask for specifics before acting.**
+
+Do NOT guess what the user means. If a bug report says "X is not working" or "Y looks wrong" without describing *what* the expected behaviour is or *what step* triggers it, respond with: "Can you describe what you expected to see vs what you actually saw?" or "Can you walk me through the exact steps to reproduce this?"
+
+For tour / UI bugs specifically — always ask:
+- Which step number is broken?
+- What did it look like vs what did you expect?
+- Is it consistent or intermittent?
+
+**Alternatively, offer to investigate first.** If the user says something is broken but the root cause is unclear, ask: "Do you want me to investigate and report back before making changes?" Do not dive into code changes without a clear diagnosis confirmed with the user.
+
+**When the user says "investigate", produce a written report first. No code changes until the user says to proceed.**
+
+**When explaining a UI or animation fix, always use this structure:**
+
+1. **Parts first** — list every moving piece in plain English before explaining anything (e.g. "Highlighted box — the green glowing box", "Callout box — the white popup with the Next button")
+2. **What you saw** — describe the symptom from the user's perspective, not from the code's perspective
+3. **Why it happened** — use an analogy or describe the motion, not code terms (e.g. "like trying to hide a piece of paper behind a book but the bottom half hangs out")
+4. **What I changed** — one plain English sentence
+5. **What motion to expect now** — numbered steps describing what the user will SEE on screen
+
+Do NOT explain with variable names, function names, or pixel offsets. The user needs to picture the motion to verify the fix is correct.
+
+**When reporting on a problem (investigate mode), use a structured table:**
+
+- One table per problem
+- Columns: (i) Status, (ii) Key blocker, (iii) Next step proposal
+- Keep each cell short and layman — no jargon
+- Do not mix problems into one table
+
+**When the user asks to align on a problem before fixing:**
+
+1. List the parts involved (what is each piece called, what does it do)
+2. Describe what is happening step by step — like a scene playing out, not a code trace
+3. Identify exactly which part is misbehaving and why
+4. Propose the fix in plain English — user approves before any code is touched
+
+---
+
+## Tour Bug Rules — Read Before Touching GuidedTour.tsx
+
+These rules exist because past fixes to one step broke all other steps. Follow them strictly.
+
+**Scope rule:** Every tour fix must be scoped to the exact steps the user named. If the fix requires touching shared logic (scrollToTarget, doReveal, updateRect, stableCallout), stop and flag it to the user — do not proceed without explicit approval.
+
+**Regression rule:** After any change, mentally trace through what happens on steps 1, 5, 10, 15, 20, 24 to check for side effects. If unsure, flag it.
+
+**Revert rule:** If a deployed fix causes regression on ANY step outside the intended scope, revert ALL changes immediately and report back. Do not try to patch around it.
+
+**scrollToTarget / doReveal are global:** Any change to these functions affects every single-target step (steps 1–24 excluding multi-target). Do not modify them without user approval and a full regression check.
+
+**skipUfo sliver rule:** For steps that use `skipUfo`, the sliver (collapsed box) must end up fully INSIDE the callout box — not at the edge, not below it. The formula:
+- Callout above → `collapseTop = prev.top - 8` (sliver bottom aligns with callout bottom)
+- Callout below → `collapseTop = prevCallout.top + 8` (sliver top aligns with callout top)
+
+**doReveal scroll rule:** Do NOT call `scrollToTarget()` inside `doReveal()`. By the time scroll-idle fires (150ms), the element is already at its final position. A second scroll causes the callout to chase the moving element and appear at the wrong position.
+
+---
+
+## Pending Tasks (as of 2026-06-28)
+
+### 🔴 Onboarding Tour — Needs User Testing
+The following fixes were deployed 2026-06-28. User has NOT yet signed off on any of these:
+- **Steps 9→10, 10→11, 11→12 skipUfo collapse** (commit ff49fa7): sliver now collapses fully inside the callout box before hiding. `collapseTop = prev.top - 8` (above) / `prevCallout.top + 8` (below).
+- **Steps 14/24 and 24/24 callout position** (commit ff49fa7): removed second `scrollToTarget()` from inside `doReveal()`. Callout now locks at correct position instead of chasing the element mid-scroll.
+
+Previously deployed but not yet signed off:
+- **Callout jump fix**: switched callout from `bottom/top` dual-CSS to always `top`.
+- **Final step (24/24) completion flow**: STOCKSNACK_ loader → navigates to screener.
+- **Steps 22→23 and 23→24 callout missing**: kept `stableCallout` alive in off-screen branch.
+- **Spotlight grows with accordion**: ResizeObserver attached in settleTimer callback.
+
+**Still open on tour (not yet fixed):**
+- Step 7/24 business section: confirm the expanded segment chart is visible after click (may be data issue for some tickers with no segment data).
+- Step 12→13 (blended-projection): skips UFO travel because target is off-screen — visually acceptable but worth noting.
+- General tour QA: full 24-step walkthrough needed to sign off.
+
+### 🔴 Segment Extractor — Multiple Bugs Identified
+`pipeline/sec/segment_extractor.py` has known data quality issues. After fixing, rerun `run_sec.py` to update `product_segments`/`geo_segments` in `stock_scores`:
+- Generic `us-gaap` members leaking into results (HON, GE, BA, HD)
+- "Represents the agg/ent…" rollup label appearing instead of real segment name (CAT)
+- "Disclosures relate…" label appearing (TGT)
+- Revenue line items being treated as segments (XOM)
+- AMZN Non-US complement not being dropped
+- BIIB/NKE geo showing only US (no international breakdown)
+- MRK geo overlap
+- PEP geo mixing into product axis
+
+### 🔴 LLY Pipeline — Pending Proper Rerun
+- Current `stock_scores` for LLY has old 3-segment data (Product 88.8% / Collaboration / Jardiance)
+- Segment extractor locally returns correct individual drug data (Mounjaro, Zepbound, Trulicity, etc.) but DB not yet updated
+- **After extractor fixes above are done**: rerun `run_sec.py` for LLY, then retrigger the LLY blog to get drug-level breakdown in the article
+
+### 🟡 Blog — LLY Draft May Be Stale
+- A new LLY blog was triggered (execution 1738) with the bold `##x return` fix applied
+- Status was unknown when context was cut off — check if it completed and is ready to publish
+- Once LLY segments are correct in DB, a fresh LLY blog trigger is needed anyway (to get drug names)
+
+### 🟡 Blog Insights Quality
+- User confirmed insights sections are not good — root cause identified: no per-drug time-series data in the Gemini prompt
+- Result: generic pharma language instead of drug-specific insights (e.g. "Mounjaro grew 118% YoY")
+- **No action yet** — user said investigate only. Fix requires passing individual drug revenue time-series into the Gemini prompt.
+
+### 🟢 SEC Pipeline — Long-term Architecture
+- `pipeline/sec/` is the target architecture to replace all FMP calls
+- Still needs: `verify.py`, hazard flag detection, go-live switch
+- When live: remove FMP calls from `pipeline/run.py`, do not supplement
+
+---
+
 ---
 
 ## Data Sources — Critical

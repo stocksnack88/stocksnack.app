@@ -393,7 +393,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             // lands exactly at calloutTop(24) + calloutH + 8px gap below.
             const calloutH = calloutElRef.current?.offsetHeight ?? 107
             const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
-            const anchor = headerEls[0] ?? targets[0]
+            // Method columns have two header rows:
+            // row 0 = small "METHOD 1"; row 1 = bold "EBITDA" / "FREE CASH FLOW" / "DIVIDENDS".
+            // Anchor scrolling to row 1 so both header rows sit below the instruction box.
+            const anchor = headerEls[1] ?? headerEls[0] ?? targets[0]
             const anchorAbsoluteTop = anchor.getBoundingClientRect().top + window.scrollY
             window.scrollTo({ top: Math.max(0, anchorAbsoluteTop - 24 - calloutH - 8), behavior: 'smooth' })
           }
@@ -438,7 +441,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       settleTimer = window.setTimeout(() => {
         if (step.skipUfo && step.multiple) {
           const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
-          const anchor = headerEls[0] ?? targets[0]
+          const anchor = headerEls[1] ?? headerEls[0] ?? targets[0]
           const width = Math.min(window.innerWidth - 24, Math.max(240, anchor.getBoundingClientRect().width + 16))
           const left = Math.max(12, Math.min(window.innerWidth - width - 12, anchor.getBoundingClientRect().left - 8))
           if (!continuingSkipUfo) {

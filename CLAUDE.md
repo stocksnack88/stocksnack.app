@@ -69,20 +69,11 @@ These rules exist because past fixes to one step broke all other steps. Follow t
 
 ## Pending Tasks (as of 2026-06-29)
 
-### 🔴 Onboarding Tour — In Progress
+### ✅ Onboarding Tour — COMPLETE (signed off 2026-06-29)
 
-**Signed off this session:**
-- Step 14/24 scroll position — ✅ done
-- Shining dot hidden during spotlight collapse — ✅ done
-- Step 1/24 shining dot moved to right side — ✅ done
-- Steps 11/12 no resize between method steps — ✅ done
+All tour issues resolved. Do not revisit unless Tong raises a specific new issue.
 
-**Still open:**
-- Steps 10/11/12 callout position — almost correct. Anchor needs to change from "METHOD 1" row to "EBITDA" row (`headerEls[1]` instead of `headerEls[0]`). See handoffv10.md section 3.5 for full history.
-- Step 13/24 callout bounce (12→13 transition) — not started.
-- Full 24-step QA — not done.
-
-**Callout height rule (new):** Never hardcode callout height. Always read the actual rendered height from the DOM. The height varies per step based on text length.
+**Callout height rule (new):** Never hardcode callout height. Always read the actual rendered height from the DOM. Use a reactive effect to re-anchor after text renders if needed.
 
 ### 🔴 Segment Extractor — Multiple Bugs Identified
 `pipeline/sec/segment_extractor.py` has known data quality issues. After fixing, rerun `run_sec.py` to update `product_segments`/`geo_segments` in `stock_scores`:

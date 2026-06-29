@@ -208,12 +208,19 @@ The scroll anchor should be `headerEls[1]` (the EBITDA row) so the scroll places
 
 ## 7. Pending Tasks — Priority Order
 
-1. **Fix steps 10/11/12 anchor** — change from `headerEls[0]` to `headerEls[1]`. One line change. Confirm with Tong.
-2. **Fix step 13/24 callout bounce** — investigate, discuss with Tong, then fix.
-3. **Full 24-step tour QA** — walk through all steps end to end.
-4. **Segment extractor bugs** — see section 8.
-5. **LLY pipeline rerun** — after extractor fixed.
-6. **Blog insights quality** — after pipeline clean.
+### Onboarding Tour — ✅ COMPLETE
+
+Tong has signed off on the tour. Codex resolved the final steps 10/11/12 callout positioning issue by:
+- Using `headerEls[1]` (EBITDA row) as anchor instead of `headerEls[0]`
+- Adding a reactive `useEffect` that re-measures callout height after text finishes typing in, then repositions the callout above the highlighted box — this was the key insight that made it work
+
+The tour is done. Do not revisit unless Tong raises a specific new issue.
+
+### Remaining priorities
+
+1. **Segment extractor bugs** — see section 8. Fix before any new blog articles.
+2. **LLY pipeline rerun** — after extractor fixed.
+3. **Blog insights quality** — after pipeline clean.
 
 ---
 

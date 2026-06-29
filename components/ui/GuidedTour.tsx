@@ -348,6 +348,29 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       return true
     }
 
+    // Pre-position stableCallout at the final correct position for the new step's targets.
+    // Called as soon as locate() finds targets on skipUfo steps so the callout starts
+    // moving toward its destination during the hidden phase — not stuck at the old position.
+    const prePositionCallout = (tgts: HTMLElement[]) => {
+      const boxes = tgts.map(t => t.getBoundingClientRect()).filter(b => b.width > 0 && b.height > 0)
+      if (boxes.length === 0) return
+      const etop = Math.min(...boxes.map(b => b.top))
+      const ebot = Math.max(...boxes.map(b => b.bottom))
+      const eleft = Math.min(...boxes.map(b => b.left))
+      const eright = Math.max(...boxes.map(b => b.right))
+      const spTop = Math.max(0, etop - pad)
+      const spBot = Math.min(window.innerHeight, ebot + pad)
+      const width  = Math.min(window.innerWidth - 24, Math.max(240, (eright + pad) - (eleft - pad)))
+      const left   = Math.max(12, Math.min(window.innerWidth - width - 12, eleft - pad))
+      const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
+      const calloutH  = calloutElRef.current?.offsetHeight ?? 48
+      const canBeAbove  = spTop - navBottom >= calloutH + 4
+      const mustBeAbove = spBot + calloutH + 12 > window.innerHeight
+      const above = canBeAbove || mustBeAbove
+      const top = above ? spTop - calloutH + 2 : spBot - 2
+      setStableCallout({ top, left, width, above })
+    }
+
     const locate = () => {
       const matches = Array.from(document.querySelectorAll<HTMLElement>(step.target))
       targets = step.multiple ? matches : matches.slice(0, 1)
@@ -367,6 +390,11 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         retryTimer = window.setTimeout(locate, 250)
         return
       }
+      // For skipUfo steps: pre-position callout at final destination the moment targets are found,
+      // so it starts moving immediately during the hidden phase rather than staying frozen at
+      // the previous step's position.
+      if (step.skipUfo) prePositionCallout(targets)
+
       if (targets.length > 1) {
         // Multiple targets (e.g. method-1/2/3 columns) — scroll first into horizontal view,
         // then center the whole group vertically
@@ -402,8 +430,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         settleTimer = window.setTimeout(doReveal, 200)
         return
       }
-      // 600ms: matches single-target settle — smooth scroll for group centering needs time to complete.
-      settleTimer = window.setTimeout(() => updateRect(true), 600)
+      // skipUfo multiple targets (method-1/2/3) are already in view — no scroll needed, 200ms is enough.
+      // Other multiple targets use 600ms to let smooth-scroll centering complete.
+      settleTimer = window.setTimeout(() => updateRect(true), step.skipUfo ? 200 : 600)
       observer = new ResizeObserver(() => updateRect())
       targets.forEach(t => observer?.observe(t))
     }
@@ -652,7 +681,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             style={{
               ...spotlight,
               borderRadius: '6px',
-              opacity: spotlightHidden ? 0 : 1,
+              opacity: (spotlightHidden || (displayRect?.height ?? 99) <= 2) ? 0 : 1,
               transition: TRANSITION + ', opacity 120ms ease',
             }}
           />

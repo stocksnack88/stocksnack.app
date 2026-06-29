@@ -443,12 +443,14 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         if (step.skipUfo && step.multiple) {
           const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
           const anchor = headerEls[1] ?? headerEls[0] ?? targets[0]
+          const boxes = targets.map(t => t.getBoundingClientRect()).filter(b => b.width > 0 && b.height > 0)
+          const columnTop = boxes.length ? Math.min(...boxes.map(b => b.top)) : anchor.getBoundingClientRect().top
+          const calloutH = Math.max(calloutElRef.current?.offsetHeight ?? 0, 124)
           const width = Math.min(window.innerWidth - 24, Math.max(240, anchor.getBoundingClientRect().width + 16))
           const left = Math.max(12, Math.min(window.innerWidth - width - 12, anchor.getBoundingClientRect().left - 8))
-          if (!continuingSkipUfo) {
-            // Step 10: save top=24 for reuse by steps 11/12
-            methodCalloutTopRef.current = 24
-          }
+          // Steps 10/11/12 should behave like step 13: the green instruction box
+          // sits directly above the highlighted box, not floating at the top of the screen.
+          methodCalloutTopRef.current = Math.max(14, columnTop - calloutH)
           setStableCallout({ top: methodCalloutTopRef.current, left, width, above: true })
         } else if (step.skipUfo) {
           prePositionCallout(targets, true)

@@ -385,22 +385,13 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         return
       }
       if (targets.length > 1) {
+        // Multiple targets (e.g. method-1/2/3 columns) — scroll first into horizontal view,
+        // then center the whole group vertically
         targets[0].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
-        if (step.skipUfo && step.multiple) {
-          // For method columns: scroll so the column header sits just below the nav,
-          // leaving room for the callout above it.
-          const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
-          const calloutH = calloutElRef.current?.offsetHeight ?? 80
-          const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
-          const anchor = headerEls[0] ?? targets[0]
-          const anchorTop = anchor.getBoundingClientRect().top + window.scrollY
-          window.scrollTo({ top: Math.max(0, anchorTop - navH - calloutH - 8), behavior: 'smooth' })
-        } else {
-          const firstTop = targets[0].getBoundingClientRect().top + window.scrollY
-          const lastBottom = targets[targets.length - 1].getBoundingClientRect().bottom + window.scrollY
-          const groupCenter = (firstTop + lastBottom) / 2
-          window.scrollTo({ top: Math.max(0, groupCenter - window.innerHeight * 0.5), behavior: 'smooth' })
-        }
+        const firstTop = targets[0].getBoundingClientRect().top + window.scrollY
+        const lastBottom = targets[targets.length - 1].getBoundingClientRect().bottom + window.scrollY
+        const groupCenter = (firstTop + lastBottom) / 2
+        window.scrollTo({ top: Math.max(0, groupCenter - window.innerHeight * 0.5), behavior: 'smooth' })
       } else {
         // Single target — place in upper portion of viewport (~25% below nav)
         const scrollToTarget = () => {

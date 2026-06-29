@@ -706,7 +706,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             return (
               <div
                 className="pointer-events-none absolute z-[902] h-3 w-3"
-                style={{ left: dotLeft, top: dotTop, opacity: spotlightHidden ? 0 : 1, transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), top 300ms cubic-bezier(0.4,0,0.2,1), opacity 120ms ease' }}
+                style={{ left: dotLeft, top: dotTop, opacity: (spotlightHidden || (displayRect?.height ?? 99) <= 2) ? 0 : 1, transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), top 300ms cubic-bezier(0.4,0,0.2,1), opacity 120ms ease' }}
                 aria-hidden="true"
               >
                 {canAdvance && <span className="absolute inset-0 animate-ping rounded-full bg-[#00ff41] opacity-70" />}

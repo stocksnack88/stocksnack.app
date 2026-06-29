@@ -678,7 +678,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             className="absolute pointer-events-none border-2 border-[#00ff41] shadow-[0_0_24px_rgba(0,255,65,0.45)]"
             style={{
               ...spotlight,
-              borderRadius: '6px',
+              borderRadius: callout?.above ? '0 0 6px 6px' : '6px 6px 0 0',
               opacity: (spotlightHidden || (displayRect?.height ?? 99) <= 2) ? 0 : 1,
               transition: TRANSITION + ', opacity 120ms ease',
             }}
@@ -724,7 +724,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                 left: callout.left,
                 width: callout.width,
                 top: callout.top,
-                borderRadius: '6px',
+                borderRadius: callout.above ? '6px 6px 0 0' : '0 0 6px 6px',
                 transition: 'left 320ms cubic-bezier(0.4,0,0.2,1), top 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1)',
                 overflow: 'hidden',
                 minHeight: calloutTextVisible ? undefined : 8,

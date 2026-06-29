@@ -424,10 +424,18 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // Pre-position callout here (after scroll) so it moves once to the correct resting position.
       settleTimer = window.setTimeout(() => {
         if (step.skipUfo) {
-          const prevStep = state.step > 0 ? STEPS[state.step - 1] : null
-          const continuing = prevStep?.skipUfo && prevStep?.multiple && step.multiple
-          if (!continuing) prePositionCallout(targets, true)
-          // else: keep existing stableCallout so callout doesn't move between method steps
+          if (step.multiple) {
+            // Use the middle skipUfo+multiple element as anchor so all method steps share the same callout position
+            const allEls = STEPS
+              .filter(s => s.skipUfo && s.multiple)
+              .flatMap(s => Array.from(document.querySelectorAll<HTMLElement>(s.target)))
+              .filter(el => el.getBoundingClientRect().width > 0)
+              .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left)
+            const anchor = allEls[Math.floor(allEls.length / 2)] ?? targets[0]
+            if (anchor) prePositionCallout([anchor], true)
+          } else {
+            prePositionCallout(targets, true)
+          }
         }
         updateRect(true)
       }, step.skipUfo ? 200 : 600)
@@ -446,22 +454,27 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     // skipUfo steps (method-1/2/3): collapse in-place → expand upward from bottom sliver. No travel.
     const prev = spotlightRef.current
     const prevCallout = calloutRef.current
+    const prevStep = state.step > 0 ? STEPS[state.step - 1] : null
+    const continuingSkipUfo = prevStep?.skipUfo && prevStep?.multiple && step.skipUfo && step.multiple
     if (prev && prevCallout && step.skipUfo) {
+      if (continuingSkipUfo) {
+        // Consecutive method step — skip collapse, jump straight to locate so spotlight
+        // slides directly to the new column with no shrink/expand animation.
+        ufoMode = true
+        setSpotlightHidden(false)
+        locate()
+      } else {
       // skipUfo: collapse toward the callout direction (visible), then hide and locate.
-      // If callout is above: top edge stays fixed, bottom rises up to meet it (height→0).
-      // If callout is below: bottom edge stays fixed, top falls down to meet it (height→0).
       ufoMode = true
       setSpotlightHidden(false)
       setStableCallout(prevCallout)
-      // Callout is always above on skipUfo steps (forceAbove=true).
-      // Collapse by keeping the element top edge fixed and letting the bottom rise to 0.
-      // This matches the expansion direction (top-anchored → grows downward).
       setDisplayRect({ top: prev.top + pad, left: prev.left + pad, width: prev.width - 2 * pad, height: 0 })
       travelTimer = window.setTimeout(() => {
         if (cancelled || transitionRunRef.current !== run) return
         setSpotlightHidden(true)
         locate()
       }, 320)
+      }
     } else if (prev && prevCallout) {
       ufoMode = true
       setStableCallout(prevCallout)

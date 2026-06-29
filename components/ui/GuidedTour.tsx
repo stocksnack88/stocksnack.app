@@ -385,13 +385,19 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         return
       }
       if (targets.length > 1) {
-        // Multiple targets (e.g. method-1/2/3 columns) — scroll first into horizontal view,
-        // then center the whole group vertically
         targets[0].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
-        const firstTop = targets[0].getBoundingClientRect().top + window.scrollY
-        const lastBottom = targets[targets.length - 1].getBoundingClientRect().bottom + window.scrollY
-        const groupCenter = (firstTop + lastBottom) / 2
-        window.scrollTo({ top: Math.max(0, groupCenter - window.innerHeight * 0.5), behavior: 'smooth' })
+        if (step.skipUfo && step.multiple) {
+          // Scroll so the column header lands at y=139 (below callout box which sits at y=24–131)
+          const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
+          const anchor = headerEls[0] ?? targets[0]
+          const anchorAbsoluteTop = anchor.getBoundingClientRect().top + window.scrollY
+          window.scrollTo({ top: Math.max(0, anchorAbsoluteTop - 139), behavior: 'smooth' })
+        } else {
+          const firstTop = targets[0].getBoundingClientRect().top + window.scrollY
+          const lastBottom = targets[targets.length - 1].getBoundingClientRect().bottom + window.scrollY
+          const groupCenter = (firstTop + lastBottom) / 2
+          window.scrollTo({ top: Math.max(0, groupCenter - window.innerHeight * 0.5), behavior: 'smooth' })
+        }
       } else {
         // Single target — place in upper portion of viewport (~25% below nav)
         const scrollToTarget = () => {
@@ -424,7 +430,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // Other multiple targets use 600ms for smooth-scroll centering to complete.
       // Pre-position callout here (after scroll) so it moves once to the correct resting position.
       settleTimer = window.setTimeout(() => {
-        if (step.skipUfo) prePositionCallout(targets, true)
+        if (step.skipUfo) {
+          const headerEls = step.multiple ? Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0) : []
+          prePositionCallout(headerEls.length > 0 ? headerEls : targets, true)
+        }
         updateRect(true)
       }, step.skipUfo ? 200 : 600)
       observer = new ResizeObserver(() => updateRect())

@@ -705,7 +705,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
               const dotEl = document.querySelector<HTMLElement>(step.dotTarget)
               if (dotEl) {
                 const b = dotEl.getBoundingClientRect()
-                dotLeft = b.left + b.width / 2 - 6
+                dotLeft = b.right - 24
                 dotTop = b.top + b.height / 2 - 6
               }
             }

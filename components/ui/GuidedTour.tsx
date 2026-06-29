@@ -409,15 +409,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         const doReveal = () => {
           onScrollReveal = null
           if (cancelled || transitionRunRef.current !== run) return
-          if (step.skipUfo && step.multiple) {
-            const allEls = STEPS
-              .filter(s => s.skipUfo && s.multiple)
-              .flatMap(s => Array.from(document.querySelectorAll<HTMLElement>(s.target)))
-              .filter(el => el.getBoundingClientRect().width > 0)
-              .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left)
-            const anchor = allEls[Math.floor(allEls.length / 2)] ?? targets[0]
-            if (anchor) prePositionCallout([anchor], true)
-          }
+          if (step.skipUfo && step.multiple) prePositionCallout(targets, true)
           revealBoxes = targets.map(t => t.getBoundingClientRect()).filter(b => b.width > 0 && b.height > 0)
           updateRect(true)
           observer = new ResizeObserver(() => { updateRect() })
@@ -432,20 +424,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // Other multiple targets use 600ms for smooth-scroll centering to complete.
       // Pre-position callout here (after scroll) so it moves once to the correct resting position.
       settleTimer = window.setTimeout(() => {
-        if (step.skipUfo) {
-          if (step.multiple) {
-            // Use the middle skipUfo+multiple element as anchor so all method steps share the same callout position
-            const allEls = STEPS
-              .filter(s => s.skipUfo && s.multiple)
-              .flatMap(s => Array.from(document.querySelectorAll<HTMLElement>(s.target)))
-              .filter(el => el.getBoundingClientRect().width > 0)
-              .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left)
-            const anchor = allEls[Math.floor(allEls.length / 2)] ?? targets[0]
-            if (anchor) prePositionCallout([anchor], true)
-          } else {
-            prePositionCallout(targets, true)
-          }
-        }
+        if (step.skipUfo) prePositionCallout(targets, true)
         updateRect(true)
       }, step.skipUfo ? 200 : 600)
       observer = new ResizeObserver(() => updateRect())

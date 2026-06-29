@@ -348,10 +348,11 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       return true
     }
 
-    // Pre-position stableCallout at the final correct position for the new step's targets.
-    // Called as soon as locate() finds targets on skipUfo steps so the callout starts
-    // moving toward its destination during the hidden phase — not stuck at the old position.
-    const prePositionCallout = (tgts: HTMLElement[]) => {
+    // Pre-position stableCallout at the correct final position for the new step's targets.
+    // Must be called AFTER scroll settles so getBoundingClientRect reflects the resting position.
+    // forceAbove: true on skipUfo steps so callout stays above the element consistently
+    // (avoids above/below oscillation when the same method columns are revisited).
+    const prePositionCallout = (tgts: HTMLElement[], forceAbove = false) => {
       const boxes = tgts.map(t => t.getBoundingClientRect()).filter(b => b.width > 0 && b.height > 0)
       if (boxes.length === 0) return
       const etop = Math.min(...boxes.map(b => b.top))
@@ -366,7 +367,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       const calloutH  = calloutElRef.current?.offsetHeight ?? 48
       const canBeAbove  = spTop - navBottom >= calloutH + 4
       const mustBeAbove = spBot + calloutH + 12 > window.innerHeight
-      const above = canBeAbove || mustBeAbove
+      const above = forceAbove || canBeAbove || mustBeAbove
       const top = above ? spTop - calloutH + 2 : spBot - 2
       setStableCallout({ top, left, width, above })
     }
@@ -390,11 +391,6 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         retryTimer = window.setTimeout(locate, 250)
         return
       }
-      // For skipUfo steps: pre-position callout at final destination the moment targets are found,
-      // so it starts moving immediately during the hidden phase rather than staying frozen at
-      // the previous step's position.
-      if (step.skipUfo) prePositionCallout(targets)
-
       if (targets.length > 1) {
         // Multiple targets (e.g. method-1/2/3 columns) — scroll first into horizontal view,
         // then center the whole group vertically
@@ -430,9 +426,13 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         settleTimer = window.setTimeout(doReveal, 200)
         return
       }
-      // skipUfo multiple targets (method-1/2/3) are already in view — no scroll needed, 200ms is enough.
-      // Other multiple targets use 600ms to let smooth-scroll centering complete.
-      settleTimer = window.setTimeout(() => updateRect(true), step.skipUfo ? 200 : 600)
+      // skipUfo multiple targets (method-1/2/3) are already in view — 200ms is enough for scroll settle.
+      // Other multiple targets use 600ms for smooth-scroll centering to complete.
+      // Pre-position callout here (after scroll) so it moves once to the correct resting position.
+      settleTimer = window.setTimeout(() => {
+        if (step.skipUfo) prePositionCallout(targets, true)  // forceAbove keeps callout above consistently
+        updateRect(true)
+      }, step.skipUfo ? 200 : 600)
       observer = new ResizeObserver(() => updateRect())
       targets.forEach(t => observer?.observe(t))
     }
@@ -595,10 +595,11 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const left = Math.max(12, Math.min(window.innerWidth - width - 12, spotlight.left))
     const navBottom = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
     const calloutH = calloutElRef.current?.offsetHeight ?? 48
-    // Prefer above whenever there's room; only go below if element is too close to nav
+    // Prefer above whenever there's room; only go below if element is too close to nav.
+    // skipUfo steps (method columns) force above=true so the callout never flips side.
     const canBeAbove = spotlight.top - navBottom >= calloutH + 4
     const mustBeAbove = spotlight.top + spotlight.height + calloutH + 12 > window.innerHeight
-    const above = canBeAbove || mustBeAbove
+    const above = !!(step?.skipUfo) || canBeAbove || mustBeAbove
     // Pull callout 2px into the spotlight border (border-2 = 2px) to close the gap
     // between spotlight border inner edge and callout top/bottom edge.
     const top = above ? spotlight.top - calloutH + 2 : spotlight.top + spotlight.height - 2

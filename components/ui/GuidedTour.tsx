@@ -409,10 +409,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         const doReveal = () => {
           onScrollReveal = null
           if (cancelled || transitionRunRef.current !== run) return
-          if (step.skipUfo && step.multiple) {
-            const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
-            prePositionCallout(headerEls.length > 0 ? headerEls : targets, true)
-          }
+          if (step.skipUfo && step.multiple) prePositionCallout(targets, true)
           revealBoxes = targets.map(t => t.getBoundingClientRect()).filter(b => b.width > 0 && b.height > 0)
           updateRect(true)
           observer = new ResizeObserver(() => { updateRect() })
@@ -427,10 +424,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // Other multiple targets use 600ms for smooth-scroll centering to complete.
       // Pre-position callout here (after scroll) so it moves once to the correct resting position.
       settleTimer = window.setTimeout(() => {
-        if (step.skipUfo) {
-          const headerEls = step.multiple ? Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0) : []
-          prePositionCallout(headerEls.length > 0 ? headerEls : targets, true)
-        }
+        if (step.skipUfo) prePositionCallout(targets, true)
         updateRect(true)
       }, step.skipUfo ? 200 : 600)
       observer = new ResizeObserver(() => updateRect())

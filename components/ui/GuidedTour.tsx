@@ -409,6 +409,15 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         const doReveal = () => {
           onScrollReveal = null
           if (cancelled || transitionRunRef.current !== run) return
+          if (step.skipUfo && step.multiple) {
+            const allEls = STEPS
+              .filter(s => s.skipUfo && s.multiple)
+              .flatMap(s => Array.from(document.querySelectorAll<HTMLElement>(s.target)))
+              .filter(el => el.getBoundingClientRect().width > 0)
+              .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left)
+            const anchor = allEls[Math.floor(allEls.length / 2)] ?? targets[0]
+            if (anchor) prePositionCallout([anchor], true)
+          }
           revealBoxes = targets.map(t => t.getBoundingClientRect()).filter(b => b.width > 0 && b.height > 0)
           updateRect(true)
           observer = new ResizeObserver(() => { updateRect() })

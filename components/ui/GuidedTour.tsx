@@ -304,7 +304,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         revealTimer = window.setTimeout(() => {
           if (cancelled || transitionRunRef.current !== run) return
           setCrossPagePending(false)
-          setStableCallout(null)    // callout CSS-transitions to final position (320ms)
+          // skipUfo: sliver is anchored at element BOTTOM, so derivedCallout.above flips
+          // wrongly (sliver near viewport bottom → canBeAbove=true) until the spotlight
+          // expands to full size. Hold stableCallout through the expand; clear it there.
+          if (!step.skipUfo) setStableCallout(null)
           setCalloutTextVisible(true)
           setTargetReady(true)
           if (ufoMode) {
@@ -330,6 +333,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                       height: Math.max(...expandBoxes.map(b => b.bottom)) - Math.min(...expandBoxes.map(b => b.top)),
                     })
                   }
+                  // skipUfo: release stableCallout now that spotlight is at full size.
+                  // derivedCallout computes correct above/below from the real element rect.
+                  if (step.skipUfo) setStableCallout(null)
                 })
               })
             }, 320)
@@ -563,8 +569,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const canBeAbove = spotlight.top - navBottom >= calloutH + 4
     const mustBeAbove = spotlight.top + spotlight.height + calloutH + 12 > window.innerHeight
     const above = canBeAbove || mustBeAbove
-    // Position flush against the spotlight border (8px pad included) so callout never overlaps the green glow
-    const top = above ? spotlight.top - calloutH : spotlight.top + spotlight.height
+    // Pull callout 2px into the spotlight border (border-2 = 2px) to close the gap
+    // between spotlight border inner edge and callout top/bottom edge.
+    const top = above ? spotlight.top - calloutH + 2 : spotlight.top + spotlight.height - 2
     return { top, left, width, above }
   })() : null
   // Keep calloutRef up to date so the effect can read the pre-collapse callout position

@@ -24,6 +24,7 @@ type TourStep = {
   dotTarget?: string  // separate selector for pulsing dot position
   openLayerIds?: number[]  // layer IDs to open before locating this step's target
   locateDelay?: number    // ms to wait before locate() — overrides default 320ms (use when target is inside an accordion being opened)
+  scrollFraction?: number  // fraction of usable viewport height below nav to place element top (default 0.25)
   skipUfo?: boolean  // skip UFO travel; collapse then expand upward in-place
 }
 
@@ -41,7 +42,7 @@ const STEPS: TourStep[] = [
   { page: 'ticker',   target: '[data-tour-id="method-2"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, skipUfo: true, instruction: 'Method 2 uses future Free Cash Flow to estimate price.' },
   { page: 'ticker',   target: '[data-tour-id="method-3"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, skipUfo: true, instruction: 'Method 3 uses future Dividends when applicable.' },
   { page: 'ticker',   target: '[data-tour-id="blended-projection"]',      openLayerIds: [2], locateDelay: 200,          action: 'tap',   instruction: 'We average all available future prices into one target.' },
-  { page: 'ticker',   target: '[data-tour-id="growth-layer"]',            openLayerIds: [3], locateDelay: 400, action: 'tap',   instruction: 'This layer measures the company\'s growth quality.' },
+  { page: 'ticker',   target: '[data-tour-id="growth-layer"]',            openLayerIds: [3], locateDelay: 400, scrollFraction: 0.10, action: 'tap',   instruction: 'This layer measures the company\'s growth quality.' },
   { page: 'ticker',   target: '[data-tour-id="growth-yoy"]',              openLayerIds: [3],                             action: 'tap',   instruction: 'This part shows the year-over-year performance.' },
   { page: 'ticker',   target: '[data-tour-id="growth-sp500"]',            openLayerIds: [3],                             action: 'tap',   optional: true, instruction: 'The red line shows the S&P 500 performance.' },
   { page: 'ticker',   target: '[data-tour-id="growth-metrics"]',          openLayerIds: [3],                             action: 'tap',   instruction: 'We cover Revenue, EBITDA and Free Cash Flow.' },
@@ -396,7 +397,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         const scrollToTarget = () => {
           const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
           const usableH = window.innerHeight - navH
-          const targetTopInViewport = navH + usableH * 0.25
+          const targetTopInViewport = navH + usableH * (step.scrollFraction ?? 0.25)
           const currentTopAbsolute = targets[0].getBoundingClientRect().top + window.scrollY
           window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'smooth' })
         }

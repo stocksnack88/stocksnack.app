@@ -445,7 +445,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           const anchor = headerEls[1] ?? headerEls[0] ?? targets[0]
           const boxes = targets.map(t => t.getBoundingClientRect()).filter(b => b.width > 0 && b.height > 0)
           const columnTop = boxes.length ? Math.min(...boxes.map(b => b.top)) : anchor.getBoundingClientRect().top
-          const calloutH = Math.max(calloutElRef.current?.offsetHeight ?? 0, 124)
+          const calloutH = calloutElRef.current?.offsetHeight ?? 48
           const width = Math.min(window.innerWidth - 24, Math.max(240, anchor.getBoundingClientRect().width + 16))
           const left = Math.max(12, Math.min(window.innerWidth - width - 12, anchor.getBoundingClientRect().left - 8))
           // Steps 10/11/12 should behave like step 13: the green instruction box
@@ -639,6 +639,53 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   if (derivedCallout) calloutRef.current = derivedCallout
   // stableCallout overrides during travel so callout moves independently of rectangle
   const callout = stableCallout ?? derivedCallout
+
+  // Steps 10/11/12: the instruction text types in, so the green box height changes
+  // after the first position calculation. Keep its bottom attached to the actual
+  // method-header highlight instead of using a guessed height.
+  useEffect(() => {
+    if (
+      state.status !== 'active' ||
+      !step?.skipUfo ||
+      !step.multiple ||
+      !calloutTextVisible ||
+      !displayRect ||
+      !calloutElRef.current
+    ) return
+
+    const calloutH = calloutElRef.current.offsetHeight
+    if (calloutH <= 0) return
+
+    const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`))
+      .filter(el => el.getBoundingClientRect().width > 0)
+    const anchor = headerEls[1] ?? headerEls[0] ?? null
+    const anchorBox = anchor?.getBoundingClientRect()
+    const width = anchorBox
+      ? Math.min(window.innerWidth - 24, Math.max(240, anchorBox.width + 16))
+      : Math.min(window.innerWidth - 24, Math.max(240, displayRect.width + pad * 2))
+    const left = anchorBox
+      ? Math.max(12, Math.min(window.innerWidth - width - 12, anchorBox.left - 8))
+      : Math.max(12, Math.min(window.innerWidth - width - 12, displayRect.left - pad))
+    const top = Math.max(14, displayRect.top - pad - calloutH)
+
+    setStableCallout(prev => {
+      if (
+        prev &&
+        Math.abs(prev.top - top) < 0.5 &&
+        Math.abs(prev.left - left) < 0.5 &&
+        Math.abs(prev.width - width) < 0.5 &&
+        prev.above
+      ) return prev
+      return { top, left, width, above: true }
+    })
+  }, [
+    calloutTextVisible,
+    displayRect,
+    displayedText,
+    state.status,
+    state.step,
+    step,
+  ])
 
   const routeLoading = mounted && state.status === 'active' && !!step && (!pageMatches || crossPagePending)
 

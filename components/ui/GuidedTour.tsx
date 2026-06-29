@@ -389,16 +389,17 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         targets[0].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
         if (step.skipUfo && step.multiple) {
           if (!continuingSkipUfo) {
-            // Step 10: measure actual callout height now (text already rendered), scroll so header
-            // lands exactly at calloutTop(24) + calloutH + 8px gap below.
-            const calloutH = calloutElRef.current?.offsetHeight ?? 107
+            // Step 10: the instruction types in after this scroll starts, so the callout can
+            // grow taller than its first measured height. Reserve the full method-card height
+            // up front so the method header never ends up underneath the green instruction box.
+            const calloutH = Math.max(calloutElRef.current?.offsetHeight ?? 0, 124)
             const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
             // Method columns have two header rows:
             // row 0 = small "METHOD 1"; row 1 = bold "EBITDA" / "FREE CASH FLOW" / "DIVIDENDS".
-            // Anchor scrolling to row 1 so both header rows sit below the instruction box.
-            const anchor = headerEls[1] ?? headerEls[0] ?? targets[0]
+            // Anchor row 0 below the full instruction box so both rows remain visible.
+            const anchor = headerEls[0] ?? targets[0]
             const anchorAbsoluteTop = anchor.getBoundingClientRect().top + window.scrollY
-            window.scrollTo({ top: Math.max(0, anchorAbsoluteTop - 24 - calloutH - 8), behavior: 'smooth' })
+            window.scrollTo({ top: Math.max(0, anchorAbsoluteTop - 24 - calloutH - 12), behavior: 'smooth' })
           }
           // Steps 11/12 (continuingSkipUfo): page already scrolled correctly, no re-scroll needed
         } else {

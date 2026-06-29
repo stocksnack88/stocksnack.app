@@ -325,7 +325,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                   height: Math.max(...expandBoxes.map(b => b.bottom)) - Math.min(...expandBoxes.map(b => b.top)),
                 })
               }
-              if (step.skipUfo && !step.multiple) setStableCallout(null)
+              if (step.skipUfo) setStableCallout(null)
               // Step 2: one rAF later, show panels. They transition from h=0 to full height
               // with the spotlight already at its correct position — no sliver-sized intermediate state.
               window.requestAnimationFrame(() => {
@@ -423,18 +423,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // Other multiple targets use 600ms for smooth-scroll centering to complete.
       // Pre-position callout here (after scroll) so it moves once to the correct resting position.
       settleTimer = window.setTimeout(() => {
-        if (step.skipUfo) {
-          if (step.multiple) {
-            // Combine all skipUfo+multiple elements so callout width covers all method columns
-            const allTargets = STEPS
-              .filter(s => s.skipUfo && s.multiple)
-              .flatMap(s => Array.from(document.querySelectorAll<HTMLElement>(s.target)))
-              .filter(el => el.getBoundingClientRect().width > 0)
-            prePositionCallout(allTargets.length > 0 ? allTargets : targets, true)
-          } else {
-            prePositionCallout(targets, true)
-          }
-        }
+        if (step.skipUfo) prePositionCallout(targets, true)
         updateRect(true)
       }, step.skipUfo ? 200 : 600)
       observer = new ResizeObserver(() => updateRect())

@@ -291,13 +291,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       const right = Math.max(...boxes.map(b => b.right))
       const bottom = Math.max(...boxes.map(b => b.bottom))
       if (ufoMode) {
-        if (step.skipUfo) {
-          // skipUfo steps: anchor sliver at element BOTTOM so expansion goes upward.
-          setDisplayRect({ top: bottom - 2, left, width: right - left, height: 2 })
-        } else {
-          // Standard UFO: anchor sliver at element TOP so expansion goes downward.
-          setDisplayRect({ top: top, left, width: right - left, height: 2 })
-        }
+        // Always anchor sliver at element TOP — callout is above (skipUfo forceAbove)
+        // or standard UFO where callout travels separately. Expansion grows downward.
+        setDisplayRect({ top: top, left, width: right - left, height: 2 })
       } else {
         setDisplayRect({ top, left, width: right - left, height: bottom - top })
       }
@@ -318,26 +314,22 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
               ufoMode = false
               // Use reveal-time positions so accordion drift can't flip above/below after reveal
               const expandBoxes = (revealBoxes && revealBoxes.length > 0 ? revealBoxes : targets.map(t => t.getBoundingClientRect())).filter(b => b.width > 0 && b.height > 0)
-              // Step 1: swap full-screen panel → 4-panel overlay at SLIVER dimensions.
-              // This creates the cutout at sliver size so CSS transitions have a starting point.
-              setSpotlightHidden(false)
-              // Step 2: one rAF later, update displayRect to full element size.
-              // The 4 panels are now mounted and their CSS transitions animate the expansion.
-              window.requestAnimationFrame(() => {
-                window.requestAnimationFrame(() => {
-                  if (cancelled || transitionRunRef.current !== run) return
-                  if (expandBoxes.length > 0) {
-                    setDisplayRect({
-                      top: Math.min(...expandBoxes.map(b => b.top)),
-                      left: Math.min(...expandBoxes.map(b => b.left)),
-                      width: Math.max(...expandBoxes.map(b => b.right)) - Math.min(...expandBoxes.map(b => b.left)),
-                      height: Math.max(...expandBoxes.map(b => b.bottom)) - Math.min(...expandBoxes.map(b => b.top)),
-                    })
-                  }
-                  // skipUfo: release stableCallout now that spotlight is at full size.
-                  // derivedCallout computes correct above/below from the real element rect.
-                  if (step.skipUfo) setStableCallout(null)
+              // Step 1: update displayRect to full element size while panels are still hidden.
+              // The spotlight position snaps to the correct element rect (invisible under the overlay).
+              if (expandBoxes.length > 0) {
+                setDisplayRect({
+                  top: Math.min(...expandBoxes.map(b => b.top)),
+                  left: Math.min(...expandBoxes.map(b => b.left)),
+                  width: Math.max(...expandBoxes.map(b => b.right)) - Math.min(...expandBoxes.map(b => b.left)),
+                  height: Math.max(...expandBoxes.map(b => b.bottom)) - Math.min(...expandBoxes.map(b => b.top)),
                 })
+              }
+              if (step.skipUfo) setStableCallout(null)
+              // Step 2: one rAF later, show panels. They transition from h=0 to full height
+              // with the spotlight already at its correct position — no sliver-sized intermediate state.
+              window.requestAnimationFrame(() => {
+                if (cancelled || transitionRunRef.current !== run) return
+                setSpotlightHidden(false)
               })
             }, 320)
           } else {
@@ -455,11 +447,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       ufoMode = true
       setSpotlightHidden(false)
       setStableCallout(prevCallout)
-      // Sliver must end inside the callout so it's fully hidden:
-      // above → sliver bottom = callout bottom (prev.top = prevCallout.top + calloutH)
-      // below → sliver top = callout top
-      const collapseTop = prevCallout.above ? prev.top - 8 : prevCallout.top + 8
-      setDisplayRect({ top: collapseTop, left: prev.left + 8, width: prev.width - 16, height: 0 })
+      // Callout is always above on skipUfo steps (forceAbove=true).
+      // Collapse by keeping the element top edge fixed and letting the bottom rise to 0.
+      // This matches the expansion direction (top-anchored → grows downward).
+      setDisplayRect({ top: prev.top + pad, left: prev.left + pad, width: prev.width - 2 * pad, height: 0 })
       travelTimer = window.setTimeout(() => {
         if (cancelled || transitionRunRef.current !== run) return
         setSpotlightHidden(true)

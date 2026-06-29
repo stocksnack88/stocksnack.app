@@ -389,7 +389,6 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         if (step.skipUfo && step.multiple) {
           // For method columns: scroll so the column header sits just below the nav,
           // leaving room for the callout above it.
-          const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
           const calloutH = calloutElRef.current?.offsetHeight ?? 80
           const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
           const anchor = headerEls[0] ?? targets[0]

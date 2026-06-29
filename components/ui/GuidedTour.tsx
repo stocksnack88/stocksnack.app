@@ -430,9 +430,16 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // Other multiple targets use 600ms for smooth-scroll centering to complete.
       // Pre-position callout here (after scroll) so it moves once to the correct resting position.
       settleTimer = window.setTimeout(() => {
-        if (step.skipUfo) {
-          const headerEls = step.multiple ? Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0) : []
-          prePositionCallout(headerEls.length > 0 ? headerEls : targets, true)
+        if (step.skipUfo && step.multiple) {
+          // Header will be at y=139 after scroll. Place callout directly above it.
+          const calloutH = calloutElRef.current?.offsetHeight ?? 107
+          const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
+          const anchor = headerEls[0] ?? targets[0]
+          const width = Math.min(window.innerWidth - 24, Math.max(240, anchor.getBoundingClientRect().width + 16))
+          const left = Math.max(12, Math.min(window.innerWidth - width - 12, anchor.getBoundingClientRect().left - 8))
+          setStableCallout({ top: 139 - calloutH, left, width, above: true })
+        } else if (step.skipUfo) {
+          prePositionCallout(targets, true)
         }
         updateRect(true)
       }, step.skipUfo ? 200 : 600)

@@ -24,6 +24,7 @@ type TourStep = {
   dotTarget?: string  // separate selector for pulsing dot position
   openLayerIds?: number[]  // layer IDs to open before locating this step's target
   locateDelay?: number    // ms to wait before locate() — overrides default 320ms (use when target is inside an accordion being opened)
+  scrollFraction?: number  // fraction of usableHeight below nav to place element (default 0.25)
   skipUfo?: boolean  // skip UFO travel; collapse then expand upward in-place
 }
 
@@ -304,7 +305,12 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           // skipUfo: sliver is anchored at element BOTTOM, so derivedCallout.above flips
           // wrongly (sliver near viewport bottom → canBeAbove=true) until the spotlight
           // expands to full size. Hold stableCallout through the expand; clear it there.
-          if (!step.skipUfo) setStableCallout(null)
+          if (!step.skipUfo) {
+            // Pre-position callout at final element position (not the sliver) so it moves
+            // directly to the correct resting place in one CSS transition — no detour via
+            // the sliver-derived position which can flip above/below mid-animation.
+            prePositionCallout(targets)
+          }
           setCalloutTextVisible(true)
           setTargetReady(true)
           if (ufoMode) {
@@ -324,7 +330,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                   height: Math.max(...expandBoxes.map(b => b.bottom)) - Math.min(...expandBoxes.map(b => b.top)),
                 })
               }
-              if (step.skipUfo) setStableCallout(null)
+              // Multi-column skipUfo (method-1/2/3): keep stableCallout at the group-center
+              // position so callout doesn't shift column-by-column. Release for everything else.
+              if (!step.multiple || !step.skipUfo) setStableCallout(null)
               // Step 2: one rAF later, show panels. They transition from h=0 to full height
               // with the spotlight already at its correct position — no sliver-sized intermediate state.
               window.requestAnimationFrame(() => {
@@ -396,7 +404,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         const scrollToTarget = () => {
           const navH = document.querySelector<HTMLElement>('nav')?.getBoundingClientRect().bottom ?? 0
           const usableH = window.innerHeight - navH
-          const targetTopInViewport = navH + usableH * 0.25
+          const targetTopInViewport = navH + usableH * (step.scrollFraction ?? 0.25)
           const currentTopAbsolute = targets[0].getBoundingClientRect().top + window.scrollY
           window.scrollTo({ top: Math.max(0, currentTopAbsolute - targetTopInViewport), behavior: 'smooth' })
         }
@@ -422,7 +430,15 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // Other multiple targets use 600ms for smooth-scroll centering to complete.
       // Pre-position callout here (after scroll) so it moves once to the correct resting position.
       settleTimer = window.setTimeout(() => {
-        if (step.skipUfo) prePositionCallout(targets, true)  // forceAbove keeps callout above consistently
+        if (step.skipUfo) {
+          // For multi-column skipUfo steps (method-1/2/3), compute callout from the combined
+          // group so it stays at a fixed position across all three steps — not per-column.
+          const calloutTargets = step.multiple
+            ? Array.from(document.querySelectorAll<HTMLElement>('[data-tour-id^="method-"]'))
+                .filter(t => { const b = t.getBoundingClientRect(); return b.width > 0 && b.height > 0 })
+            : targets
+          prePositionCallout(calloutTargets.length > 0 ? calloutTargets : targets, true)
+        }
         updateRect(true)
       }, step.skipUfo ? 200 : 600)
       observer = new ResizeObserver(() => updateRect())
@@ -706,7 +722,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             return (
               <div
                 className="pointer-events-none absolute z-[902] h-3 w-3"
-                style={{ left: dotLeft, top: dotTop, opacity: spotlightHidden ? 0 : 1, transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), top 300ms cubic-bezier(0.4,0,0.2,1), opacity 120ms ease' }}
+                style={{ left: dotLeft, top: dotTop, opacity: (spotlightHidden || (displayRect?.height ?? 99) <= 2) ? 0 : 1, transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), top 300ms cubic-bezier(0.4,0,0.2,1), opacity 120ms ease' }}
                 aria-hidden="true"
               >
                 {canAdvance && <span className="absolute inset-0 animate-ping rounded-full bg-[#00ff41] opacity-70" />}
@@ -724,7 +740,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                 left: callout.left,
                 width: callout.width,
                 top: callout.top,
-                borderRadius: '6px',
+                // Flat edge where callout meets the spotlight border — prevents corner-arc gaps
+                // when both elements have 6px border-radius. Opposite edge stays rounded.
+                borderRadius: callout.above ? '6px 6px 0px 0px' : '0px 0px 6px 6px',
                 transition: 'left 320ms cubic-bezier(0.4,0,0.2,1), top 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1)',
                 overflow: 'hidden',
                 minHeight: calloutTextVisible ? undefined : 8,

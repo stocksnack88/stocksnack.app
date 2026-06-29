@@ -2,7 +2,7 @@
 
 This file is for Claude Code agents. Read before working on anything n8n or deployment related.
 
-**START HERE:** Read `stocksnack-handoffv9.md` first. It contains the full session handover — vocabulary, solved problems, pending tasks, tour bug rules, and priority order for the next session.
+**START HERE:** Read `stocksnack-handoffv10.md` first. It contains the full session handover — vocabulary, solved problems, pending tasks, tour bug rules, and priority order for the next session.
 
 ---
 
@@ -67,23 +67,22 @@ These rules exist because past fixes to one step broke all other steps. Follow t
 
 ---
 
-## Pending Tasks (as of 2026-06-28)
+## Pending Tasks (as of 2026-06-29)
 
-### 🔴 Onboarding Tour — Needs User Testing
-The following fixes were deployed 2026-06-28. User has NOT yet signed off on any of these:
-- **Steps 9→10, 10→11, 11→12 skipUfo collapse** (commit ff49fa7): sliver now collapses fully inside the callout box before hiding. `collapseTop = prev.top - 8` (above) / `prevCallout.top + 8` (below).
-- **Steps 14/24 and 24/24 callout position** (commit ff49fa7): removed second `scrollToTarget()` from inside `doReveal()`. Callout now locks at correct position instead of chasing the element mid-scroll.
+### 🔴 Onboarding Tour — In Progress
 
-Previously deployed but not yet signed off:
-- **Callout jump fix**: switched callout from `bottom/top` dual-CSS to always `top`.
-- **Final step (24/24) completion flow**: STOCKSNACK_ loader → navigates to screener.
-- **Steps 22→23 and 23→24 callout missing**: kept `stableCallout` alive in off-screen branch.
-- **Spotlight grows with accordion**: ResizeObserver attached in settleTimer callback.
+**Signed off this session:**
+- Step 14/24 scroll position — ✅ done
+- Shining dot hidden during spotlight collapse — ✅ done
+- Step 1/24 shining dot moved to right side — ✅ done
+- Steps 11/12 no resize between method steps — ✅ done
 
-**Still open on tour (not yet fixed):**
-- Step 7/24 business section: confirm the expanded segment chart is visible after click (may be data issue for some tickers with no segment data).
-- Step 12→13 (blended-projection): skips UFO travel because target is off-screen — visually acceptable but worth noting.
-- General tour QA: full 24-step walkthrough needed to sign off.
+**Still open:**
+- Steps 10/11/12 callout position — almost correct. Anchor needs to change from "METHOD 1" row to "EBITDA" row (`headerEls[1]` instead of `headerEls[0]`). See handoffv10.md section 3.5 for full history.
+- Step 13/24 callout bounce (12→13 transition) — not started.
+- Full 24-step QA — not done.
+
+**Callout height rule (new):** Never hardcode callout height. Always read the actual rendered height from the DOM. The height varies per step based on text length.
 
 ### 🔴 Segment Extractor — Multiple Bugs Identified
 `pipeline/sec/segment_extractor.py` has known data quality issues. After fixing, rerun `run_sec.py` to update `product_segments`/`geo_segments` in `stock_scores`:

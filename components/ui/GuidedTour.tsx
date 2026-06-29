@@ -25,6 +25,7 @@ type TourStep = {
   openLayerIds?: number[]  // layer IDs to open before locating this step's target
   locateDelay?: number    // ms to wait before locate() — overrides default 320ms (use when target is inside an accordion being opened)
   skipUfo?: boolean  // skip UFO travel; collapse then expand upward in-place
+  collapseFirst?: boolean  // show visible collapse animation before UFO travel (steps in same open accordion)
 }
 
 const STEPS: TourStep[] = [
@@ -40,7 +41,7 @@ const STEPS: TourStep[] = [
   { page: 'ticker',   target: '[data-tour-id="method-1"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, skipUfo: true, instruction: 'Method 1 uses future EBITDA or P/E to estimate price.' },
   { page: 'ticker',   target: '[data-tour-id="method-2"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, skipUfo: true, instruction: 'Method 2 uses future Free Cash Flow to estimate price.' },
   { page: 'ticker',   target: '[data-tour-id="method-3"]',                openLayerIds: [2],                             action: 'tap',   multiple: true, skipUfo: true, instruction: 'Method 3 uses future Dividends when applicable.' },
-  { page: 'ticker',   target: '[data-tour-id="blended-projection"]',      openLayerIds: [2],                             action: 'tap',   instruction: 'We average all available future prices into one target.' },
+  { page: 'ticker',   target: '[data-tour-id="blended-projection"]',      openLayerIds: [2], locateDelay: 200,          action: 'tap',   instruction: 'We average all available future prices into one target.' },
   { page: 'ticker',   target: '[data-tour-id="growth-layer-header"]',                                                    action: 'click', instruction: 'This layer measures the company\'s growth quality.' },
   { page: 'ticker',   target: '[data-tour-id="growth-yoy"]',              openLayerIds: [3],                             action: 'tap',   instruction: 'This part shows the year-over-year performance.' },
   { page: 'ticker',   target: '[data-tour-id="growth-sp500"]',            openLayerIds: [3],                             action: 'tap',   optional: true, instruction: 'The red line shows the S&P 500 performance.' },
@@ -49,8 +50,8 @@ const STEPS: TourStep[] = [
   { page: 'ticker',   target: '[data-tour-id="health-summary"]',          openLayerIds: [4],                             action: 'tap',   instruction: 'This layer checks the company\'s financial strength.' },
   { page: 'ticker',   target: '[data-tour-id="health-balance-sheet"]',    openLayerIds: [4],                             action: 'tap',   instruction: 'Balance Sheet checks cover cash, debt and equity.' },
   { page: 'ticker',   target: '[data-tour-id="health-income-statement"]', openLayerIds: [4],                             action: 'tap',   instruction: 'Income Statement checks cover profit and earnings quality.' },
-  { page: 'ticker',   target: '[data-tour-id="health-cash-flow"]',        openLayerIds: [4],                             action: 'tap',   instruction: 'Cash Flow checks show how reliably the business produces cash.' },
-  { page: 'ticker',   target: '[data-tour-id="health-metric"]',           openLayerIds: [4],                             action: 'click', optional: true, instruction: 'Click the arrow to expand a check and see its five-year history, then tap to continue.' },
+  { page: 'ticker',   target: '[data-tour-id="health-cash-flow"]',        openLayerIds: [4], collapseFirst: true,       action: 'tap',   instruction: 'Cash Flow checks show how reliably the business produces cash.' },
+  { page: 'ticker',   target: '[data-tour-id="health-metric"]',           openLayerIds: [4], collapseFirst: true,       action: 'click', optional: true, instruction: 'Click the arrow to expand a check and see its five-year history, then tap to continue.' },
   { page: 'ticker',   target: '[data-tour-id="final-score"]',           openLayerIds: [5], locateDelay: 500,          action: 'click', instruction: 'The final layer combines every score into one verdict.' },
 ]
 
@@ -331,7 +332,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                 if (cancelled || transitionRunRef.current !== run) return
                 setSpotlightHidden(false)
               })
-            }, 320)
+            }, 400)
           } else {
             setSpotlightHidden(false)  // no UFO animation, reveal immediately
           }
@@ -458,19 +459,34 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       }, 320)
     } else if (prev && prevCallout) {
       ufoMode = true
-      setSpotlightHidden(true)
       setStableCallout(prevCallout)
-      const calloutAbove = prevCallout.above
-      setDisplayRect(calloutAbove
-        ? { top: prev.top, left: prevCallout.left + pad, width: Math.max(0, prevCallout.width - 2 * pad), height: 0 }
-        : { top: prevCallout.top, left: prevCallout.left + pad, width: Math.max(0, prevCallout.width - 2 * pad), height: 0 })
-      // After collapse, locate the next element. Use locateDelay when the target lives
-      // inside the accordion being opened and needs extra settle time (e.g. step 24).
-      const travelMs = step.locateDelay ?? 320
-      travelTimer = window.setTimeout(() => {
-        if (cancelled || transitionRunRef.current !== run) return
-        locate()
-      }, travelMs)
+      if (step.collapseFirst) {
+        // Show a brief visible collapse before hiding — keeps the animation visible for
+        // same-accordion transitions where the instant disappear looks abrupt (steps 21→23).
+        setSpotlightHidden(false)
+        setDisplayRect({ top: prev.top + pad, left: prev.left + pad, width: prev.width - 2 * pad, height: 0 })
+        travelTimer = window.setTimeout(() => {
+          if (cancelled || transitionRunRef.current !== run) return
+          setSpotlightHidden(true)
+          travelTimer = window.setTimeout(() => {
+            if (cancelled || transitionRunRef.current !== run) return
+            locate()
+          }, step.locateDelay ?? 100)
+        }, 320)
+      } else {
+        setSpotlightHidden(true)
+        const calloutAbove = prevCallout.above
+        setDisplayRect(calloutAbove
+          ? { top: prev.top, left: prevCallout.left + pad, width: Math.max(0, prevCallout.width - 2 * pad), height: 0 }
+          : { top: prevCallout.top, left: prevCallout.left + pad, width: Math.max(0, prevCallout.width - 2 * pad), height: 0 })
+        // After collapse, locate the next element. Use locateDelay when the target lives
+        // inside the accordion being opened and needs extra settle time (e.g. step 24).
+        const travelMs = step.locateDelay ?? 320
+        travelTimer = window.setTimeout(() => {
+          if (cancelled || transitionRunRef.current !== run) return
+          locate()
+        }, travelMs)
+      }
     } else {
       setSpotlightHidden(false)
       setDisplayRect(null)
@@ -591,9 +607,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const canBeAbove = spotlight.top - navBottom >= calloutH + 4
     const mustBeAbove = spotlight.top + spotlight.height + calloutH + 12 > window.innerHeight
     const above = !!(step?.skipUfo) || canBeAbove || mustBeAbove
-    // Pull callout 2px into the spotlight border (border-2 = 2px) to close the gap
-    // between spotlight border inner edge and callout top/bottom edge.
-    const top = above ? spotlight.top - calloutH + 2 : spotlight.top + spotlight.height - 2
+    // Overlap callout 8px into the spotlight (past the 6px border-radius) so the rounded
+    // corners of the spotlight border are fully hidden behind the callout edge.
+    const top = above ? spotlight.top - calloutH + 8 : spotlight.top + spotlight.height - 8
     return { top, left, width, above }
   })() : null
   // Keep calloutRef up to date so the effect can read the pre-collapse callout position

@@ -98,6 +98,16 @@ _MEMBER_OVERRIDES: dict[str, str] = {
     # chars, which _shorten() clips to "…Products And" at the 40-char word boundary.
     "msft:MicrosoftThreeSixFiveCommercialProductsAndCloudServicesMember": "Microsoft 365 Commercial Products and Cloud Services",
     "msft:MicrosoftThreeSixFiveConsumerProductsAndCloudServicesMember":   "Microsoft 365 Consumer Products and Cloud Services",
+    # XOM — label file stores full documentation sentences ("The manufacture, distribution and …")
+    "xom:UpstreamMember":         "Upstream",
+    "xom:EnergyProductsMember":   "Energy Products",
+    "xom:ChemicalProductsMember": "Chemical Products",
+    "xom:SpecialtyProductsMember": "Specialty Products",
+    # CAT — label file stores full documentation sentences ("Represents the …")
+    "cat:ConstructionIndustriesMember":  "Construction Industries",
+    "cat:ResourceIndustriesMember":      "Resource Industries",
+    "cat:PowerEnergyMember":             "Energy & Transportation",
+    "cat:FinancialProductsSegmentMember": "Financial Products",
     # Standard XBRL members — replace generic taxonomy labels with clean names
     "us-gaap:ProductAndServiceOtherMember":  "Other",
     "us-gaap:AllOtherSegmentsMember":        "Other",
@@ -944,17 +954,42 @@ def parse_segments(
         log.warning("[%s] No dimensional revenue facts found", ticker)
         return _NULL_RESULT
 
+    # Segment names that indicate the company filed revenue line items on the
+    # ProductOrServiceAxis rather than real product categories (e.g. XOM:
+    # "Sales And Other Operating Revenue", "Income From Equity Affiliates").
+    # If all product names match, treat as no-product and try BizSegments.
+    _REVENUE_LINEITEMS = {"revenue", "sales", "income", "earnings", "interest"}
+
+    def _is_revenue_lineitems(segs: list[dict]) -> bool:
+        return bool(segs) and all(
+            any(term in s["name"].lower() for term in _REVENUE_LINEITEMS)
+            for s in segs
+        )
+
+    # Generic placeholder names produced when the biz-segment axis only has a
+    # single reportable segment (e.g. HD: "Primary" + "Other").
+    _GENERIC_PLACEHOLDERS = {"primary", "other", "all other", "other businesses", "other segments"}
+
+    def _is_all_generic(segs: list[dict]) -> bool:
+        return bool(segs) and all(s["name"].lower() in _GENERIC_PLACEHOLDERS for s in segs)
+
     # Build product segments — try ProductOrService axis first, fall back to
     # StatementBusinessSegmentsAxis when the product axis returns nothing or only
     # one segment (e.g. GOOGL, META, JPM, AMD all report divisions on BizSegments).
     product          = _build_segments(facts, _PRODUCT_AXES, labels, parent_child_map)
+    if product and _is_revenue_lineitems(product):
+        log.info("[%s] ProductOrServiceAxis returned income-statement line items — discarding", ticker)
+        product = None
     product_used_biz = False
     if product is None or len(product) < 2:
         biz_product = _build_segments(facts, _BIZ_SEGMENT_AXES, labels, parent_child_map)
-        if biz_product and len(biz_product) >= 2:
+        if biz_product and len(biz_product) >= 2 and not _is_all_generic(biz_product):
             product          = biz_product
             product_used_biz = True
             log.info("[%s] Product segments sourced from StatementBusinessSegmentsAxis", ticker)
+        elif biz_product and _is_all_generic(biz_product):
+            log.info("[%s] BizSegments returned only generic placeholders — single-segment company", ticker)
+            product = None
 
     # Build geo segments — try pure geo axes first, fall back to business segment axes
     # (many companies like AAPL report geographic revenue under StatementBusinessSegmentsAxis).

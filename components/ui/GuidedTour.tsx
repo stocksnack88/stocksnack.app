@@ -724,7 +724,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                 left: callout.left,
                 width: callout.width,
                 top: callout.top,
-                borderRadius: '6px',
+                borderRadius: callout.above ? '6px 6px 0 0' : '0 0 6px 6px',
                 transition: 'left 320ms cubic-bezier(0.4,0,0.2,1), top 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1)',
                 overflow: 'hidden',
                 minHeight: calloutTextVisible ? undefined : 8,

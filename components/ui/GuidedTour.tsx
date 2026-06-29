@@ -132,6 +132,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   const [spotlightHidden, setSpotlightHidden] = useState(false)
   const calloutRef = useRef<CalloutPos | null>(null)
   const calloutElRef = useRef<HTMLDivElement>(null)  // DOM ref to measure actual callout height
+  const methodCalloutTopRef = useRef<number>(24)    // saved callout top for method steps (reused by steps 11/12)
 
   const save = useCallback((next: TourState) => {
     setState(next)
@@ -387,11 +388,16 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       if (targets.length > 1) {
         targets[0].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
         if (step.skipUfo && step.multiple) {
-          // Scroll so the column header lands at y=139 (below callout box which sits at y=24–131)
-          const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
-          const anchor = headerEls[0] ?? targets[0]
-          const anchorAbsoluteTop = anchor.getBoundingClientRect().top + window.scrollY
-          window.scrollTo({ top: Math.max(0, anchorAbsoluteTop - 139), behavior: 'smooth' })
+          if (!continuingSkipUfo) {
+            // Step 10: measure actual callout height now (text already rendered), scroll so header
+            // lands exactly at calloutTop(24) + calloutH + 8px gap below.
+            const calloutH = calloutElRef.current?.offsetHeight ?? 107
+            const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
+            const anchor = headerEls[0] ?? targets[0]
+            const anchorAbsoluteTop = anchor.getBoundingClientRect().top + window.scrollY
+            window.scrollTo({ top: Math.max(0, anchorAbsoluteTop - 24 - calloutH - 8), behavior: 'smooth' })
+          }
+          // Steps 11/12 (continuingSkipUfo): page already scrolled correctly, no re-scroll needed
         } else {
           const firstTop = targets[0].getBoundingClientRect().top + window.scrollY
           const lastBottom = targets[targets.length - 1].getBoundingClientRect().bottom + window.scrollY
@@ -431,13 +437,15 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       // Pre-position callout here (after scroll) so it moves once to the correct resting position.
       settleTimer = window.setTimeout(() => {
         if (step.skipUfo && step.multiple) {
-          // Header will be at y=139 after scroll. Place callout directly above it.
-          const calloutH = calloutElRef.current?.offsetHeight ?? 107
           const headerEls = Array.from(document.querySelectorAll<HTMLElement>(`thead ${step.target}`)).filter(el => el.getBoundingClientRect().width > 0)
           const anchor = headerEls[0] ?? targets[0]
           const width = Math.min(window.innerWidth - 24, Math.max(240, anchor.getBoundingClientRect().width + 16))
           const left = Math.max(12, Math.min(window.innerWidth - width - 12, anchor.getBoundingClientRect().left - 8))
-          setStableCallout({ top: 139 - calloutH, left, width, above: true })
+          if (!continuingSkipUfo) {
+            // Step 10: save top=24 for reuse by steps 11/12
+            methodCalloutTopRef.current = 24
+          }
+          setStableCallout({ top: methodCalloutTopRef.current, left, width, above: true })
         } else if (step.skipUfo) {
           prePositionCallout(targets, true)
         }

@@ -361,7 +361,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       const canBeAbove  = spTop - navBottom >= calloutH + 4
       const mustBeAbove = spBot + calloutH + 12 > window.innerHeight
       const above = forceAbove || canBeAbove || mustBeAbove
-      const top = above ? spTop - calloutH + 2 : spBot - 2
+      const top = above ? spTop - calloutH : spBot
       setStableCallout({ top, left, width, above })
     }
 
@@ -596,7 +596,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const canBeAbove = spotlight.top - navBottom >= calloutH + 4
     const mustBeAbove = spotlight.top + spotlight.height + calloutH + 12 > window.innerHeight
     const above = !!(step?.skipUfo) || canBeAbove || mustBeAbove
-    const top = above ? spotlight.top - calloutH + 2 : spotlight.top + spotlight.height - 2
+    const top = above ? spotlight.top - calloutH : spotlight.top + spotlight.height
     return { top, left, width, above }
   })() : null
   // Keep calloutRef up to date so the effect can read the pre-collapse callout position
@@ -678,7 +678,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
             className="absolute pointer-events-none border-2 border-[#00ff41] shadow-[0_0_24px_rgba(0,255,65,0.45)]"
             style={{
               ...spotlight,
-              borderRadius: callout?.above ? '0 0 6px 6px' : '6px 6px 0 0',
+              borderRadius: '6px',
               opacity: (spotlightHidden || (displayRect?.height ?? 99) <= 2) ? 0 : 1,
               transition: TRANSITION + ', opacity 120ms ease',
             }}
@@ -724,7 +724,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
                 left: callout.left,
                 width: callout.width,
                 top: callout.top,
-                borderRadius: callout.above ? '6px 6px 0 0' : '0 0 6px 6px',
+                borderRadius: '6px',
                 transition: 'left 320ms cubic-bezier(0.4,0,0.2,1), top 320ms cubic-bezier(0.4,0,0.2,1), width 320ms cubic-bezier(0.4,0,0.2,1)',
                 overflow: 'hidden',
                 minHeight: calloutTextVisible ? undefined : 8,

@@ -55,6 +55,9 @@ _GEO_AXES = {
     "us-gaap:GeographicAreasRevenuesFromExternalCustomersAbstract",
     # IFRS filers (20-F)
     "ifrs-full:GeographicalAreasAxis",
+    # NKE/BIIB style: geographic sub-segments reported under SubsegmentsAxis
+    # (regions like North America, EMEA within a parent business segment)
+    "us-gaap:SubsegmentsAxis",
 }
 
 # Axes that indicate operating/reportable segments (geo-style for companies
@@ -404,6 +407,29 @@ def _clean_member_name(member: str, labels: dict[str, str]) -> str:
     return _shorten(words)
 
 
+def _qname_normalize(qname: str) -> str:
+    """
+    Convert Clark-notation {uri}local to prefix:local for axes we recognise.
+    IFRS 20-F filers (e.g. TSM) write dimension attributes as full URIs
+    rather than the human-readable prefix form that our axis sets use.
+    """
+    if not qname.startswith("{"):
+        return qname
+    try:
+        uri_end = qname.index("}")
+    except ValueError:
+        return qname
+    ns_uri = qname[1:uri_end]
+    local  = qname[uri_end + 1:]
+    if "ifrs-full" in ns_uri or "xbrl.ifrs.org" in ns_uri:
+        return f"ifrs-full:{local}"
+    if "us-gaap" in ns_uri:
+        return f"us-gaap:{local}"
+    if "/srt/" in ns_uri or "xbrl.fasb.org/srt" in ns_uri:
+        return f"srt:{local}"
+    return qname
+
+
 def _parse_contexts(root: ET.Element) -> dict[str, dict]:
     """
     Parse all <context> elements and return:
@@ -437,10 +463,10 @@ def _parse_contexts(root: ET.Element) -> dict[str, dict]:
         source = "1dim"
         if len(members) == 1:
             m      = members[0]
-            axis   = m.get("dimension", "")
-            member = (m.text or "").strip()
+            axis   = _qname_normalize(m.get("dimension", ""))
+            member = _qname_normalize((m.text or "").strip())
         elif len(members) == 2:
-            dims = {m.get("dimension", ""): (m.text or "").strip() for m in members}
+            dims = {_qname_normalize(m.get("dimension", "")): _qname_normalize((m.text or "").strip()) for m in members}
 
             # Pattern 1: AMD/JPM style — ConsolidationItemsAxis=OperatingSegmentsMember
             if dims.get("srt:ConsolidationItemsAxis") == "us-gaap:OperatingSegmentsMember":
@@ -486,6 +512,34 @@ def _parse_contexts(root: ET.Element) -> dict[str, dict]:
 
             else:
                 continue
+        elif len(members) >= 3:
+            # N-dim contexts (e.g. NKE: ConsolidationItems × BizSegment × SubsegmentsAxis × Product).
+            # Strategy: strip known "filter-only" axes (ConsolidationItemsAxis), then check if the
+            # remaining dims contain one geo axis and one product axis → treat as 2dim_geo.
+            # SubsegmentsAxis carries geographic sub-segments for companies like NKE.
+            _SUBSEGMENTS_AXIS = "us-gaap:SubsegmentsAxis"
+            _GEO_AXES_EXTENDED = _GEO_AXES | {_SUBSEGMENTS_AXIS}
+            dims = {_qname_normalize(m.get("dimension", "")): _qname_normalize((m.text or "").strip())
+                    for m in members}
+            # Strip pure filter dimensions
+            stripped = {k: v for k, v in dims.items()
+                        if not (k == "srt:ConsolidationItemsAxis" and v == "us-gaap:OperatingSegmentsMember")
+                        and k != "us-gaap:StatementBusinessSegmentsAxis"}
+            geo_keys  = [k for k in stripped if k in _GEO_AXES_EXTENDED]
+            prod_keys = [k for k in stripped if k in (_PRODUCT_AXES | _BIZ_SEGMENT_AXES)]
+            if len(geo_keys) == 1 and len(prod_keys) == 1:
+                geo_axis   = geo_keys[0]
+                geo_member = stripped[geo_axis]
+                prod_axis  = prod_keys[0]
+                prod_member = stripped[prod_axis]
+                source = "2dim_geo"
+                entry = {
+                    "axis": geo_axis, "member": geo_member,
+                    "period_end": period_end, "source": source,
+                    "also_product": {"axis": prod_axis, "member": prod_member},
+                }
+                ctx_map[cid] = entry
+            continue
         else:
             continue
 
@@ -493,7 +547,7 @@ def _parse_contexts(root: ET.Element) -> dict[str, dict]:
             continue
 
         # Only keep axes we care about
-        all_relevant = _PRODUCT_AXES | _GEO_AXES | _BIZ_SEGMENT_AXES
+        all_relevant = _PRODUCT_AXES | _GEO_AXES | _BIZ_SEGMENT_AXES | {"us-gaap:SubsegmentsAxis"}
         if axis not in all_relevant:
             continue
 
@@ -893,7 +947,8 @@ def _build_segments(
     # or exact matches for "worldwide" / "consolidated".
     # Also filter boilerplate documentation labels that appear instead of real names
     # (CAT: "Represents the aggregate total of...", TGT: "Disclosures related to...").
-    _BOILERPLATE_PREFIXES = ("represents ", "disclosures ")
+    _BOILERPLATE_PREFIXES = ("represents ", "disclosures ", "other products of",
+                             "other countries not specified", "segment geographical groups of")
     segments = [
         s for s in segments
         if not s["name"].lower().startswith("total")

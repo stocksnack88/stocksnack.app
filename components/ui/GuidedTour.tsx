@@ -23,6 +23,7 @@ type TourStep = {
   navigate?: boolean
   dotTarget?: string  // separate selector for pulsing dot position
   openLayerIds?: number[]  // layer IDs to open before locating this step's target
+  locateDelay?: number    // ms to wait before locate() — overrides default 320ms (use when target is inside an accordion being opened)
   skipUfo?: boolean  // skip UFO travel; collapse then expand upward in-place
 }
 
@@ -50,7 +51,7 @@ const STEPS: TourStep[] = [
   { page: 'ticker',   target: '[data-tour-id="health-income-statement"]', openLayerIds: [4],                             action: 'tap',   instruction: 'Income Statement checks cover profit and earnings quality.' },
   { page: 'ticker',   target: '[data-tour-id="health-cash-flow"]',        openLayerIds: [4],                             action: 'tap',   instruction: 'Cash Flow checks show how reliably the business produces cash.' },
   { page: 'ticker',   target: '[data-tour-id="health-metric"]',           openLayerIds: [4],                             action: 'click', optional: true, instruction: 'Click the arrow to expand a check and see its five-year history, then tap to continue.' },
-  { page: 'ticker',   target: '[data-tour-id="final-score"]',           openLayerIds: [5],                             action: 'click', instruction: 'The final layer combines every score into one verdict.' },
+  { page: 'ticker',   target: '[data-tour-id="final-score"]',           openLayerIds: [5], locateDelay: 500,          action: 'click', instruction: 'The final layer combines every score into one verdict.' },
 ]
 
 type TourContextValue = {
@@ -443,9 +444,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       setDisplayRect(calloutAbove
         ? { top: prev.top, left: prevCallout.left + pad, width: Math.max(0, prevCallout.width - 2 * pad), height: 0 }
         : { top: prevCallout.top, left: prevCallout.left + pad, width: Math.max(0, prevCallout.width - 2 * pad), height: 0 })
-      // After collapse, locate the next element. If this step opens an accordion (300ms CSS animation),
-      // wait 500ms so it fully settles before measuring — prevents double-position on steps like 24/24.
-      const travelMs = step.openLayerIds?.length ? 500 : 320
+      // After collapse, locate the next element. Use locateDelay when the target lives
+      // inside the accordion being opened and needs extra settle time (e.g. step 24).
+      const travelMs = step.locateDelay ?? 320
       travelTimer = window.setTimeout(() => {
         if (cancelled || transitionRunRef.current !== run) return
         locate()

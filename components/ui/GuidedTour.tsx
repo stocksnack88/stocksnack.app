@@ -361,7 +361,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       const canBeAbove  = spTop - navBottom >= calloutH + 4
       const mustBeAbove = spBot + calloutH + 12 > window.innerHeight
       const above = forceAbove || canBeAbove || mustBeAbove
-      const top = above ? spTop - calloutH : spBot
+      const top = above ? Math.max(navBottom + 4, spTop - calloutH) : spBot
       setStableCallout({ top, left, width, above })
     }
 
@@ -602,7 +602,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const canBeAbove = spotlight.top - navBottom >= calloutH + 4
     const mustBeAbove = spotlight.top + spotlight.height + calloutH + 12 > window.innerHeight
     const above = !!(step?.skipUfo) || canBeAbove || mustBeAbove
-    const top = above ? spotlight.top - calloutH : spotlight.top + spotlight.height
+    const top = above ? Math.max(navBottom + 4, spotlight.top - calloutH) : spotlight.top + spotlight.height
     return { top, left, width, above }
   })() : null
   // Keep calloutRef up to date so the effect can read the pre-collapse callout position

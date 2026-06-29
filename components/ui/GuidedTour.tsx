@@ -25,7 +25,6 @@ type TourStep = {
   openLayerIds?: number[]  // layer IDs to open before locating this step's target
   locateDelay?: number    // ms to wait before locate() — overrides default 320ms (use when target is inside an accordion being opened)
   skipUfo?: boolean  // skip UFO travel; collapse then expand upward in-place
-  collapseFirst?: boolean  // show visible collapse animation before UFO travel (steps in same open accordion)
 }
 
 const STEPS: TourStep[] = [
@@ -50,8 +49,8 @@ const STEPS: TourStep[] = [
   { page: 'ticker',   target: '[data-tour-id="health-summary"]',          openLayerIds: [4],                             action: 'tap',   instruction: 'This layer checks the company\'s financial strength.' },
   { page: 'ticker',   target: '[data-tour-id="health-balance-sheet"]',    openLayerIds: [4],                             action: 'tap',   instruction: 'Balance Sheet checks cover cash, debt and equity.' },
   { page: 'ticker',   target: '[data-tour-id="health-income-statement"]', openLayerIds: [4],                             action: 'tap',   instruction: 'Income Statement checks cover profit and earnings quality.' },
-  { page: 'ticker',   target: '[data-tour-id="health-cash-flow"]',        openLayerIds: [4], collapseFirst: true,       action: 'tap',   instruction: 'Cash Flow checks show how reliably the business produces cash.' },
-  { page: 'ticker',   target: '[data-tour-id="health-metric"]',           openLayerIds: [4], collapseFirst: true,       action: 'click', optional: true, instruction: 'Click the arrow to expand a check and see its five-year history, then tap to continue.' },
+  { page: 'ticker',   target: '[data-tour-id="health-cash-flow"]',        openLayerIds: [4],                             action: 'tap',   instruction: 'Cash Flow checks show how reliably the business produces cash.' },
+  { page: 'ticker',   target: '[data-tour-id="health-metric"]',           openLayerIds: [4],                             action: 'click', optional: true, instruction: 'Click the arrow to expand a check and see its five-year history, then tap to continue.' },
   { page: 'ticker',   target: '[data-tour-id="final-score"]',           openLayerIds: [5], locateDelay: 500,          action: 'click', instruction: 'The final layer combines every score into one verdict.' },
 ]
 
@@ -361,7 +360,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
       const canBeAbove  = spTop - navBottom >= calloutH + 4
       const mustBeAbove = spBot + calloutH + 12 > window.innerHeight
       const above = forceAbove || canBeAbove || mustBeAbove
-      const top = above ? spTop - calloutH + 2 : spBot - 2
+      const top = above ? spTop - calloutH + 4 : spBot - 4
       setStableCallout({ top, left, width, above })
     }
 
@@ -460,33 +459,22 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     } else if (prev && prevCallout) {
       ufoMode = true
       setStableCallout(prevCallout)
-      if (step.collapseFirst) {
-        // Show a brief visible collapse before hiding — keeps the animation visible for
-        // same-accordion transitions where the instant disappear looks abrupt (steps 21→23).
-        setSpotlightHidden(false)
-        setDisplayRect({ top: prev.top + pad, left: prev.left + pad, width: prev.width - 2 * pad, height: 0 })
-        travelTimer = window.setTimeout(() => {
-          if (cancelled || transitionRunRef.current !== run) return
-          setSpotlightHidden(true)
-          travelTimer = window.setTimeout(() => {
-            if (cancelled || transitionRunRef.current !== run) return
-            locate()
-          }, step.locateDelay ?? 100)
-        }, 320)
-      } else {
+      // Visible collapse: spotlight shrinks to 0 at its current position before hiding and
+      // traveling. Panels animate closed (300ms CSS), giving every step a smooth disappear.
+      // When displayRect.height reaches 0 the panel gap also closes (see h calculation below).
+      setSpotlightHidden(false)
+      setDisplayRect({ top: prev.top + pad, left: prev.left + pad, width: prev.width - 2 * pad, height: 0 })
+      travelTimer = window.setTimeout(() => {
+        if (cancelled || transitionRunRef.current !== run) return
         setSpotlightHidden(true)
-        const calloutAbove = prevCallout.above
-        setDisplayRect(calloutAbove
-          ? { top: prev.top, left: prevCallout.left + pad, width: Math.max(0, prevCallout.width - 2 * pad), height: 0 }
-          : { top: prevCallout.top, left: prevCallout.left + pad, width: Math.max(0, prevCallout.width - 2 * pad), height: 0 })
-        // After collapse, locate the next element. Use locateDelay when the target lives
-        // inside the accordion being opened and needs extra settle time (e.g. step 24).
-        const travelMs = step.locateDelay ?? 320
+        // locateDelay on the step controls how long to wait after collapse before measuring
+        // the target (useful when the target is inside an accordion that needs time to open).
+        const travelMs = step.locateDelay ?? 100
         travelTimer = window.setTimeout(() => {
           if (cancelled || transitionRunRef.current !== run) return
           locate()
         }, travelMs)
-      }
+      }, 320)
     } else {
       setSpotlightHidden(false)
       setDisplayRect(null)
@@ -607,9 +595,8 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     const canBeAbove = spotlight.top - navBottom >= calloutH + 4
     const mustBeAbove = spotlight.top + spotlight.height + calloutH + 12 > window.innerHeight
     const above = !!(step?.skipUfo) || canBeAbove || mustBeAbove
-    // Overlap callout 8px into the spotlight (past the 6px border-radius) so the rounded
-    // corners of the spotlight border are fully hidden behind the callout edge.
-    const top = above ? spotlight.top - calloutH + 8 : spotlight.top + spotlight.height - 8
+    // Overlap callout 4px into the spotlight to hide the border without cutting into content.
+    const top = above ? spotlight.top - calloutH + 4 : spotlight.top + spotlight.height - 4
     return { top, left, width, above }
   })() : null
   // Keep calloutRef up to date so the effect can read the pre-collapse callout position
@@ -675,7 +662,10 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
           {/* Overlay panels — always 4-panel so the cutout collapses with CSS animation when UFO starts.
               When spotlightHidden (UFO travel), close the gap so the sliver doesn't show through. */}
           {(() => {
-            const h = spotlightHidden ? 0 : spotlight.height
+            // Close the overlay gap when spotlightHidden OR when collapsed to sliver (height≤2).
+            // Even with displayRect.height=0 the spotlight renders 16px tall due to padding — this
+            // ensures the gap fully closes so the sliver never leaks outside the callout box.
+            const h = (spotlightHidden || (displayRect?.height ?? 99) <= 2) ? 0 : spotlight.height
             return <>
               <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: 0, left: 0, right: 0, height: spotlight.top, transition: 'height 300ms cubic-bezier(0.4,0,0.2,1)' }} />
               <div className="pointer-events-auto absolute bg-black/80" onClick={e => e.stopPropagation()} style={{ top: spotlight.top, left: 0, width: spotlight.left, height: h, transition: TRANSITION }} />

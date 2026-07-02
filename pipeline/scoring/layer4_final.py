@@ -38,6 +38,8 @@ def score_final(
 
     ppm_cagr      = ppm.get("cagr")
     health_passes = health.get("passes", 0) or 0
+    health_total  = health.get("scored_total", 24) or 24   # varies: 24, 21, 18 depending on N/A checks
+    health_ratio  = health_passes / health_total
     growth_score  = growth.get("score", 0) or 0
 
     if sp500_cagr and ppm_cagr is not None:
@@ -46,8 +48,8 @@ def score_final(
         elif ppm_cagr < sp500_cagr * 1.2:
             signal = "HOLD"
         else:
-            h_ok = health_passes >= 16
-            g_ok = growth_score  >= 40
+            h_ok = health_ratio >= 0.667   # ≈ 16/24 — consistent regardless of how many checks are N/A
+            g_ok = growth_score >= 40
             if h_ok and g_ok:
                 signal = "BUY+" if ppm_cagr >= sp500_cagr * 1.5 else "BUY"
             elif h_ok or g_ok:

@@ -15,6 +15,7 @@ type HealthCheck = {
   pass: boolean
   score: number
   years_passed: number
+  scoreable_years?: number
   not_scored?: boolean
 }
 
@@ -100,10 +101,10 @@ function cagrToScore(cagrValue: number | null, sp500Cagr: number): number {
   return 0.0
 }
 
-function deriveSignal(ppmCagr: number, sp500Cagr: number, healthPasses: number, growthScore: number): string {
+function deriveSignal(ppmCagr: number, sp500Cagr: number, healthPasses: number, growthScore: number, scoredTotal: number): string {
   if (ppmCagr < sp500Cagr) return "SELL"
   if (ppmCagr < sp500Cagr * 1.2) return "HOLD"
-  const hOk = healthPasses >= 16
+  const hOk = scoredTotal > 0 ? (healthPasses / scoredTotal) >= 0.667 : false  // ≈16/24, consistent across varying denominators
   const gOk = growthScore >= 40
   if (hOk && gOk) return ppmCagr >= sp500Cagr * 1.5 ? "BUY+" : "BUY"
   if (hOk || gOk) return "HOLD"
@@ -154,7 +155,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
   const healthScore = score?.health_score != null ? Number(score.health_score) : 0
   const healthPasses = score?.health_passes != null ? Number(score.health_passes) : 0
   const m1FinalScore = m1PpmScore != null ? m1PpmScore * 0.40 + growthScore * 0.30 + healthScore * 0.30 : null
-  const m1Signal = (m1Cagr != null && sp500Cagr != null) ? deriveSignal(m1Cagr, sp500Cagr, healthPasses, growthScore) : null
+  const m1Signal = (m1Cagr != null && sp500Cagr != null) ? deriveSignal(m1Cagr, sp500Cagr, healthPasses, growthScore, scoredTotal) : null
 
   // Display values — switch when M1 mode active
   // displayPrice stays as the price target (not total return) — used for the $ figure shown
@@ -426,7 +427,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           )
           })()}
           <p className="text-center text-xs py-4 tracking-wide" style={{ color: "rgba(0,255,65,0.2)", borderTop: "1px solid rgba(0,255,65,0.1)" }}>
-            DATA · FINANCIALMODELINGPREP · SCORES UPDATED WEEKLY
+            DATA · PUBLIC FILINGS + MARKET DATA · SCORES UPDATED WEEKLY
           </p>
           </ChildCollapsibleLayer>
           </CollapsibleSectionHeader>

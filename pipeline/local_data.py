@@ -178,7 +178,10 @@ def build_data_dict_from_supabase(ticker: str, client, years: int = 5) -> dict:
         })
 
         div_paid = _f(row, "dividends_paid")
-        fcf      = _f(row, "free_cash_flow")
+        # FCF fallback: if free_cash_flow is null but OCF is available, use OCF (capex treated as 0)
+        _raw_fcf = row.get("free_cash_flow")
+        _raw_ocf = row.get("operating_cash_flow")
+        fcf = _raw_fcf if _raw_fcf is not None else (_raw_ocf if _raw_ocf is not None else 0.0)
 
         cashflow_list.append({
             "symbol":                    ticker,

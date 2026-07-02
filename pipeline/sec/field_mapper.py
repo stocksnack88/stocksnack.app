@@ -675,9 +675,21 @@ def extract_computed(
         series_a = extract_annual_series(facts_json, comp_a, ticker, years)
         series_b = extract_annual_series(facts_json, comp_b, ticker, years)
 
-        if not series_a or not series_b:
-            print(f"[field_mapper] {standardised_name}: insufficient component data", file=sys.stderr)
-            _append_missing(ticker, standardised_name, notes="component data missing")
+        if not series_a:
+            print(f"[field_mapper] {standardised_name}: primary component {comp_a} missing", file=sys.stderr)
+            _append_missing(ticker, standardised_name, notes="primary component missing")
+            return []
+
+        # For free_cash_flow: if capex is unavailable, fall back to OCF (treat capex as 0)
+        if not series_b:
+            if standardised_name == "free_cash_flow":
+                print(
+                    f"[field_mapper] {standardised_name}: {comp_b} missing — using {comp_a} as FCF (capex=0)",
+                    file=sys.stderr,
+                )
+                return [{"year": d["year"], "value": d["value"], "end": d.get("end", "")} for d in series_a]
+            print(f"[field_mapper] {standardised_name}: secondary component {comp_b} missing", file=sys.stderr)
+            _append_missing(ticker, standardised_name, notes="secondary component missing")
             return []
 
         # Primary match: fiscal_year key (int year derived from end-date year in _extract_tag)

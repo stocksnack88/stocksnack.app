@@ -59,24 +59,40 @@ def score_health(data: dict) -> dict:
         except Exception:
             return False
 
-    def metric(name: str, check_fn) -> None:
+    def metric(name: str, check_fn, key_field: str | None = None) -> None:
         if financial and name in _BANK_EXCLUDED:
             checks.append({
-                "name":         name,
-                "pass":         False,
-                "score":        0,
-                "years_passed": 0,
-                "not_scored":   True,
+                "name":            name,
+                "pass":            False,
+                "score":           0,
+                "years_passed":    0,
+                "scoreable_years": 0,
+                "not_scored":      True,
             })
             return
-        current_pass = _ok(check_fn, rows[0])
-        years_passed = sum(1 for r in rows if _ok(check_fn, r))
-        total_score  = min((60 if current_pass else 0) + years_passed * 8, 100)
+        # Filter to years where the key field has actual data (not null)
+        scoreable = [r for r in rows if r.get(key_field) is not None] if key_field else rows
+        # All years have null data → mark N/A instead of auto-failing
+        if key_field and not scoreable:
+            checks.append({
+                "name":            name,
+                "pass":            False,
+                "score":           0,
+                "years_passed":    0,
+                "scoreable_years": 0,
+                "not_scored":      True,
+            })
+            return
+        current_pass    = _ok(check_fn, scoreable[0])
+        years_passed    = sum(1 for r in scoreable if _ok(check_fn, r))
+        scoreable_years = len(scoreable)
+        total_score     = min((60 if current_pass else 0) + years_passed * 8, 100)
         checks.append({
-            "name":         name,
-            "pass":         current_pass,
-            "score":        total_score,
-            "years_passed": years_passed,
+            "name":            name,
+            "pass":            current_pass,
+            "score":           total_score,
+            "years_passed":    years_passed,
+            "scoreable_years": scoreable_years,
         })
 
     # ── Balance Sheet (7) ─────────────────────────────────────────────────────
@@ -98,11 +114,13 @@ def score_health(data: dict) -> dict:
     # BS_4: Retained Earnings Growth — compare each row against rows[1] baseline (n8n closure pattern)
     _re1 = _f(rows[1], "retainedEarnings", float("-inf")) if len(rows) > 1 else float("-inf")
     metric("Retained Earnings Growth",
-        lambda d: _f(d,"retainedEarnings") > _re1)
+        lambda d: _f(d,"retainedEarnings") > _re1,
+        key_field="retainedEarnings")
 
     # BS_5: Active Buybacks (commonStockRepurchased < 0 means cash paid out)
     metric("Active Buybacks",
-        lambda d: _f(d,"commonStockRepurchased") < 0)
+        lambda d: _f(d,"commonStockRepurchased") < 0,
+        key_field="commonStockRepurchased")
 
     # BS_6: ROE > 25%
     metric("ROE > 25%",
@@ -116,18 +134,27 @@ def score_health(data: dict) -> dict:
 
     # ── Income Statement (7) ──────────────────────────────────────────────────
 
+    # IS_8–10 require gross profit data. If unavailable for all years, mark N/A.
+    _gp_available = any(r.get("grossProfit") is not None for r in rows)
+
+    def _gp_metric(name: str, check_fn) -> None:
+        if not _gp_available:
+            checks.append({"name": name, "pass": False, "score": 0, "years_passed": 0, "scoreable_years": 0, "not_scored": True})
+        else:
+            metric(name, check_fn)
+
     # IS_8: Gross Margin > 40%
-    metric("Gross Margin > 40%",
+    _gp_metric("Gross Margin > 40%",
         lambda d: _f(d,"grossProfit") / _f(d,"revenue") > 0.40
                   if _f(d,"revenue") > 0 else False)
 
     # IS_9: SG&A / GP < 30%
-    metric("SG&A / GP < 30%",
+    _gp_metric("SG&A / GP < 30%",
         lambda d: _f(d,"sellingGeneralAndAdministrativeExpenses") / _f(d,"grossProfit") < 0.30
                   if _f(d,"grossProfit") > 0 else False)
 
     # IS_10: R&D / GP < 30%
-    metric("R&D / GP < 30%",
+    _gp_metric("R&D / GP < 30%",
         lambda d: _f(d,"researchAndDevelopmentExpenses") / _f(d,"grossProfit") < 0.30
                   if _f(d,"grossProfit") > 0 else False)
 
@@ -139,7 +166,8 @@ def score_health(data: dict) -> dict:
     # IS_12: Tax Rate 15–25%
     metric("Tax Rate 15-25%",
         lambda d: 0.15 <= _f(d,"incomeTaxExpense") / _f(d,"incomeBeforeTax") <= 0.25
-                  if _f(d,"incomeBeforeTax") > 0 else False)
+                  if _f(d,"incomeBeforeTax") > 0 else False,
+        key_field="incomeBeforeTax")
 
     # IS_13: Net Margin > 20%
     metric("Net Margin > 20%",
@@ -156,7 +184,8 @@ def score_health(data: dict) -> dict:
     # CS_15: SBC / Revenue < 10%
     metric("SBC / Revenue < 10%",
         lambda d: _f(d,"stockBasedCompensation") / _f(d,"revenue") < 0.10
-                  if _f(d,"revenue") > 0 else False)
+                  if _f(d,"revenue") > 0 else False,
+        key_field="stockBasedCompensation")
 
     # CS_16: OCF > Net Income
     metric("OCF > Net Income",
@@ -165,12 +194,14 @@ def score_health(data: dict) -> dict:
     # CS_17: FCF Growth Trend — compare each row against rows[1] baseline
     _fcf1 = _f(rows[1], "freeCashFlow", 0.0) if len(rows) > 1 else 0.0
     metric("FCF Growth Trend",
-        lambda d: _f(d,"freeCashFlow") > _fcf1)
+        lambda d: _f(d,"freeCashFlow") > _fcf1,
+        key_field="freeCashFlow")
 
     # CS_18: CapEx / NI < 25%
     metric("CapEx / NI < 25%",
         lambda d: abs(_f(d,"capitalExpenditure")) / _f(d,"netIncome") < 0.25
-                  if _f(d,"netIncome") > 0 else False)
+                  if _f(d,"netIncome") > 0 else False,
+        key_field="capitalExpenditure")
 
     # CS_19: Payout Ratio (Div + Buyback) / FCF < 1
     metric("Payout Ratio < 1",
@@ -191,7 +222,8 @@ def score_health(data: dict) -> dict:
     # BT_22: Intangibles < 10% of total assets
     metric("Intangibles < 10%",
         lambda d: _f(d,"intangibleAssets") / _f(d,"totalAssets") < 0.10
-                  if _f(d,"totalAssets") > 0 else False)
+                  if _f(d,"totalAssets") > 0 else False,
+        key_field="intangibleAssets")
 
     # BT_23: Debt Payoff < 4 years
     metric("Debt Payoff < 4 Years",
@@ -211,10 +243,12 @@ def score_health(data: dict) -> dict:
 
     scored = [c for c in checks if not c.get("not_scored")]
     passes = sum(1 for c in scored if c["pass"])
-    score  = round(passes / len(scored) * 100, 2) if scored else 0.0
+    scored_total = len(scored)
+    score  = round(passes / scored_total * 100, 2) if scored_total else 0.0
 
     return {
-        "score":   score,
-        "passes":  passes,
-        "details": checks,
+        "score":        score,
+        "passes":       passes,
+        "scored_total": scored_total,
+        "details":      checks,
     }

@@ -7,6 +7,7 @@ type HealthCheck = {
   pass: boolean;
   score: number;
   years_passed: number;
+  scoreable_years?: number;
   not_scored?: boolean;
 };
 
@@ -58,6 +59,7 @@ type MetricField = {
   lowerIsBetter: boolean;  // decreasing trend is healthy (used for sparkline + verdict)
   abs?: boolean;           // show absolute value (for stored-negative outflows)
   neutral?: boolean;       // no red/green coloring — value is neither good nor bad in isolation
+  naLabel?: string;        // shown instead of "—" when value is null (e.g. "N/A" for not-reported metrics)
 };
 
 type RatioRow = {
@@ -66,6 +68,7 @@ type RatioRow = {
   fmt: MetricField["fmt"];
   hib: boolean;
   neutral?: boolean;
+  naLabel?: string;        // shown instead of "—" when ratio is null
 };
 
 type CheckDetail = {
@@ -161,7 +164,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
   }],
   ["gross margin", {
     fields: [
-      { key: "gross_profit", label: "GROSS PROFIT", fmt: "bn",  hib: true, lowerIsBetter: false },
+      { key: "gross_profit", label: "GROSS PROFIT", fmt: "bn",  hib: true, lowerIsBetter: false, naLabel: "N/A" },
       { key: "revenue",      label: "REVENUE",      fmt: "bn",  hib: true, lowerIsBetter: false, neutral: true },
     ],
     description: "Revenue minus cost of goods sold as a percentage — reflects pricing power and production cost efficiency.",
@@ -175,12 +178,13 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       },
       fmt: "pct",
       hib: true,
+      naLabel: "N/A",
     }],
   }],
   ["sg&a", {
     fields: [
       { key: "sga",         label: "SG&A EXPENSE",  fmt: "bn", hib: false, lowerIsBetter: true },
-      { key: "gross_profit", label: "GROSS PROFIT",  fmt: "bn", hib: true,  lowerIsBetter: false, neutral: true },
+      { key: "gross_profit", label: "GROSS PROFIT",  fmt: "bn", hib: true,  lowerIsBetter: false, neutral: true, naLabel: "N/A" },
     ],
     description: "Selling, general, and administrative expenses — overhead costs that eat into gross profit on the way to operating income.",
     ratioRows: [{
@@ -193,12 +197,13 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       },
       fmt: "pct",
       hib: false,
+      naLabel: "N/A",
     }],
   }],
   ["r&d", {
     fields: [
       { key: "rd_expense",  label: "R&D EXPENSE",   fmt: "bn", hib: false, lowerIsBetter: false },
-      { key: "gross_profit", label: "GROSS PROFIT",  fmt: "bn", hib: true,  lowerIsBetter: false, neutral: true },
+      { key: "gross_profit", label: "GROSS PROFIT",  fmt: "bn", hib: true,  lowerIsBetter: false, neutral: true, naLabel: "N/A" },
     ],
     description: "Research and development spending — reduces current earnings but may fuel future growth; the check flags excessive R&D relative to gross profit.",
     ratioRows: [{
@@ -211,6 +216,7 @@ const METRIC_DETAIL: [string, CheckDetail][] = [
       },
       fmt: "pct",
       hib: false,
+      naLabel: "N/A",
     }],
   }],
   ["interest", {
@@ -577,9 +583,10 @@ function DetailPanel({ detail, rows }: { detail: CheckDetail; rows: FundRow[] })
                 </td>
                 {rows.map(r => {
                   const v = getVal(r, field);
+                  const display = v == null && field.naLabel ? field.naLabel : fmtVal(v, field.fmt);
                   return (
                     <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, field.hib, field.neutral), paddingBottom: 4, paddingLeft: 8, whiteSpace: "nowrap" }}>
-                      {fmtVal(v, field.fmt)}
+                      {display}
                     </td>
                   );
                 })}
@@ -592,9 +599,10 @@ function DetailPanel({ detail, rows }: { detail: CheckDetail; rows: FundRow[] })
                 </td>
                 {rows.map(r => {
                   const v = rr.compute(r);
+                  const display = v == null && rr.naLabel ? rr.naLabel : fmtVal(v, rr.fmt);
                   return (
                     <td key={r.fiscal_year} className="text-[10px] font-mono text-right font-bold" style={{ color: valColor(v, rr.hib, rr.neutral), paddingTop: 5, paddingBottom: 3, paddingLeft: 8, whiteSpace: "nowrap" }}>
-                      {fmtVal(v, rr.fmt)}
+                      {display}
                     </td>
                   );
                 })}
@@ -749,7 +757,7 @@ export default function HealthCategories({ cats, fundamentals }: { cats: HealthC
                   cat.checks.map((check, i) => {
                     const notScored = check.not_scored === true;
                     const explanation = notScored
-                      ? "Not applicable for banks — excluded from health score"
+                      ? "Not applicable or data unavailable — excluded from health score"
                       : getCheckExplanation(check.name, check.pass);
                     const detail = !notScored && fundamentals?.length ? findDetail(check.name) : null;
                     const rowKey = `${catIdx}-${i}`;
@@ -763,7 +771,7 @@ export default function HealthCategories({ cats, fundamentals }: { cats: HealthC
                           </span>
                           <div className="flex items-center gap-1.5 shrink-0">
                             <span className="text-xs font-mono" style={{ color: "rgba(0,255,65,0.25)" }}>
-                              {notScored ? "—" : `${check.years_passed}/5 yrs`}
+                              {notScored ? "—" : `${check.years_passed}/${check.scoreable_years ?? 5} yrs`}
                             </span>
                             {notScored ? (
                               <span

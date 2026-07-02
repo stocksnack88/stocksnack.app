@@ -176,16 +176,31 @@ def process(
     return True
 
 
+def _load_sp500_tickers() -> list[str]:
+    import pathlib
+    csv = pathlib.Path(__file__).parent / "sec" / "sp500_tickers.csv"
+    return [l.strip() for l in csv.read_text().splitlines() if l.strip()]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Rescore tickers from local Supabase data")
-    parser.add_argument("--tickers", nargs="+", required=True, metavar="TICKER")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--tickers", nargs="+", metavar="TICKER")
+    group.add_argument("--offset", type=int, metavar="N",
+                       help="Start index into sp500_tickers.csv (use with --limit)")
+    parser.add_argument("--limit", type=int, default=25, metavar="N",
+                        help="Number of tickers to process when using --offset (default 25)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Score only — do not write to database")
     parser.add_argument("--compare", action="store_true",
                         help="Print before/after table for each ticker (implies --dry-run)")
     args = parser.parse_args()
 
-    tickers  = [t.upper() for t in args.tickers]
+    if args.tickers:
+        tickers = [t.upper() for t in args.tickers]
+    else:
+        all_tickers = _load_sp500_tickers()
+        tickers = [t.upper() for t in all_tickers[args.offset: args.offset + args.limit]]
     dry_run  = args.dry_run or args.compare
     compare  = args.compare
 

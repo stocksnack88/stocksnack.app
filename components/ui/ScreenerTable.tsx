@@ -84,6 +84,7 @@ const SORT_CONDITIONS = new Set<ConditionKey>(["asc", "desc"]);
 const SIGNAL_OPTS     = ["BUY+", "BUY", "HOLD", "SELL"] as const;
 
 const STORAGE_KEY = "stocksnack_screener_filters";
+const PAGE_SIZE = 100;
 
 const CONDITION_PILLS: Record<ColumnKey, { cond: ConditionKey; label: string }[]> = {
   signal:  [],
@@ -365,6 +366,17 @@ export default function ScreenerTable({
       : visibleStocks;
     return applyFilters(searched, filters);
   }, [visibleStocks, filters, searchQuery]);
+
+  // Render only a page at a time — filtering/sorting still runs over the full
+  // result set above, this just caps how many <tr> elements actually mount.
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [filters, searchQuery]);
+  const pagedStocks = useMemo(
+    () => processedStocks.slice(0, visibleCount),
+    [processedStocks, visibleCount]
+  );
   const primaryTourTicker = visibleStocks.find(stock => stock.signal === "BUY+" || stock.signal === "BUY")?.ticker
     ?? visibleStocks.reduce<ScreenerRow | null>((best, stock) => !best || stock.rank < best.rank ? stock : best, null)?.ticker
     ?? null;
@@ -789,7 +801,7 @@ export default function ScreenerTable({
           </thead>
 
           <tbody>
-            {processedStocks.map((stock, i) => (
+            {pagedStocks.map((stock, i) => (
               <React.Fragment key={stock.ticker}>
                 <tr
                   data-tour-primary-stock={stock.ticker === primaryTourTicker ? "true" : undefined}
@@ -855,6 +867,19 @@ export default function ScreenerTable({
                 )}
               </React.Fragment>
             ))}
+
+            {processedStocks.length > visibleCount && (
+              <tr>
+                <td colSpan={totalCols} className="px-4 py-4 text-center">
+                  <button
+                    onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+                    className="text-xs font-mono text-[#00ff41]/50 hover:text-[#00ff41] border border-[#00ff41]/25 rounded px-4 py-2 tracking-widest transition-colors"
+                  >
+                    SHOW {Math.min(PAGE_SIZE, processedStocks.length - visibleCount)} MORE ({processedStocks.length - visibleCount} REMAINING)
+                  </button>
+                </td>
+              </tr>
+            )}
 
             {processedStocks.length === 0 && !!searchQuery.trim() && !isPro && !trialStartedAt && (
               <tr>

@@ -406,8 +406,7 @@ def _fetch_supabase_ebitda(ticker: str, client) -> dict[int, float]:
 
 def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None, client=None) -> dict:
     """
-    Fetch SEC + yfinance data and assemble the exact data dict the scoring
-    layers expect, mirroring the structure that fmp.fetch_all() produces.
+    Fetch SEC + yfinance data and assemble the data dict the scoring layers expect.
     """
     _sm = sector_mode or {}
     log.info("[%s] Fetching SEC data…", ticker)
@@ -573,6 +572,7 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
             ev_ebitda = (mktcap / net_inc_) if mktcap and mktcap > 0 and net_inc_ > 0 else None
 
         metrics_list.append({
+            "fiscalYear":                fy,
             "evToEBITDA":                ev_ebitda,
             "priceToFreeCashFlowsRatio": p_fcf,
             "dividendYield":             div_yield,
@@ -836,6 +836,26 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
         segments = get_segments(ticker, cik) if cik else {"product_segments": None, "geo_segments": None}
         prod     = segments.get("product_segments")
         geo      = segments.get("geo_segments")
+
+        # Validate geo total against known company revenue.
+        # Some companies (e.g. LLY) tag geo dimensions only for a sub-product,
+        # so the geo total is a fraction of actual revenue — discard as invalid.
+        if geo:
+            _recent_rev = None
+            try:
+                _recent_rev = float((data.get("income") or [{}])[0].get("revenue") or 0)
+            except (IndexError, TypeError, ValueError):
+                pass
+            if _recent_rev and _recent_rev > 0:
+                geo_total = sum(s.get("value", 0) for s in geo)
+                if geo_total / _recent_rev < 0.40:
+                    log.warning(
+                        "[%s] Geo total $%.0fM is only %.1f%% of revenue $%.0fM — discarding as partial XBRL data",
+                        ticker, geo_total / 1e6, geo_total / _recent_rev * 100, _recent_rev / 1e6,
+                    )
+                    geo = None
+                    segments = {**segments, "geo_segments": None}
+
         if prod is not None or geo is not None:
             log.info("[%s] Product segments: %d found", ticker, len(prod) if prod else 0)
             log.info("[%s] Geo segments: %d found",     ticker, len(geo)  if geo  else 0)
@@ -887,7 +907,25 @@ def main() -> None:
         "--dry-run", action="store_true",
         help="Run scoring but do NOT write to Supabase",
     )
+    parser.add_argument(
+        "--skip-pe-ratios", action="store_true",
+        help="Skip the cross-ticker P/E ratio and sector-average pass at the end of this "
+             "run. Use when running as one of several parallel matrix jobs — run it once "
+             "separately afterwards via --pe-ratios-only instead.",
+    )
+    parser.add_argument(
+        "--pe-ratios-only", action="store_true",
+        help="Skip per-ticker extraction entirely and only run the cross-ticker P/E ratio "
+             "and sector-average pass. Use as a single job after all matrix jobs complete.",
+    )
     args = parser.parse_args()
+
+    if args.pe_ratios_only:
+        log.info("Running P/E-ratios-only pass (no per-ticker extraction)")
+        writer = SupabaseWriter(SUPABASE_URL, SUPABASE_KEY)
+        compute_pe_ratios(writer.client)
+        log.info("Done — P/E ratios and sector averages recomputed")
+        return
 
     if args.tickers:
         tickers: list[str] = [t.upper() for t in args.tickers]
@@ -928,7 +966,7 @@ def main() -> None:
         if len(tickers) > 1:
             time.sleep(1)
 
-    if writer is not None:
+    if writer is not None and not args.skip_pe_ratios:
         log.info("Computing P/E ratios across all tickers…")
         compute_pe_ratios(writer.client)
 

@@ -17,11 +17,38 @@ from __future__ import annotations
 
 import csv
 import logging
+import time
 import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 
 log = logging.getLogger(__name__)
+
+_RETRY_ATTEMPTS = 3
+_RETRY_BASE_DELAY = 1.0  # seconds, doubles each attempt
+
+
+def _retry_yf(label: str, fn, *args, **kwargs):
+    """
+    Call fn(*args, **kwargs) with exponential-backoff retry.
+    Raises the last exception if every attempt fails — callers already wrap
+    their yfinance access in a broad try/except, so this just makes a single
+    flaky call less likely to be the thing that trips it.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(_RETRY_ATTEMPTS):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as exc:
+            last_exc = exc
+            if attempt < _RETRY_ATTEMPTS - 1:
+                delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                log.warning(
+                    "[yfinance] %s failed (attempt %d/%d): %s — retrying in %.1fs",
+                    label, attempt + 1, _RETRY_ATTEMPTS, exc, delay,
+                )
+                time.sleep(delay)
+    raise last_exc  # noqa: RSE102 — re-raise the last real exception
 
 # Explicit override for edge cases where auto-detection snaps incorrectly.
 # Auto-detection via detect_adr_ratio() is tried first for all tickers.
@@ -70,9 +97,9 @@ def _ticker(symbol: str):
 
 def _info(symbol: str) -> dict:
     try:
-        return _ticker(symbol).info or {}
+        return _retry_yf(f"{symbol} .info", lambda: _ticker(symbol).info) or {}
     except Exception as exc:
-        log.warning("[%s] yfinance info failed: %s", symbol, exc)
+        log.warning("[%s] yfinance info failed after retries: %s", symbol, exc)
         return {}
 
 
@@ -127,7 +154,7 @@ def get_dividends(symbol: str, years: int = 5) -> list[dict]:
     """
     try:
         t   = _ticker(symbol)
-        div = t.dividends
+        div = _retry_yf(f"{symbol} .dividends", lambda: t.dividends)
         if div.empty:
             return []
 
@@ -267,7 +294,7 @@ def get_historical_market_cap(
         from datetime import timedelta
 
         t    = _ticker(symbol)
-        hist = t.history(period="max", auto_adjust=True)
+        hist = _retry_yf(f"{symbol} .history", lambda: t.history(period="max", auto_adjust=True))
         if hist.empty:
             log.warning("[%s] yfinance history empty", symbol)
             return {}
@@ -279,7 +306,7 @@ def get_historical_market_cap(
         # ── Step 1: Fetch split history ────────────────────────────────────────
         # Build list of (naive_date, ratio) sorted ascending so we can
         # compute cumulative ratio for any fiscal year end.
-        raw_splits = t.splits
+        raw_splits = _retry_yf(f"{symbol} .splits", lambda: t.splits)
         split_list: list[tuple[datetime, float]] = []
         if not raw_splits.empty:
             for split_date, ratio in raw_splits.items():

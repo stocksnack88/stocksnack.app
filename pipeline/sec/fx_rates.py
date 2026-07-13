@@ -12,6 +12,7 @@ Annual average = mean of all daily Close prices for the calendar year.
 from __future__ import annotations
 
 import logging
+import time
 from statistics import mean
 
 log = logging.getLogger(__name__)
@@ -19,6 +20,9 @@ log = logging.getLogger(__name__)
 # In-process cache: (currency_pair, year) -> rate.
 # Avoids redundant Supabase/API calls across tickers in a single pipeline run.
 _runtime_cache: dict[tuple[str, int], float] = {}
+
+_RETRY_ATTEMPTS = 3
+_RETRY_BASE_DELAY = 1.0  # seconds, doubles each attempt
 
 
 def get_historical_fx_rate(
@@ -103,10 +107,24 @@ def _fetch_annual_average_yf(currency: str, year: int) -> float:
     """
     import yfinance as yf
 
-    hist = yf.Ticker(f"{currency}=X").history(
-        start=f"{year}-01-01",
-        end=f"{year}-12-31",
-    )
+    ticker = yf.Ticker(f"{currency}=X")
+    hist = None
+    last_exc: Exception | None = None
+    for attempt in range(_RETRY_ATTEMPTS):
+        try:
+            hist = ticker.history(start=f"{year}-01-01", end=f"{year}-12-31")
+            break
+        except Exception as exc:
+            last_exc = exc
+            if attempt < _RETRY_ATTEMPTS - 1:
+                delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                log.warning(
+                    "[yfinance] %s=X history failed (attempt %d/%d): %s — retrying in %.1fs",
+                    currency, attempt + 1, _RETRY_ATTEMPTS, exc, delay,
+                )
+                time.sleep(delay)
+    if hist is None:
+        raise last_exc  # noqa: RSE102 — re-raise the last real exception
     if hist.empty:
         raise ValueError(f"yfinance returned no data for {currency}=X in {year}")
 

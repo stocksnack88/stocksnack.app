@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { Share2 } from 'lucide-react'
+import { COVERED_STOCK_COUNT } from '@/lib/constants'
 
 const SCALE = 2
 
@@ -64,7 +65,7 @@ function buildCaption(
   } else if (blockTitle?.includes('OVERVIEW')) {
     para2 = `This is the full summary — score, signal, and projected return at a glance.`
   } else {
-    para2 = `StockSnack scores all 500 S&P 500 stocks using 30 financial metrics.`
+    para2 = `StockSnack scores all ${COVERED_STOCK_COUNT} S&P 500 stocks using 30 financial metrics.`
   }
 
   const para3 = `Check it out → stocksnack.app\nUse code SNACKBUDDY50 for 50% off Pro`

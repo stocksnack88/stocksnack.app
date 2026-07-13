@@ -1,3 +1,5 @@
+import { COVERED_STOCK_COUNT } from "@/lib/constants";
+
 export const metadata = {
   title: "Terms of Service — StockSnack",
 };
@@ -71,7 +73,7 @@ export default function TosPage() {
           },
           {
             label: "PRO",
-            desc: "Full access to all 500 S&P 500 stocks with complete scoring breakdowns, filters, and detail pages. Billed monthly.",
+            desc: `Full access to all ${COVERED_STOCK_COUNT} S&P 500 stocks with complete scoring breakdowns, filters, and detail pages. Billed monthly.`,
           },
         ].map(({ label, desc }) => (
           <div

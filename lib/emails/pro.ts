@@ -1,4 +1,5 @@
 import { resend } from "@/lib/resend";
+import { COVERED_STOCK_COUNT } from "@/lib/constants";
 
 export async function sendProEmail(toEmail: string): Promise<void> {
   await resend.emails.send({
@@ -18,7 +19,7 @@ export async function sendProEmail(toEmail: string): Promise<void> {
   <p style="color:#00ff41;font-size:20px;font-weight:bold;letter-spacing:6px;margin:0;">STOCKSNACK</p>
 </td></tr>
           <tr><td bgcolor="#000000" style="background-color:#000000;padding-bottom:16px;"><p style="color:#00ff41;font-size:22px;font-weight:bold;margin:0;">You're now Pro.</p></td></tr>
-          <tr><td bgcolor="#000000" style="background-color:#000000;padding-bottom:32px;"><p style="color:#00aa30;font-size:13px;margin:0;line-height:1.7;">Full access to all 500 S&P 500 stocks, filters, scoring layers, and valuation analysis. Go find your next investment.</p></td></tr>
+          <tr><td bgcolor="#000000" style="background-color:#000000;padding-bottom:32px;"><p style="color:#00aa30;font-size:13px;margin:0;line-height:1.7;">Full access to all ${COVERED_STOCK_COUNT} S&P 500 stocks, filters, scoring layers, and valuation analysis. Go find your next investment.</p></td></tr>
           <tr><td bgcolor="#000000" style="background-color:#000000;padding-bottom:40px;"><a href="https://stocksnack.app/screener" style="display:block;background-color:#00ff41;color:#000000;font-family:'Courier New',monospace;font-size:14px;font-weight:bold;letter-spacing:2px;padding:18px;text-decoration:none;border-radius:4px;text-align:center;">GO TO SCREENER →</a></td></tr>
           <tr><td bgcolor="#000000" style="background-color:#000000;border-top:1px solid #001a08;padding-top:20px;">
             <p style="color:#004415;font-size:11px;margin:0 0 8px 0;line-height:1.6;">Questions? Reply to this email or visit stocksnack.app</p>

@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import HazardTooltip from "@/components/ui/HazardTooltip";
+import { COVERED_STOCK_COUNT } from "@/lib/constants";
 import { useGuidedTour } from "@/components/ui/GuidedTour";
 
 const EXTENSION_MS = 15 * 60 * 1000
@@ -714,7 +715,7 @@ export default function ScreenerTable({
                 YOU&apos;VE SEEN TODAY&apos;S FREE PICKS
               </p>
               <p className="text-xs font-mono text-[#00ff41]/50 leading-relaxed">
-                Unlock all 500 stocks with Pro.
+                Unlock all {COVERED_STOCK_COUNT} stocks with Pro.
               </p>
             </div>
             <a
@@ -891,7 +892,7 @@ export default function ScreenerTable({
                         <span className="text-[#00ff41]/50"> is not in today&apos;s free picks.</span>
                       </p>
                       <p className="text-xs font-mono text-[#00ff41]/35 tracking-widest">
-                        Upgrade to Pro to search all 500 stocks.
+                        Upgrade to Pro to search all {COVERED_STOCK_COUNT} stocks.
                       </p>
                     </div>
                     <a

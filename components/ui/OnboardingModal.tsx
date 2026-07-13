@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { playClick, playChime } from "@/lib/sounds";
+import { COVERED_STOCK_COUNT } from "@/lib/constants";
 
 const SEEN_KEY = "ss_onboarding_seen";
 const INTENT_KEY = "ss_tour_intent";
@@ -48,7 +49,7 @@ export default function OnboardingModal() {
             FIND THE BEST S&amp;P 500 STOCK.
           </p>
           <p className="mt-5 max-w-[470px] font-mono text-[12px] leading-7 text-[#00ff41]/55 sm:text-[14px]">
-            StockSnack ranks all 500 using projected return, growth quality, and financial health—so you can find the strongest opportunities faster.
+            StockSnack ranks all {COVERED_STOCK_COUNT} using projected return, growth quality, and financial health—so you can find the strongest opportunities faster.
           </p>
         </div>
 

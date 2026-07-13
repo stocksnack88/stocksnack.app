@@ -4,6 +4,7 @@ import "./globals.css";
 import CookieBanner from "@/components/ui/CookieBanner";
 import PostHogProvider from "@/components/PostHogProvider";
 import { GuidedTourProvider } from "@/components/ui/GuidedTour";
+import { COVERED_STOCK_COUNT } from "@/lib/constants";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -18,10 +19,10 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: 'StockSnack — What\'s the best stock in S&P 500?',
-  description: 'StockSnack scores all 500 S&P 500 stocks using 30 financial metrics based on Buffett-style fundamentals. Free to try.',
+  description: `StockSnack scores all ${COVERED_STOCK_COUNT} S&P 500 stocks using 30 financial metrics based on Buffett-style fundamentals. Free to try.`,
   openGraph: {
     title: "What's the best stock in S&P 500?",
-    description: 'Sign up to get the answer! StockSnack ranks all 500 S&P 500 stocks with BUY/HOLD/SELL verdicts backed by 30 financial metrics.',
+    description: `Sign up to get the answer! StockSnack ranks all ${COVERED_STOCK_COUNT} S&P 500 stocks with BUY/HOLD/SELL verdicts backed by 30 financial metrics.`,
     url: 'https://stocksnack.app',
     siteName: 'StockSnack',
     images: [

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { unstable_cache } from 'next/cache'
 import { supabaseAdmin } from "@/lib/supabase";
+import { COVERED_STOCK_COUNT } from "@/lib/constants";
 import { getCachedUser, getCachedUserProfile } from "@/lib/server-auth";
 import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
 import ScreenerTableErrorBoundary from "@/components/ui/ScreenerTableErrorBoundary";
@@ -196,7 +197,7 @@ export default async function ScreenerPage({
                 YOUR 5-MINUTE FREE TRIAL IS WAITING
               </p>
               <p className="text-xs font-mono text-[#00ff41]/50 leading-relaxed">
-                See all 500 stocks free. No credit card needed.
+                See all {COVERED_STOCK_COUNT} stocks free. No credit card needed.
               </p>
             </div>
             <a

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { COVERED_STOCK_COUNT } from "@/lib/constants";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -113,7 +114,7 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
             {ticker}{stock?.name ? ` · ${stock.name}` : ""}
           </p>
           <p className="text-xs max-w-xs leading-relaxed mb-8" style={{ color: "rgba(0,255,65,0.35)" }}>
-            Upgrade to Pro to unlock all 500 stocks with full breakdowns.
+            Upgrade to Pro to unlock all {COVERED_STOCK_COUNT} stocks with full breakdowns.
           </p>
           <UpgradeButton />
           {!session && (

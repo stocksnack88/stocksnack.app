@@ -73,7 +73,7 @@ jobs:
           cache-dependency-path: pipeline/requirements.txt
       - run: pip install -r requirements.txt
         working-directory: pipeline
-      - run: python3 sec/run_sec.py --offset ${{ matrix.offset }} --limit 25 --skip-pe-ratios
+      - run: python3 sec/run_sec.py --offset ${{ matrix.offset }} --limit 25 --skip-pe-ratios --smart-pull
         working-directory: pipeline
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

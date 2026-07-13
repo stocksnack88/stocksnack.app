@@ -120,7 +120,7 @@ Revenue streams in priority order:
 | AI/Script | Gemini 2.5 Flash |
 | Social posting | PostFast API (planned) |
 | Payments | Stripe |
-| Financial data | FMP API + Yahoo Finance |
+| Financial data | Public filings + market data |
 
 ---
 

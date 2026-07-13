@@ -2,7 +2,161 @@
 
 This file is for Claude Code agents. Read before working on anything n8n or deployment related.
 
-**START HERE:** Read `stocksnack-handoffv10.md` first. It contains the full session handover — vocabulary, solved problems, pending tasks, tour bug rules, and priority order for the next session.
+**START HERE:** Read `stocksnack-handoffv17.md` first. It contains the current session handover — CTA work, TTS experiment, Remotion template status, solved decisions, and priority order for the next session.
+
+---
+
+## Current Remotion / Video Pipeline Status — 2026-07-11
+
+The Remotion visual-template build is complete.
+
+Current source of truth:
+
+- Active approved visual states: **45/45**
+- `Valuation Method` is **removed as a standalone template**
+- Do **not** build a separate `ValuationMethodScene`
+- The old 46-template plan is closed
+- `Valuation Method` is covered by the Price Projection overview + method breakdown states:
+  - `/Users/tzq/n8n-worker/remotion/PriceProjOverviewScene.tsx`
+  - `/Users/tzq/n8n-worker/remotion/EbitdaMethodScene.tsx`
+  - `/Users/tzq/n8n-worker/remotion/FcfMethodScene.tsx`
+  - `/Users/tzq/n8n-worker/remotion/DividendMethodScene.tsx`
+
+Approved scene-family count:
+
+| Scene family | Active states | Status |
+|---|---:|---|
+| Verdict Scorecard | 1 | Approved |
+| Price Projection | 4 | Approved |
+| Growth Quality | 4 | Approved |
+| Segment Breakdown | 2 | Approved |
+| Financial Health | 29 | Approved |
+| Valuation Comparison | 4 | Approved |
+| What You Are Buying | 1 | Approved |
+| Valuation Method | 0 | Removed / merged |
+| **Total** | **45** | **Complete** |
+
+New long-video pipeline scaffold:
+
+- Contract / scene recipe:
+  - `/Users/tzq/n8n-worker/remotion/longVideoContract.ts`
+- New master preview composition:
+  - `/Users/tzq/n8n-worker/remotion/StockSnackLongVideoV1.tsx`
+- Registered Remotion composition:
+  - `StockSnackLongVideoV1`
+- Implementation notes:
+  - `/Users/tzq/n8n-worker/remotion/LONG_VIDEO_PIPELINE_V1.md`
+- Visual grammar prototype:
+  - `/Users/tzq/n8n-worker/remotion/visualGrammar.ts`
+- Block A+B prototype builder:
+  - `/Users/tzq/n8n-worker/remotion/blockABPrototype.ts`
+- Prototype composition:
+  - `StockSnackLongVideoBlockAB`
+- Existing workflows are reference only for the new V1 pipeline scaffold:
+  - Do not edit `KOuUTUBAyETWYrUT`
+  - `aIYLq0PFvnzE9vOq` — **this restriction was lifted 2026-07-11** for the legacy short-form pipeline (unrelated to the new V1 prototype work above). It is the live production long-form workflow (`Stocksnack Short new voicing — single long TTS test`) and was actively debugged/fixed that session (TTS voicing, audio stitching). See `stocksnack-handoffv17.md` §4 and §14 for details. Treat it as production, not reference — still confirm scope with Tong before large structural changes, but routine fixes are fair game.
+
+### Critical correction from July 11 prototype review
+
+The Block A+B prototype rendered successfully, including Gemini/Iapetus VO, but Tong rejected the workflow logic because it was still too template-first.
+
+Do **not** proceed as:
+
+```text
+template → script fitted into template → keyword timing → render
+```
+
+Correct order:
+
+```text
+script → VO → STT → structure extraction → keyword extraction → scene/template suggestion → render
+```
+
+Meaning:
+
+- The script is the source of truth.
+- VO/STT provides real timing.
+- Structure extraction decides how the current spoken content should be shaped.
+- Keyword extraction happens after structure is known.
+- Templates are containers only; templates must render the extracted content, not decide the content.
+- Before rendering, produce a table/JSON review artifact with:
+  - script meaning
+  - structure type
+  - template suggestion
+  - actual visible content
+  - keywords
+  - highlight sequence
+
+Permanent rule:
+
+> The content decides the structure. The structure chooses the template. The template renders the extracted content.
+
+Prototype outputs created:
+
+- `/private/tmp/ss-prototype-a-motion-preview.mp4`
+- `/private/tmp/ss-block-ab-preview.mp4`
+- `/private/tmp/ss-block-ab-vo-preview.mp4`
+- `/private/tmp/ss-block-ab-v2-semantic-vo-preview.mp4`
+- `/private/tmp/ss-block-ab-vo.wav`
+- `/private/tmp/ss-block-ab-vo-v2.wav`
+
+### July 12 Block A+B Layer 2 price projection learnings
+
+Latest prototype file:
+
+- `/Users/tzq/n8n-worker/remotion/StockSnackBlockABV2.tsx`
+
+Latest preview output:
+
+- `/private/tmp/ss-block-ab-v22-complete-focus-sharper-table.mp4`
+
+What was learned:
+
+- The bottom `Price Projection Overview` should stay visible after it appears. Do not remove it when the detailed method table starts; it acts as the user's anchor while the table explains the mechanics.
+- During the bottom overview intro, the full table at the top should not appear at all. A faint ghost table was distracting; hide the table fully until the walkthrough starts.
+- The detailed price projection table must not pre-fill columns before narration reaches them. Example: FCF current price should remain empty until the FCF section starts.
+- Focus animation must be cell-to-cell, not whole-table. If cell A hands off to cell B, A should dim down while B brightens up at the same time. Do not interpolate the whole table against a global focus strength, or the entire table flashes brighter during handoff.
+- Every spoken/revealed row needs a focus anchor. The missing anchors caused values to appear without any highlight movement. Include anchors for `DIV INCOME`, `PRICE + DIV`, `FUTURE RETURN`, `RETURN CAGR`, `VS S&P 500`, plus the equivalent FCF rows.
+- For dense vertical tables, "non-HD" often is not export resolution. The composition is 1080×1920, but small low-opacity text plus glow creates a mushy look. Reduce table-wide glow, remove base glow from value chips, and reserve glow mainly for the active cell.
+- Bottom overview looks sharper because it uses fewer elements, larger text, higher contrast, and less competing glow. Use it as the quality benchmark.
+
+Current focus hierarchy for dense method tables:
+
+| Layer | Meaning | Treatment |
+|---|---|---|
+| 1 | Exact active cell | 100% opacity, strongest brightness, controlled inner glow |
+| 2 | Same row / same method column | Medium-low context opacity |
+| 3 | Metric labels + method headers | Readable structure, lower emphasis |
+| 4 | Non-presented / unrelated columns | Very dim but still present |
+
+Permanent implementation rule:
+
+> In a busy Layer 2 table, only the active/focus cell should change strongly. The table, labels, headers, and unrelated cells must keep stable layer settings so the user's eye does not get pulled away by accidental global brightness changes.
+
+Next milestone:
+
+Move from scaffold into a new n8n workflow:
+
+1. Supabase-only data fetch + assembler for `StockSnackLongVideoData`
+2. Structured script JSON generator + validator
+3. TTS using original StockSnack style
+4. STT word timestamps
+5. Structure extractor: script + transcript → content structures
+6. Keyword extractor: structures → visible keywords
+7. Scene/template suggestion artifact for Tong to review before render
+8. Timing map for anchors, focus actions, and Layer 1 keyword cards
+9. Render call into `StockSnackLongVideoV1`
+10. CTA stitch: StockSnack after price projection, StockAnalysis.com at true end
+11. One playable 10–12 minute preview using MSFT or NVDA, only after structure/keyword plan passes review
+
+Updated status docs:
+
+- `/Users/tzq/stocksnack.app/stocksnack-handoffv17.md`
+- `/Users/tzq/stocksnack.app/VIDEO_TRIGGER_MAP.md`
+- `/Users/tzq/stocksnack.app/DESIGN_SYSTEM.md`
+- `/Users/tzq/n8n-worker/remotion/TEMPLATES_SUCCESS.md`
+- `/Users/tzq/n8n-worker/remotion/TEMPLATES_FAILED.md`
+- `/Users/tzq/n8n-worker/remotion/LONG_VIDEO_PIPELINE_V1.md`
 
 ---
 
@@ -75,26 +229,22 @@ All tour issues resolved. Do not revisit unless Tong raises a specific new issue
 
 **Callout height rule (new):** Never hardcode callout height. Always read the actual rendered height from the DOM. Use a reactive effect to re-anchor after text renders if needed.
 
-### 🔴 Segment Extractor — Multiple Bugs Identified
-`pipeline/sec/segment_extractor.py` has known data quality issues. After fixing, rerun `run_sec.py` to update `product_segments`/`geo_segments` in `stock_scores`:
-- Generic `us-gaap` members leaking into results (HON, GE, BA, HD)
-- "Represents the agg/ent…" rollup label appearing instead of real segment name (CAT)
-- "Disclosures relate…" label appearing (TGT)
-- Revenue line items being treated as segments (XOM)
-- AMZN Non-US complement not being dropped
-- BIIB/NKE geo showing only US (no international breakdown)
-- MRK geo overlap
-- PEP geo mixing into product axis
+### ✅ Segment Extractor — All Known Bugs Fixed (2026-06-29)
 
-### 🔴 LLY Pipeline — Pending Proper Rerun
-- Current `stock_scores` for LLY has old 3-segment data (Product 88.8% / Collaboration / Jardiance)
-- Segment extractor locally returns correct individual drug data (Mounjaro, Zepbound, Trulicity, etc.) but DB not yet updated
-- **After extractor fixes above are done**: rerun `run_sec.py` for LLY, then retrigger the LLY blog to get drug-level breakdown in the article
+All previously-flagged bugs resolved and DB updated. Verified via Supabase:
+- ✅ HON, GE, BA, HD, CAT, TGT, XOM, AMZN, NKE, MRK — all clean
+- ✅ **BIIB geo** — US now appears (53.0%), Europe ex-Germany 28.0%, Germany 12.7%, Asia 6.3%. Root cause was a `next()` vs `max()` bug in the geo dedup that used the first (possibly tiny per-drug) country:US value as the representative, making every US fact appear subsumed by EuropeExGermany. Fixed in `_build_segments`.
+- ✅ **PEP** — geo business units (PBNA, EMEA, LatAm, AsiaPacific) moved from product axis to geo axis. product_segments=None. Root cause: PEP's BizSegments are all geo-named; new `_is_all_geo_named` check detects this and routes them to geo. Fixed in `parse_segments`.
 
-### 🟡 Blog — LLY Draft May Be Stale
-- A new LLY blog was triggered (execution 1738) with the bold `##x return` fix applied
-- Status was unknown when context was cut off — check if it completed and is ready to publish
-- Once LLY segments are correct in DB, a fresh LLY blog trigger is needed anyway (to get drug names)
+**Known limitation (not a bug):** BIIB US value ($3.5B) is the MAX of per-drug US revenues, not the true total (which would be higher if summed across all drugs). Fixing this would require SUM vs MAX logic in 2dim_geo aggregation when no product hierarchy exists — deferred.
+
+### ✅ LLY Pipeline — Fixed (verified 2026-06-29)
+DB now has correct individual drug data: Mounjaro 33.8%, Zepbound 19.9%, Verzenio 8.4%, Trulicity 6.3%, etc. Old 3-segment data is gone. Geo segments also look correct (US 71.2%, Europe 18.9%, Rest of World 9.9%).
+- **Next step**: retrigger LLY blog to get drug-level breakdown in the article (old draft used stale segment data)
+
+### 🟡 Blog — LLY Draft Is Stale
+- LLY segments now correct in DB — a fresh LLY blog trigger is needed to get drug names (Mounjaro, Zepbound, etc.) into the article
+- Old execution 1738 should be ignored; trigger a new one
 
 ### 🟡 Blog Insights Quality
 - User confirmed insights sections are not good — root cause identified: no per-drug time-series data in the Gemini prompt
@@ -195,14 +345,53 @@ WHERE slug = '{slug}' RETURNING slug, status, published_at;
 |---|---|
 | Stocksnack Blog Engine v1 | `KOuUTUBAyETWYrUT` |
 | Stocksnack Short | `keHnPktWa95cnDPc` |
+| Stocksnack Short new voicing — single long TTS test (long-form pipeline, active production) | `aIYLq0PFvnzE9vOq` |
 
 Form trigger webhookId: `f8d0fb82-b58e-466d-8d18-c9492d638cc0`
 
+### Pushing changes to `aIYLq0PFvnzE9vOq`
+
+This workflow has no local JSON file to edit — it lives only in n8n's SQLite DB inside the `n8n-docker` container. Use the n8n CLI (not the REST API — no API key is configured for it):
+
+```bash
+docker exec n8n-docker n8n export:workflow --id=aIYLq0PFvnzE9vOq --output=/tmp/wf.json
+docker cp n8n-docker:/tmp/wf.json ./wf.json
+# edit wf.json (python3 -c "..." with json.load/dump is reliable for targeted node/connection edits)
+docker cp ./wf.json n8n-docker:/tmp/wf.json
+docker exec n8n-docker n8n import:workflow --input=/tmp/wf.json
+```
+
+Always re-export and diff node count / connections after import to confirm nothing else was disturbed. **Refresh the n8n editor browser tab after importing** — the editor holds its own in-memory copy and will silently clobber the CLI import if the user saves from a stale tab.
+
+To inspect past executions (e.g. to pull the actual generated TTS audio out of a run, or check exact node inputs/outputs) — the REST API often returns empty `resultData` for this workflow. Instead copy the live DB out and query it directly:
+
+```bash
+docker cp n8n-docker:/home/node/.n8n/database.sqlite /tmp/n8n.sqlite   # ~3.4GB — copy to scratch, not the repo
+sqlite3 /tmp/n8n.sqlite "SELECT id, status, startedAt FROM execution_entity WHERE workflowId='aIYLq0PFvnzE9vOq' ORDER BY id DESC LIMIT 10;"
+sqlite3 /tmp/n8n.sqlite "SELECT data FROM execution_data WHERE executionId=<id>;"   # flattened array format, dereference string-index refs
+```
+
+Delete the copied `.sqlite` file when done — it's large and shouldn't linger.
+
 ---
 
-## n8n-worker (chart upload server)
+## n8n-worker (render/chart/stitch server)
 
-Runs at `node /Users/tzq/n8n-worker/server.js` on port 3000. n8n Docker container calls it at `http://host.docker.internal:3000/upload-charts`.
+Runs `node /Users/tzq/n8n-worker/server.js` on port 3000, **managed by PM2** as `render-server` (not a bare background process). n8n Docker container calls it at `http://host.docker.internal:3000/...`.
+
+Restart after any edit: `pm2 restart render-server` (do not `pkill`/manually background it — PM2 will just respawn it anyway, but doing it manually leaves a duplicate/orphaned process).
+
+Key endpoints:
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /render` | Renders the long-form video (ffmpeg drawtext overlays over `background_long.mp4`) |
+| `POST /upload-charts` | Blog engine chart image upload |
+| `POST /stitch` | Appends `Affiliate MP4.mp4` to the end of a render, in place. **Re-encodes** (fixed 2026-07-11 — was `-c copy`, which silently corrupted the tail because the render's audio (mono/24kHz) doesn't match the affiliate clip's (stereo/48kHz)) |
+| `POST /stitch-mid` | Inserts `Affiliate MP4 mid converted.mp4` at `gqStart`, in place. Always re-encoded via `filter_complex` concat |
+| `GET /file/:filename` | Added 2026-07-11. Serves a rendered video by filename, searching `renders/` recursively (files live in per-runId subfolders). Used by the `Long Fetch Video File` node for the approval → YouTube-upload step |
+
+`/stitch` and `/stitch-mid` both overwrite the input file in place (rename temp → original), so a video can safely go through both in sequence.
 
 ---
 
@@ -218,6 +407,8 @@ Runs at `node /Users/tzq/n8n-worker/server.js` on port 3000. n8n Docker containe
 | `/Users/tzq/stocksnack.app/components/ui/GuidedTour.tsx` | Onboarding tour — 24 steps, spotlight + callout |
 | `/Users/tzq/stocksnack.app/components/ui/OnboardingModal.tsx` | First-visit intro modal — triggers tour via ss_tour_intent |
 | `/Users/tzq/n8n-worker/remotion/VerdictScorecardScene.tsx` | Remotion verdict card component |
+| `/Users/tzq/n8n-worker/remotion/TEMPLATES_SUCCESS.md` | Source of truth for approved Remotion visual states — currently 45/45 |
+| `/Users/tzq/n8n-worker/remotion/TEMPLATES_FAILED.md` | Confirms no active visual states pending; Valuation Method removed |
 | `/Users/tzq/n8n-worker/remotion-server.mjs` | Remotion render server — port 3001, restart after every TSX change |
 
 ---

@@ -82,7 +82,7 @@ def compute_gq(values: list, sp500_cagr: float = 0.10) -> dict:
     """
     Recency-weighted YoY growth quality score.
 
-    values: oldest-first list of financials (FMP data must be reversed before calling).
+    values: oldest-first list of financials (newest-first input must be reversed before calling).
     Returns dict with keys: weightedCAGR, avg_dollar_change, signal, rates, rank.
 
     Two paths depending on the sign of the input series:

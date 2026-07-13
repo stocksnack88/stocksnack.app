@@ -235,7 +235,7 @@ def _m3_shareholder_return(
         return None
 
     # FIX 2: use total dividends paid series (oldest-first, USD) for growth rate
-    # dividendsPaid is negative in FMP — negate to get positive total outflow
+    # dividendsPaid is negative (cash outflow) — negate to get positive total outflow
     total_div_vals = [-v * fx_rate for v in div_paid_5y]
     gq_div         = compute_gq(list(reversed(total_div_vals)), sp500_cagr)
     adj_div_growth = gq_div["weightedCAGR"]   # FIX 3: saved directly as m3_growth_rate

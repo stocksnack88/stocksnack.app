@@ -112,9 +112,9 @@ export default function PrivacyPage() {
             desc: "Transactional email delivery (welcome emails, password resets). Your email address is passed to Resend solely to deliver service emails.",
           },
           {
-            name: "FINANCIAL MODELING PREP",
-            url: "financialmodelingprep.com",
-            desc: "Financial data provider. No personal data is shared with this provider.",
+            name: "PUBLIC FINANCIAL DATA SOURCES",
+            url: "sec.gov and public market data providers",
+            desc: "Public filings and market data sources used for financial analysis. No personal data is shared with these providers.",
           },
           {
             name: "VERCEL",

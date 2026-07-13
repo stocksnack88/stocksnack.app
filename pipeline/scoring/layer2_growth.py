@@ -91,7 +91,7 @@ def _fcf_gq_score(
     """
     Score FCF trend via recency-weighted YoY (compute_gq).
 
-    fcf_vals: newest-first (FMP order). Reversed internally to oldest-first.
+    fcf_vals: newest-first. Reversed internally to oldest-first.
     Returns (score, weighted_cagr, signal).
     """
     series = list(reversed(fcf_vals[:5]))

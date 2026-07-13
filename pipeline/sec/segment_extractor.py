@@ -806,8 +806,15 @@ def _build_segments(
 
             to_drop = set()
             for cf in country_facts:
-                cv = next((f["value"] for f in country_facts
-                           if f["member"] == cf["member"] and f["period_end"][:4] == yr), None)
+                # Use MAX across all facts for this member in the most-recent year so
+                # that the representative country value is the total (or best proxy),
+                # not the first (possibly tiny) fact found in document order.
+                # Without max(), a company like BIIB that files per-drug × per-region
+                # facts in document order starting with a small drug ($0.7M TOFIDENCE)
+                # would yield cv=$0.7M, causing every country:US fact to be dropped.
+                cv = max((f["value"] for f in country_facts
+                          if f["member"] == cf["member"] and f["period_end"][:4] == yr),
+                         default=None)
                 if cv is None:
                     continue
                 if any(f["period_end"][:4] == yr
@@ -1028,6 +1035,19 @@ def parse_segments(
     def _is_all_generic(segs: list[dict]) -> bool:
         return bool(segs) and all(s["name"].lower() in _GENERIC_PLACEHOLDERS for s in segs)
 
+    _GEO_KEYWORDS_RE = re.compile(
+        r'\b(europe|middle east|africa|latin america|asia|pacific|'
+        r'north america|americas|international|emea|apac|apla|amesa|australia|india)\b',
+        re.IGNORECASE
+    )
+
+    def _is_all_geo_named(segs: list[dict]) -> bool:
+        """True when every segment name contains a geographic keyword.
+        Used to detect companies like PEP whose reportable segments are geographic
+        business units filed under StatementBusinessSegmentsAxis (e.g.
+        'Europe, Middle East & Africa', 'Latin America Foods')."""
+        return bool(segs) and all(_GEO_KEYWORDS_RE.search(s["name"]) for s in segs)
+
     # Build product segments — try ProductOrService axis first, fall back to
     # StatementBusinessSegmentsAxis when the product axis returns nothing or only
     # one segment (e.g. GOOGL, META, JPM, AMD all report divisions on BizSegments).
@@ -1036,12 +1056,21 @@ def parse_segments(
         log.info("[%s] ProductOrServiceAxis returned income-statement line items — discarding", ticker)
         product = None
     product_used_biz = False
+    biz_product_geo_segments: list[dict] | None = None   # saved for geo fallback
     if product is None or len(product) < 2:
         biz_product = _build_segments(facts, _BIZ_SEGMENT_AXES, labels, parent_child_map)
         if biz_product and len(biz_product) >= 2 and not _is_all_generic(biz_product):
-            product          = biz_product
-            product_used_biz = True
-            log.info("[%s] Product segments sourced from StatementBusinessSegmentsAxis", ticker)
+            if _is_all_geo_named(biz_product):
+                # BizSegments are all geo-named (e.g. PEP: "Europe Middle East & Africa",
+                # "Latin America Foods"). Treat as geographic segments, not product segments.
+                log.info("[%s] BizSegments are all geo-named — assigning to geo, not product", ticker)
+                biz_product_geo_segments = biz_product
+                product = None
+                # product_used_biz stays False so geo can also use BizSegments if needed
+            else:
+                product          = biz_product
+                product_used_biz = True
+                log.info("[%s] Product segments sourced from StatementBusinessSegmentsAxis", ticker)
         elif biz_product and _is_all_generic(biz_product):
             log.info("[%s] BizSegments returned only generic placeholders — single-segment company", ticker)
             product = None
@@ -1056,6 +1085,13 @@ def parse_segments(
     # (e.g. NKE's North America / EMEA / Greater China / APLA).
     if geo is not None and len(geo) < 2:
         geo = None
+    # If BizSegments were classified as geo-named above, use them as geo (they are
+    # richer than a bare US / All-Other-Countries split). Prefer them over the raw
+    # geo axis result when ≥3 regions are available.
+    if biz_product_geo_segments and len(biz_product_geo_segments) >= 3:
+        if geo is None or len(biz_product_geo_segments) > len(geo):
+            geo = biz_product_geo_segments
+            log.info("[%s] Geo segments from geo-named BizSegments", ticker)
     if geo is None and not product_used_biz:
         biz_geo = _build_segments(facts, _BIZ_SEGMENT_AXES, labels, parent_child_map)
         if biz_geo and len(biz_geo) >= 3:

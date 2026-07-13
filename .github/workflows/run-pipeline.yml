@@ -87,7 +87,7 @@ jobs:
 
   pe-ratios:
     needs: pipeline
-    if: ${{ github.event.inputs.tickers == '' || github.event_name == 'schedule' }}
+    if: ${{ !cancelled() && (github.event.inputs.tickers == '' || github.event_name == 'schedule') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

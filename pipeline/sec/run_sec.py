@@ -18,6 +18,7 @@ import logging
 import os
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Allow imports from pipeline/ (scoring, supabase_writer, config)
@@ -30,7 +31,7 @@ for _p in [str(_PIPELINE_DIR), str(_SEC_DIR)]:
 from normalizer        import normalise
 from yf_client         import get_profile, get_market_cap, get_historical_market_cap
 from fx_rates          import get_historical_fx_rate
-from sec_client        import ticker_to_cik
+from sec_client        import ticker_to_cik, get_latest_filing
 from segment_extractor import get_segments
 
 from scoring.layer1_ppm    import score_ppm
@@ -887,6 +888,61 @@ def pre_register_tickers(tickers: list[str], writer: "SupabaseWriter") -> None:
     log.info("Pre-registered %d tickers in stocks table", len(rows))
 
 
+def smart_pull_check(ticker: str, client, enforce: bool) -> tuple[bool, dict | None, str]:
+    """
+    Compare a ticker's latest SEC filing against its stored checkpoint.
+
+    Returns (skip, latest_filing, reason):
+      - latest_filing is the dict from get_latest_filing(), or None if it
+        couldn't be determined (CIK missing, submissions fetch failed, etc.)
+      - skip is only ever True when enforce=True AND the filing is unchanged.
+        In shadow mode (enforce=False) skip is always False — extraction
+        still runs, but the log line shows what *would* have happened.
+      - Requires pipeline/migrate_add_filing_checkpoint.sql to have been
+        applied; if the columns don't exist yet this fails open (skip=False).
+    """
+    cik = ticker_to_cik(ticker)
+    if not cik:
+        return False, None, "no CIK on file — cannot check"
+
+    latest = get_latest_filing(cik)
+    if latest is None:
+        return False, None, "could not determine latest filing — extracting anyway"
+
+    try:
+        rows = (
+            client.table("stocks")
+            .select("last_filing_accession")
+            .eq("ticker", ticker)
+            .execute()
+            .data
+        )
+    except Exception as exc:
+        log.warning("[smart-pull] %s: checkpoint lookup failed (%s) — extracting anyway", ticker, exc)
+        return False, latest, "checkpoint lookup failed — extracting anyway"
+
+    stored = rows[0].get("last_filing_accession") if rows else None
+    unchanged = stored is not None and stored == latest["accession"]
+
+    if unchanged:
+        reason = f"unchanged since {latest['filingDate']} ({latest['form']}, {latest['accession']})"
+        return enforce, latest, reason
+
+    reason = f"new filing {latest['accession']} ({latest['form']}, {latest['filingDate']})"
+    return False, latest, reason
+
+
+def update_filing_checkpoint(ticker: str, client, latest: dict) -> None:
+    """Record the filing accession just processed, so next run can compare against it."""
+    try:
+        client.table("stocks").update({
+            "last_filing_accession":  latest["accession"],
+            "last_filing_checked_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("ticker", ticker).execute()
+    except Exception as exc:
+        log.warning("[smart-pull] %s: checkpoint update failed: %s", ticker, exc)
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -917,6 +973,18 @@ def main() -> None:
         "--pe-ratios-only", action="store_true",
         help="Skip per-ticker extraction entirely and only run the cross-ticker P/E ratio "
              "and sector-average pass. Use as a single job after all matrix jobs complete.",
+    )
+    parser.add_argument(
+        "--smart-pull", action="store_true",
+        help="Check each ticker's latest SEC filing before extracting. Shadow mode by "
+             "default — logs what would be skipped without actually skipping. Requires "
+             "pipeline/migrate_add_filing_checkpoint.sql to have been applied.",
+    )
+    parser.add_argument(
+        "--smart-pull-enforce", action="store_true",
+        help="With --smart-pull, actually skip tickers with no new filing instead of "
+             "just logging what would be skipped. Do not enable until shadow-mode logs "
+             "have been reviewed across a few real runs.",
     )
     args = parser.parse_args()
 
@@ -951,14 +1019,31 @@ def main() -> None:
     log.info("SPY benchmark: cagr=%.4f", spy.get("sp500_cagr") or 0)
 
     processed:       list[str]          = []
+    skipped:         list[str]          = []  # smart-pull: no new filing since last run
     failed:          list[str]          = []
     failed_errors:   dict[str, str]     = {}  # ticker -> first error line
     segment_results: dict[str, tuple]   = {}  # ticker -> (prod_count, geo_count)
 
     for ticker in tickers:
+        latest_filing = None
+        if args.smart_pull and writer is not None:
+            skip, latest_filing, reason = smart_pull_check(
+                ticker, writer.client, enforce=args.smart_pull_enforce
+            )
+            log.info(
+                "[smart-pull]%s %s: %s",
+                "" if args.smart_pull_enforce else " [shadow]", ticker, reason,
+            )
+            if skip:
+                skipped.append(ticker)
+                segment_results[ticker] = (0, 0)
+                continue
+
         ok, prod_cnt, geo_cnt, err_msg = process(ticker, writer, spy, dry_run)
         if ok:
             processed.append(ticker)
+            if args.smart_pull and writer is not None and latest_filing is not None:
+                update_filing_checkpoint(ticker, writer.client, latest_filing)
         else:
             failed.append(ticker)
             failed_errors[ticker] = (err_msg or "unknown error")
@@ -970,7 +1055,9 @@ def main() -> None:
         log.info("Computing P/E ratios across all tickers…")
         compute_pe_ratios(writer.client)
 
-    log.info("Done — processed: %d  failed: %d", len(processed), len(failed))
+    log.info("Done — processed: %d  skipped: %d  failed: %d", len(processed), len(skipped), len(failed))
+    if skipped:
+        log.info("Skipped (no new filing): %s", ", ".join(skipped))
     if failed:
         log.warning("Failed: %s", ", ".join(failed))
 

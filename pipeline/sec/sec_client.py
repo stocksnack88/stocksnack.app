@@ -15,16 +15,21 @@ What this does NOT do:
 from __future__ import annotations
 
 import json
+import logging
 import sys
 import time
 from pathlib import Path
 
 import requests
 
+log = logging.getLogger(__name__)
+
 _HEADERS = {"User-Agent": "StockSnack hello@stocksnack.app"}
-_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
-_FACTS_URL   = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
-_CACHE_PATH  = Path(__file__).parent / "cik_cache.json"
+_TICKERS_URL     = "https://www.sec.gov/files/company_tickers.json"
+_FACTS_URL       = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
+_CACHE_PATH      = Path(__file__).parent / "cik_cache.json"
+_FILING_FORMS_OF_INTEREST = {"10-K", "10-Q"}
 
 
 # ── CIK cache ────────────────────────────────────────────────────────────────
@@ -86,6 +91,41 @@ def get_facts(ticker: str, refresh_cik: bool = False) -> dict:
     if not cik:
         raise ValueError(f"Ticker '{ticker}' not found in SEC CIK map")
     return fetch_company_facts(cik)
+
+
+# ── Smart pull ───────────────────────────────────────────────────────────────
+
+def get_latest_filing(cik: str) -> dict | None:
+    """
+    Return metadata for the most recent 10-K or 10-Q filing:
+    {"accession": ..., "form": ..., "filingDate": ...}.
+
+    Cheap — reads the lightweight submissions index (SEC's "recent" filings
+    list is already newest-first), no XBRL parsing. Used as a pre-check to
+    decide whether a ticker's data actually needs re-extracting this run.
+
+    Returns None on any failure or if no 10-K/10-Q is found — callers should
+    treat that as "cannot determine, extract anyway" (fail open, not closed).
+    """
+    time.sleep(0.1)
+    url = _SUBMISSIONS_URL.format(cik=cik)
+    try:
+        resp = requests.get(url, headers=_HEADERS, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as exc:
+        log.warning("Submissions fetch failed for CIK %s: %s", cik, exc)
+        return None
+
+    filings     = data.get("filings", {}).get("recent", {})
+    forms       = filings.get("form", [])
+    accessions  = filings.get("accessionNumber", [])
+    filed_dates = filings.get("filingDate", [])
+
+    for form, acc, filed in zip(forms, accessions, filed_dates):
+        if form in _FILING_FORMS_OF_INTEREST:
+            return {"accession": acc, "form": form, "filingDate": filed}
+    return None
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { unstable_cache } from 'next/cache'
 import { supabaseAdmin } from "@/lib/supabase";
-import { COVERED_STOCK_COUNT } from "@/lib/constants";
+import { COVERED_STOCK_COUNT, isLaunchedStock } from "@/lib/constants";
 import { getCachedUser, getCachedUserProfile } from "@/lib/server-auth";
 import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
 import ScreenerTableErrorBoundary from "@/components/ui/ScreenerTableErrorBoundary";
@@ -18,7 +18,7 @@ const EXTENSION_DURATION_MS = 15 * 60 * 1000;
 // Stock data is updated weekly — cache for 60 s to avoid hitting DB on every request
 const getStockData = unstable_cache(
   async () => {
-    const [{ data: rows, error }, { data: priceRows }] = await Promise.all([
+    const [{ data: rawRows, error }, { data: priceRows }] = await Promise.all([
       supabaseAdmin
         .from("stock_scores")
         .select(`
@@ -35,12 +35,16 @@ const getStockData = unstable_cache(
           m_cumulative_div_ps,
           div_yield_5y_avg,
           div_yield,
-          stocks ( name )
+          stocks ( name, index_tags )
         `)
         .order("final_score", { ascending: false }),
       supabaseAdmin.from("stock_prices").select("ticker, current_price"),
     ]);
-    return { rows: rows ?? [], error: error ?? null, priceRows: priceRows ?? [] };
+    // Backend can freely ingest S&P 400/600 ahead of launch — this keeps them
+    // out of the live screener until index_tags says otherwise. See lib/constants.ts.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = (rawRows ?? []).filter((r: any) => isLaunchedStock(r.stocks?.index_tags));
+    return { rows, error: error ?? null, priceRows: priceRows ?? [] };
   },
   ['screener-stock-data'],
   { revalidate: 60 }

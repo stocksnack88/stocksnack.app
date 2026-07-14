@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getCachedUser } from '@/lib/server-auth'
+import { isLaunchedStock } from '@/lib/constants'
 import type { CSSProperties } from 'react'
 import AggregateCharts, { type AggregateYear } from './AggregateCharts'
 import SectorTrendChart, { type SectorYearData } from './SectorTrendChart'
@@ -52,7 +53,7 @@ type ScoreRow = {
   pe_ratio: number | null
   fcf_yield: number | null
   div_yield: number | null
-  stocks: { name: string | null; sector: string | null } | { name: string | null; sector: string | null }[] | null
+  stocks: { name: string | null; sector: string | null; index_tags: string[] | null } | { name: string | null; sector: string | null; index_tags: string[] | null }[] | null
 }
 
 type FundRow = {
@@ -71,6 +72,13 @@ function sectorOf(row: ScoreRow): string {
   if (!s) return 'Other'
   const ref = Array.isArray(s) ? s[0] : s
   return ref?.sector ?? 'Other'
+}
+
+function indexTagsOf(row: ScoreRow): string[] | null {
+  const s = row.stocks
+  if (!s) return null
+  const ref = Array.isArray(s) ? s[0] : s
+  return ref?.index_tags ?? null
 }
 
 function pct(n: number, total: number): number {
@@ -124,7 +132,7 @@ const getMarketData = unstable_cache(
     const [{ data: scoresRaw }, { data: fundRaw }] = await Promise.all([
       supabaseAdmin
         .from('stock_scores')
-        .select('ticker, final_score, signal, ppm_cagr, pe_ratio, fcf_yield, div_yield, stocks(name, sector)')
+        .select('ticker, final_score, signal, ppm_cagr, pe_ratio, fcf_yield, div_yield, stocks(name, sector, index_tags)')
         .order('final_score', { ascending: false }),
       supabaseAdmin
         .from('stock_fundamentals')
@@ -132,8 +140,11 @@ const getMarketData = unstable_cache(
         .gte('fiscal_year', 2021)
         .lte('fiscal_year', 2025),
     ])
+    // Backend can freely ingest S&P 400/600 ahead of launch — keep this "S&P 500
+    // aggregate" page true to its label until index_tags says otherwise.
+    const scores = ((scoresRaw ?? []) as unknown as ScoreRow[]).filter((r) => isLaunchedStock(indexTagsOf(r)))
     return {
-      scores: (scoresRaw ?? []) as unknown as ScoreRow[],
+      scores,
       fund:   (fundRaw   ?? []) as FundRow[],
     }
   },

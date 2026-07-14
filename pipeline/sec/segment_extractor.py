@@ -35,6 +35,7 @@ _REVENUE_TAGS = [
     "RevenuesNetOfInterestExpense",   # banks (JPM, BAC, WFC)
     "SalesRevenueNet",
     "RevenueFromContractWithCustomerIncludingAssessedTax",
+    "RevenuesBeforeRealizedGainsLosses",   # P&C/life insurers (e.g. AFG)
     # IFRS filers (20-F, e.g. TSM)
     "ifrs-full:Revenue",
     "ifrs-full:RevenueFromContractsWithCustomers",
@@ -580,13 +581,17 @@ def _extract_revenue_facts(
         "http://fasb.org/us-gaap/2025",
     ]
 
-    # Dynamically find us-gaap and ifrs-full namespace URIs used in this document
+    # Namespaces used in this document. Some filers tag a standard-sounding
+    # concept (e.g. AFG's RevenuesBeforeRealizedGainsLosses) under their own
+    # company-extension namespace instead of us-gaap — so for non-IFRS tags we
+    # search every namespace in the doc, not just ones containing "us-gaap".
+    # Tag names in _REVENUE_TAGS are specific enough that this doesn't risk
+    # matching an unrelated concept that happens to share a local name.
     found_ns: set[str] = set()
     for elem in root.iter():
         tag = elem.tag
-        if tag.startswith("{") and ("us-gaap" in tag or "ifrs-full" in tag or "ifrs.org" in tag):
-            ns_uri = tag[1:tag.index("}")]
-            found_ns.add(ns_uri)
+        if tag.startswith("{"):
+            found_ns.add(tag[1:tag.index("}")])
 
     # Try each revenue tag
     seen_ctx: set[tuple[str, str]] = set()  # (tag, context_id) dedup
@@ -599,7 +604,7 @@ def _extract_revenue_facts(
             search_ns = {ifrs_ns} if ifrs_ns else set()
             search_tag = local
         else:
-            search_ns = {n for n in found_ns if "us-gaap" in n}
+            search_ns = found_ns
             search_tag = rev_tag
 
         for ns_uri in search_ns:

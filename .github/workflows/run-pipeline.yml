@@ -9,6 +9,10 @@ on:
         description: 'Space-separated tickers to run (leave blank for full S&P 500)'
         required: false
         default: ''
+      index_tag:
+        description: 'Only with tickers set: tag this batch (e.g. SP400, SP600) so it stays hidden from the live site launch gate'
+        required: false
+        default: ''
 
 jobs:
   pipeline-single:
@@ -24,7 +28,12 @@ jobs:
           cache-dependency-path: pipeline/requirements.txt
       - run: pip install -r requirements.txt
         working-directory: pipeline
-      - run: python3 sec/run_sec.py --tickers ${{ github.event.inputs.tickers }}
+      - run: |
+          if [ -n "${{ github.event.inputs.index_tag }}" ]; then
+            python3 sec/run_sec.py --tickers ${{ github.event.inputs.tickers }} --index-tag ${{ github.event.inputs.index_tag }}
+          else
+            python3 sec/run_sec.py --tickers ${{ github.event.inputs.tickers }}
+          fi
         working-directory: pipeline
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

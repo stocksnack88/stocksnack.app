@@ -881,11 +881,25 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def pre_register_tickers(tickers: list[str], writer: "SupabaseWriter") -> None:
-    """Ensure every ticker exists in the stocks table before scoring begins."""
+def pre_register_tickers(tickers: list[str], writer: "SupabaseWriter", index_tag: str | None = None) -> None:
+    """
+    Ensure every ticker exists in the stocks table before scoring begins.
+
+    index_tag: when set (e.g. "SP400", "SP600"), stamps stocks.index_tags on
+    every upsert here. Only pass this for a batch that is entirely one index
+    group — the regular S&P 500 weekly run must NOT pass this, since it isn't
+    scoped to a single new group and would just be redundant relabeling.
+    Without a tag, a brand-new ticker gets no index_tags at all — which
+    lib/constants.ts's isLaunchedStock() treats as "already launched" (fails
+    open). So any first-time pull of an unlaunched group MUST pass this, or
+    those tickers show up on the live site immediately.
+    """
     rows = [{"ticker": t} for t in tickers]
+    if index_tag:
+        rows = [{"ticker": t, "index_tags": [index_tag]} for t in tickers]
     writer.client.table("stocks").upsert(rows, on_conflict="ticker").execute()
-    log.info("Pre-registered %d tickers in stocks table", len(rows))
+    log.info("Pre-registered %d tickers in stocks table%s", len(rows),
+              f" tagged {index_tag}" if index_tag else "")
 
 
 def smart_pull_check(ticker: str, client, enforce: bool) -> tuple[bool, dict | None, str]:
@@ -981,6 +995,13 @@ def main() -> None:
              "pipeline/migrate_add_filing_checkpoint.sql to have been applied.",
     )
     parser.add_argument(
+        "--index-tag", type=str, default=None,
+        help="Tag newly-registered tickers in this batch with an index group "
+             "(e.g. SP400, SP600) so they stay hidden from the live site's launch "
+             "gate (see lib/constants.ts). Only for a batch entirely within one "
+             "group — never pass this for the regular S&P 500 weekly run.",
+    )
+    parser.add_argument(
         "--smart-pull-enforce", action="store_true",
         help="With --smart-pull, actually skip tickers with no new filing instead of "
              "just logging what would be skipped. Do not enable until shadow-mode logs "
@@ -1012,7 +1033,7 @@ def main() -> None:
     writer = None if dry_run else SupabaseWriter(SUPABASE_URL, SUPABASE_KEY)
 
     if writer is not None:
-        pre_register_tickers(tickers, writer)
+        pre_register_tickers(tickers, writer, index_tag=args.index_tag)
 
     log.info("Fetching S&P 500 benchmark…")
     spy = compute_spy_benchmark()

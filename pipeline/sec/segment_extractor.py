@@ -32,10 +32,11 @@ _DELAY     = 0.1   # seconds between SEC HTTP calls
 _REVENUE_TAGS = [
     "RevenueFromContractWithCustomerExcludingAssessedTax",
     "Revenues",
-    "RevenuesNetOfInterestExpense",   # banks (JPM, BAC, WFC)
+    "RevenuesNetOfInterestExpense",   # large banks (JPM, BAC, WFC)
     "SalesRevenueNet",
     "RevenueFromContractWithCustomerIncludingAssessedTax",
     "RevenuesBeforeRealizedGainsLosses",   # P&C/life insurers (e.g. AFG)
+    "InterestIncomeExpenseNet",       # regional banks (e.g. WAL) — net interest income as top line
     # IFRS filers (20-F, e.g. TSM)
     "ifrs-full:Revenue",
     "ifrs-full:RevenueFromContractsWithCustomers",

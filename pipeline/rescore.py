@@ -176,9 +176,9 @@ def process(
     return True
 
 
-def _load_sp500_tickers() -> list[str]:
+def _load_ticker_file(filename: str) -> list[str]:
     import pathlib
-    csv = pathlib.Path(__file__).parent / "sec" / "sp500_tickers.csv"
+    csv = pathlib.Path(__file__).parent / "sec" / filename
     return [l.strip() for l in csv.read_text().splitlines() if l.strip()]
 
 
@@ -187,9 +187,11 @@ def main() -> None:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--tickers", nargs="+", metavar="TICKER")
     group.add_argument("--offset", type=int, metavar="N",
-                       help="Start index into sp500_tickers.csv (use with --limit)")
+                       help="Start index into the ticker file (use with --limit)")
     parser.add_argument("--limit", type=int, default=25, metavar="N",
                         help="Number of tickers to process when using --offset (default 25)")
+    parser.add_argument("--ticker-file", type=str, default="sp500_tickers.csv",
+                        help="CSV to read --offset/--limit from (default sp500_tickers.csv)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Score only — do not write to database")
     parser.add_argument("--compare", action="store_true",
@@ -199,7 +201,7 @@ def main() -> None:
     if args.tickers:
         tickers = [t.upper() for t in args.tickers]
     else:
-        all_tickers = _load_sp500_tickers()
+        all_tickers = _load_ticker_file(args.ticker_file)
         tickers = [t.upper() for t in all_tickers[args.offset: args.offset + args.limit]]
     dry_run  = args.dry_run or args.compare
     compare  = args.compare

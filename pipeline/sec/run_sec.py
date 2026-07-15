@@ -971,7 +971,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--offset", type=int, default=0,
-        help="Skip the first N tickers from the S&P 500 list before applying --limit",
+        help="Skip the first N tickers from the ticker list before applying --limit",
+    )
+    parser.add_argument(
+        "--ticker-file", type=str, default=None,
+        help="Read the --offset/--limit ticker list from this CSV (one ticker per line) "
+             "instead of the S&P 500 cache — e.g. sp400_tickers.csv, sp600_tickers.csv. "
+             "Ignored if --tickers is also passed.",
     )
     parser.add_argument(
         "--dry-run", action="store_true",
@@ -1018,6 +1024,13 @@ def main() -> None:
 
     if args.tickers:
         tickers: list[str] = [t.upper() for t in args.tickers]
+    elif args.ticker_file:
+        ticker_path = _SEC_DIR / args.ticker_file
+        tickers = [
+            line.strip().upper() for line in ticker_path.read_text().splitlines()
+            if line.strip()
+        ]
+        log.info("Loaded %d tickers from %s", len(tickers), args.ticker_file)
     else:
         tickers = _load_sp500_tickers()
 

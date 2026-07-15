@@ -7,8 +7,9 @@ Prints a results table and exits code 1 if any FAIL is found (so
 GitHub Actions can catch regressions).
 
 Run:
-    python verify.py                 # all tickers
-    python verify.py --ticker NVDA   # single ticker (debug)
+    python verify.py                              # all tickers
+    python verify.py --ticker NVDA                # single ticker (debug)
+    python verify.py --ticker-file sp400_tickers.csv   # just this batch
 """
 from __future__ import annotations
 
@@ -20,9 +21,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 _PIPELINE_DIR = Path(__file__).parent.parent
+_SEC_DIR      = Path(__file__).parent
 if str(_PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(_PIPELINE_DIR))
 
+import config  # noqa: F401 — loads pipeline/.env so this also runs standalone, not just in CI
 from supabase import create_client
 
 try:
@@ -196,7 +199,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="StockSnack data quality verifier")
     parser.add_argument("--ticker", metavar="TICKER",
                         help="Run checks on a single ticker only")
+    parser.add_argument("--ticker-file", metavar="FILE",
+                        help="Run checks only on tickers listed in this CSV under sec/ "
+                             "(e.g. sp400_tickers.csv) — one ticker per line")
     args = parser.parse_args()
+
+    ticker_filter: list[str] | None = None
+    if args.ticker_file:
+        ticker_filter = [
+            line.strip().upper() for line in (_SEC_DIR / args.ticker_file).read_text().splitlines()
+            if line.strip()
+        ]
 
     url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL") or os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -213,6 +226,8 @@ def main() -> int:
     )
     if args.ticker:
         scores_query = scores_query.eq("ticker", args.ticker.upper())
+    elif ticker_filter:
+        scores_query = scores_query.in_("ticker", ticker_filter)
 
     scores_resp = scores_query.execute()
     rows = scores_resp.data or []
@@ -225,6 +240,8 @@ def main() -> int:
     prices_query = client.table("stock_prices").select("ticker, current_price")
     if args.ticker:
         prices_query = prices_query.eq("ticker", args.ticker.upper())
+    elif ticker_filter:
+        prices_query = prices_query.in_("ticker", ticker_filter)
     prices_resp = prices_query.execute()
     price_map = {p["ticker"]: p["current_price"] for p in (prices_resp.data or [])}
     for row in rows:

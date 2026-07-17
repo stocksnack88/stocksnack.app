@@ -37,6 +37,7 @@ _REVENUE_TAGS = [
     "RevenueFromContractWithCustomerIncludingAssessedTax",
     "RevenuesBeforeRealizedGainsLosses",   # P&C/life insurers (e.g. AFG)
     "InterestIncomeExpenseNet",       # regional banks (e.g. WAL) — net interest income as top line
+    "CoreRevenues",                    # some REITs (e.g. AMH) — custom company-extension concept
     # IFRS filers (20-F, e.g. TSM)
     "ifrs-full:Revenue",
     "ifrs-full:RevenueFromContractsWithCustomers",
@@ -1041,9 +1042,13 @@ def parse_segments(
     def _is_all_generic(segs: list[dict]) -> bool:
         return bool(segs) and all(s["name"].lower() in _GENERIC_PLACEHOLDERS for s in segs)
 
+    # Found via S&P 400 QC pass: TRU's "U.S. Markets" / "International" segments
+    # were staying on the product axis (geo_segments null) because neither term
+    # matched — the regex only covered non-US region names, not US/domestic ones.
     _GEO_KEYWORDS_RE = re.compile(
         r'\b(europe|middle east|africa|latin america|asia|pacific|'
-        r'north america|americas|international|emea|apac|apla|amesa|australia|india)\b',
+        r'north america|americas|international|emea|apac|apla|amesa|australia|india|'
+        r'u\.s\.|u\.s|united states|domestic|canada)\b',
         re.IGNORECASE
     )
 
@@ -1091,10 +1096,13 @@ def parse_segments(
     # (e.g. NKE's North America / EMEA / Greater China / APLA).
     if geo is not None and len(geo) < 2:
         geo = None
-    # If BizSegments were classified as geo-named above, use them as geo (they are
-    # richer than a bare US / All-Other-Countries split). Prefer them over the raw
-    # geo axis result when ≥3 regions are available.
-    if biz_product_geo_segments and len(biz_product_geo_segments) >= 3:
+    # If BizSegments were classified as geo-named above, use them as geo. Minimum
+    # is 2 (same bar as any other valid segment set) — a plain US/International
+    # split (e.g. TRU) is a completely normal, real geo breakdown and shouldn't
+    # be discarded just because it's not as rich as a multi-region one. Only
+    # override an existing raw-geo-axis result when the BizSegments version is
+    # richer (more regions); always use it when geo is otherwise None.
+    if biz_product_geo_segments and len(biz_product_geo_segments) >= 2:
         if geo is None or len(biz_product_geo_segments) > len(geo):
             geo = biz_product_geo_segments
             log.info("[%s] Geo segments from geo-named BizSegments", ticker)

@@ -23,6 +23,7 @@ EarningsPerShareBasic,eps_diluted,2,2026-05-16,
 IncomeLossFromContinuingOperationsPerDilutedShare,eps_diluted,3,2026-06-20,fallback for ABNB/HAL/KIM/MNST/REG — use continuing-ops EPS when EarningsPerShareDiluted absent
 SellingGeneralAndAdministrativeExpense,sga_expense,1,2026-05-16,confirmed AAPL
 SellingAndMarketingExpense,sga_expense,2,2026-05-16,
+GeneralAndAdministrativeExpense,sga_expense,3,2026-07-17,confirmed CMG - found via S&P 400/500 SGA-null QC pass
 ResearchAndDevelopmentExpense,rd_expense,1,2026-05-16,confirmed AAPL
 ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost,rd_expense,2,2026-05-16,
 InterestExpense,interest_expense,1,2026-05-16,confirmed AAPL

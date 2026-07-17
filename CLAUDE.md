@@ -6,7 +6,45 @@ This file is for Claude Code agents. Read before working on anything n8n or depl
 
 ---
 
-## Current Remotion / Video Pipeline Status — 2026-07-11
+## Universe Expansion — Data Quality Status — 2026-07-15
+
+Expanding beyond S&P 500 (500 stocks) toward S&P Composite 1500 (500+400+600). Backend can freely ingest new tickers ahead of launch — `stocks.index_tags` + `isLaunchedStock()` in `lib/constants.ts` keep anything tagged `SP400`/`SP600` hidden from the live site (screener, market page) until the tag is removed from the gate list. See `pipeline/migrate_add_stock_tags.sql`, `pipeline/sec/run_sec.py --index-tag`, `.github/workflows/backfill-new-universe.yml`.
+
+**Pull status:**
+
+| | S&P 500 | S&P 400 |
+|---|---:|---:|
+| Attempted | 500 | 400 |
+| Pulled successfully | 502 | 398 |
+| Failed | — | 2 (JHG — not in SEC CIK map; OZK — 404 on company facts) |
+
+**QC status** (`pipeline/sec/health_report.py --ticker-file <file>`, ported from `app/admin/health/page.tsx`'s methodology):
+
+| | S&P 500 | S&P 400 |
+|---|---:|---:|
+| Fully clean (zero QC flags) | 🟢 450/502 (90%) | 🟡 328/398 (82%) |
+| sga null despite revenue | 🔴 151 (30%) | 🔴 129 (32%) |
+| rd_expense null despite revenue | 🔴 282 (56%) | 🔴 219 (55%) — usually legitimate (non-R&D companies), tracked separately from sga |
+| geo_segments null | 🔴 34% | 🔴 43% |
+| EBITDA null w/ positive net income | 🟢 0 | 🟡 16 (mostly REITs — FFO/AFFO, not EBITDA, is their standard metric) |
+| Interior data gaps | 🟢 2 | 🔴 49 |
+| Scale/magnitude spike errors (7 fields) | 🟡 7 | 🟡 7 |
+
+**Two real bugs found and fixed this pass** (both in `pipeline/sec/segment_extractor.py`):
+- Insurers (e.g. AFG) tag segment revenue as `RevenuesBeforeRealizedGainsLosses` under their own **company-extension namespace**, not `us-gaap` — the tag was known but the namespace search was too narrow. Fixed by searching all namespaces in the document, not just `us-gaap`/`ifrs`.
+- Regional banks (e.g. WAL, EWBC) tag segment revenue as `InterestIncomeExpenseNet` (net interest income), not any `Revenues`-family tag. Added as a new candidate tag.
+
+**SG&A gap is pre-existing, not new to S&P 400** — confirmed via Kroger, Chipotle and other S&P 500 names that definitely have real SG&A in their filings but show null. This is a live production gap, not something the expansion introduced.
+
+**Next steps (agreed 2026-07-15): do both in parallel, not sequentially** — S&P 400/500's own extraction bugs (SG&A, spike detection) are pre-existing and benefit all 900+ tickers whenever fixed, so fixing them isn't a prerequisite for expanding further:
+1. Pull S&P 600 (603 tickers) using the same `backfill-new-universe.yml` workflow, tagged `SP600`
+2. Triage the ~1,000+ "all-null unconfirmed" fields into `confirmed_exceptions` (legitimate business-model gaps) vs real bugs
+3. Investigate the SG&A extraction gap in `field_mapper.py`
+4. Investigate the 7 scale/magnitude spike cases (suspicious round placeholder-looking values, e.g. `-$1M` next to real multi-hundred-million figures)
+
+---
+
+## Current Remotion / Video Pipeline Status — 2026-07-15
 
 The Remotion visual-template build is complete.
 
@@ -52,6 +90,10 @@ New long-video pipeline scaffold:
   - `/Users/tzq/n8n-worker/remotion/blockABPrototype.ts`
 - Prototype composition:
   - `StockSnackLongVideoBlockAB`
+- Actual-output block wrappers now added:
+  - `/Users/tzq/n8n-worker/remotion/StockSnackBlockD.tsx`
+  - `/Users/tzq/n8n-worker/remotion/StockSnackBlockE.tsx`
+  - `/Users/tzq/n8n-worker/remotion/StockSnackBlockF.tsx`
 - Existing workflows are reference only for the new V1 pipeline scaffold:
   - Do not edit `KOuUTUBAyETWYrUT`
   - `aIYLq0PFvnzE9vOq` — **this restriction was lifted 2026-07-11** for the legacy short-form pipeline (unrelated to the new V1 prototype work above). It is the live production long-form workflow (`Stocksnack Short new voicing — single long TTS test`) and was actively debugged/fixed that session (TTS voicing, audio stitching). See `stocksnack-handoffv17.md` §4 and §14 for details. Treat it as production, not reference — still confirm scope with Tong before large structural changes, but routine fixes are fair game.
@@ -133,13 +175,58 @@ Permanent implementation rule:
 
 > In a busy Layer 2 table, only the active/focus cell should change strongly. The table, labels, headers, and unrelated cells must keep stable layer settings so the user's eye does not get pulled away by accidental global brightness changes.
 
+### July 15 Blocks D/E/F actual-output status and rules
+
+The new long-video work is now evaluated by actual block outputs, not visual-only mockups.
+
+Required chain:
+
+```text
+script → VO → STT → structure/focus extraction → Layer 1 keyword cards → Layer 2 approved scenes → MP4 review
+```
+
+Latest outputs:
+
+| Block | Content | Latest output | Status |
+|---|---|---|---|
+| D | Growth quality | `/private/tmp/ss-block-d-v13-text-only-number-shine.mp4` | Passed |
+| E | Business segments | `/private/tmp/ss-block-e-v5-text-only-number-shine.mp4` | Passed |
+| F | Financial health | `/private/tmp/ss-block-f-v1-actual-output.mp4` | Rendered for review |
+
+Block-level visual rules learned:
+
+- Layer 1 keyword cards must be short, large, premium, and placed in safe blank space.
+- Exact spoken values should use text-only shine-through. Do not add another overlay/pill if the value already exists in the visual.
+- Do not glow a whole card when the narration only emphasizes one number.
+- Gradual focus is mandatory: outgoing element dims while incoming element brightens.
+- `HealthScorecardScene` now supports `focusWeights` because hard on/off focus caused sudden glow jumps.
+- Block F currently demonstrates one health metric detail (`Cash / Debt`). Future strong-health automation should select 3 strongest metrics from the shortlist once all detail paths are wired.
+
+### Review-output delivery rule — do not use web preview by default
+
+Tong expects the same direct local-file Markdown link format used for the approved Block D/E outputs.
+
+Correct:
+
+```md
+Block F: [ss-block-f-v1-actual-output.mp4](/private/tmp/ss-block-f-v1-actual-output.mp4)
+```
+
+Wrong unless explicitly requested:
+
+```md
+Block F: [ss-block-f-v1-actual-output.mp4](http://127.0.0.1:8123/ss-block-f-v1-actual-output.mp4)
+```
+
+Do not start a localhost server to show review videos unless Tong asks for it. `http://127.0.0.1` opens as browser/web view and breaks the expected local-file review workflow. If the file link seems non-clickable, do not guess a new delivery method; keep the known `/private/tmp/...mp4` format and investigate separately.
+
 Next milestone:
 
 Move from scaffold into a new n8n workflow:
 
 1. Supabase-only data fetch + assembler for `StockSnackLongVideoData`
 2. Structured script JSON generator + validator
-3. TTS using original StockSnack style
+3. TTS using current StockSnack v9 VO style (`/Users/tzq/n8n-worker/VO_STYLE_CHANGES.md`: short style prompt + inline vocal tags/disfluencies)
 4. STT word timestamps
 5. Structure extractor: script + transcript → content structures
 6. Keyword extractor: structures → visible keywords
@@ -501,3 +588,26 @@ await browser.close();
 ```
 
 Then use `Read` tool on `/tmp/out.png` — it displays inline in chat.
+
+---
+
+## Remotion long-video visual QA rules
+
+The current long-video Remotion work lives in `/Users/tzq/n8n-worker/remotion/`.
+
+Important Block F financial-health reference:
+
+- Latest passed render: `/private/tmp/ss-block-f-v22-stt-global-retime.mp4`
+- Plan: `/Users/tzq/n8n-worker/remotion/BLOCK_F_FINANCIAL_HEALTH_PLAN.md`
+- Workflow notes: `/Users/tzq/n8n-worker/remotion/ACTUAL_OUTPUT_WORKFLOW.md`
+
+Rules learned from the Block F review:
+
+- Script/VO meaning drives visual emphasis. Do not animate important values before the narration reaches them.
+- Separate quiet scene presence from active focus shine.
+- Merge semantically connected comparison items into one stable focus state.
+- Avoid hard visual thresholds such as `shine > 0.05` / `activeWeight > 0.25`; these cause sudden shine or dim.
+- Avoid accidental `shine → dim → shine again`.
+- Keep benchmarks visible during comparison.
+- Use text-only shine-through for existing numbers/labels instead of extra overlay pills.
+- Before showing a Remotion review render, run the 3-round director QA: brightness/scene scan, contact-sheet review, and timing/code validation against the spoken anchors.

@@ -6,41 +6,61 @@ This file is for Claude Code agents. Read before working on anything n8n or depl
 
 ---
 
-## Universe Expansion — Data Quality Status — 2026-07-15
+## Universe Expansion — Data Quality Status — 2026-07-17
 
-Expanding beyond S&P 500 (500 stocks) toward S&P Composite 1500 (500+400+600). Backend can freely ingest new tickers ahead of launch — `stocks.index_tags` + `isLaunchedStock()` in `lib/constants.ts` keep anything tagged `SP400`/`SP600` hidden from the live site (screener, market page) until the tag is removed from the gate list. See `pipeline/migrate_add_stock_tags.sql`, `pipeline/sec/run_sec.py --index-tag`, `.github/workflows/backfill-new-universe.yml`.
+S&P Composite 1500 (500+400+600) fully pulled. Backend can freely ingest new tickers ahead of launch — `stocks.index_tags` + `isLaunchedStock()` in `lib/constants.ts` keep anything tagged `SP400`/`SP600` hidden from the live site until the tag is removed from the gate list. See `pipeline/migrate_add_stock_tags.sql`, `pipeline/sec/run_sec.py --index-tag`, `.github/workflows/backfill-new-universe.yml`.
 
 **Pull status:**
 
-| | S&P 500 | S&P 400 |
-|---|---:|---:|
-| Attempted | 500 | 400 |
-| Pulled successfully | 502 | 398 |
-| Failed | — | 2 (JHG — not in SEC CIK map; OZK — 404 on company facts) |
+| | S&P 500 | S&P 400 | S&P 600 |
+|---|---:|---:|---:|
+| Attempted | 500 | 400 | 603 |
+| Pulled successfully | 502 | 398 | 598 |
+| Failed | — | 2 (JHG, OZK) | 5 (PFBC, MBGL, MFP, VGNT, CWEN-A) |
 
-**QC status** (`pipeline/sec/health_report.py --ticker-file <file>`, ported from `app/admin/health/page.tsx`'s methodology):
+**QC status** (`pipeline/sec/health_report.py --ticker-file <file>`, ported from `app/admin/health/page.tsx`'s methodology; 🟢/🟡/🔴 = good/warn/bad):
 
-| | S&P 500 | S&P 400 |
-|---|---:|---:|
-| Fully clean (zero QC flags) | 🟢 450/502 (90%) | 🟡 328/398 (82%) |
-| sga null despite revenue | 🔴 151 (30%) | 🔴 129 (32%) |
-| rd_expense null despite revenue | 🔴 282 (56%) | 🔴 219 (55%) — usually legitimate (non-R&D companies), tracked separately from sga |
-| geo_segments null | 🔴 34% | 🔴 43% |
-| EBITDA null w/ positive net income | 🟢 0 | 🟡 16 (mostly REITs — FFO/AFFO, not EBITDA, is their standard metric) |
-| Interior data gaps | 🟢 2 | 🔴 49 |
-| Scale/magnitude spike errors (7 fields) | 🟡 7 | 🟡 7 |
+| | S&P 500 | S&P 400 | S&P 600 |
+|---|---:|---:|---:|
+| Fully clean (zero QC flags) | 🟢 90% | 🟡 82% | 🔴 74% |
+| sga null despite revenue | 🔴 30% | 🔴 32% | 🔴 30% |
+| geo_segments null | 🔴 34% | 🔴 43% | 🔴 51% |
+| EBITDA null w/ positive net income | 🟢 0 | 🟡 16 | 🟡 23 |
+| Interior data gaps | 🟢 2 | 🔴 49 | 🟢 2 |
+| Scale/magnitude spike errors | 🟡 7 | 🟡 7 | 🟡 14 |
 
-**Two real bugs found and fixed this pass** (both in `pipeline/sec/segment_extractor.py`):
-- Insurers (e.g. AFG) tag segment revenue as `RevenuesBeforeRealizedGainsLosses` under their own **company-extension namespace**, not `us-gaap` — the tag was known but the namespace search was too narrow. Fixed by searching all namespaces in the document, not just `us-gaap`/`ifrs`.
-- Regional banks (e.g. WAL, EWBC) tag segment revenue as `InterestIncomeExpenseNet` (net interest income), not any `Revenues`-family tag. Added as a new candidate tag.
+**Important calibration finding**: a sample audit of 50 null-`geo_segments` tickers found **38% (19/50) were real bugs, not legitimate gaps** — don't assume a null field is fine just because it "could" be legitimate. Always sample-check against the raw filing before trusting a null rate as acceptable.
 
-**SG&A gap is pre-existing, not new to S&P 400** — confirmed via Kroger, Chipotle and other S&P 500 names that definitely have real SG&A in their filings but show null. This is a live production gap, not something the expansion introduced.
+### Fix checklist
 
-**Next steps (agreed 2026-07-15): do both in parallel, not sequentially** — S&P 400/500's own extraction bugs (SG&A, spike detection) are pre-existing and benefit all 900+ tickers whenever fixed, so fixing them isn't a prerequisite for expanding further:
-1. Pull S&P 600 (603 tickers) using the same `backfill-new-universe.yml` workflow, tagged `SP600`
-2. Triage the ~1,000+ "all-null unconfirmed" fields into `confirmed_exceptions` (legitimate business-model gaps) vs real bugs
-3. Investigate the SG&A extraction gap in `field_mapper.py`
-4. Investigate the 7 scale/magnitude spike cases (suspicious round placeholder-looking values, e.g. `-$1M` next to real multi-hundred-million figures)
+**✅ Fixed & verified this session** (all in `pipeline/sec/segment_extractor.py` unless noted):
+- [x] Insurers (AFG) — revenue tag `RevenuesBeforeRealizedGainsLosses` lives in a company-extension namespace, not `us-gaap` — broadened namespace search to the whole document
+- [x] Regional banks (WAL, EWBC) — revenue tagged as `InterestIncomeExpenseNet`, not any `Revenues`-family tag — added as candidate
+- [x] SG&A (`pipeline/sec/tag_mapping.csv`) — added `GeneralAndAdministrativeExpense` as a 3rd candidate tag (verified via CMG)
+- [x] Geo-segment 2-entry threshold bug — segments correctly identified as geo-named (e.g. TRU's "U.S. Markets"/"International") were being discarded because promotion required ≥3 segments; lowered to ≥2 (same bar used everywhere else)
+- [x] Geo-keyword regex — was missing "U.S."/"United States"/"domestic"/"canada" entirely, so any 2-region US/International split silently fell through
+
+**🟡 Found, partially fixed, needs more work:**
+- [ ] REITs (AMH) — custom `CoreRevenues` tag added, now finds 3 revenue facts (up from 0), but a downstream dedup/rollup filter still blocks a final segment result from being produced. Root cause not yet found.
+- [ ] RYN discrepancy — flagged as a "bug candidate" by the sample-audit script, but a direct `get_segments()` call shows it working correctly. Unresolved: either stale Supabase data (needs re-extraction) or a bug in the sample-audit script's own classification logic.
+
+**⬜ Found, not yet investigated:**
+- [ ] `rd_expense` null rate — same "sample the raw filing, don't assume" check as geo_segments hasn't been run yet; the 55-62% null rate might have the same ~38%-are-bugs pattern hiding in it
+- [ ] `product_segments` null rate — same check, not yet run
+- [ ] Scale/magnitude spike errors (7-14 across universes) — suspicious round placeholder-looking values (e.g. `-$1M`, `$200K` next to real multi-hundred-million figures) found but root cause not investigated
+- [ ] Interior data gaps — 49 in S&P 400 vs only 2 in S&P 500/600 each; why so much higher specifically for S&P 400 is unexplained
+- [ ] Balance sheet sanity failures (7 total across universes)
+- [ ] Split mismatch detector hits (~14+ total — APG, RYN, BILL, ARWR flagged in S&P 400 alone)
+- [ ] Peer outliers >3σ (~40+ across universes) — admin page's own note says banks are expected outliers, but non-bank cases haven't been individually verified
+- [ ] ~1,000+ "all-null unconfirmed" fields per universe — need per-field/per-sector triage into `confirmed_exceptions` (legitimate business-model gaps) vs real bugs
+
+**🔧 Operational — re-run needed:**
+- [ ] Full re-extraction pass across all 1,498 pulled tickers to pick up every fix above (all fixes so far only apply to newly-processed tickers going forward)
+- [ ] Retry/investigate the 7 failed tickers (JHG, OZK, PFBC, MBGL, MFP, VGNT, CWEN-A)
+
+### International expansion roadmap (agreed 2026-07-17)
+
+Once S&P 1500 is clean: **UK → Japan → Korea → EU** (ranked by ease of data extraction, not business priority — see conversation for the full market-by-market research). Reused infra: Supabase schema (`country`, `fx_rates.py`) and `ifrs_field_mapper.py`'s pattern are already proven via TSM and directly relevant to UK/EU/Korea (all IFRS-taxonomy). Japan (JP-GAAP) and each market's own API (EDINET, DART, FCA/NSM, ESMA OAMs) need dedicated new integration work — this is not a "swap the ticker list" expansion like S&P 400/600 was.
 
 ---
 

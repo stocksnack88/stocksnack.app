@@ -38,16 +38,22 @@ Re-running `health_report.py` post-fix changed the picture for checks that need 
 
 ### Production incident: same pagination bug hid live data (found & fixed 2026-07-26)
 
-User-reported bug: Pro users saw "ALL 341 STOCKS" on the screener instead of ~502, and BK/ATO showed "—" for CAGR/Return despite having real detail-page data (BK/ATO cause still open, see below — separate from this bug). Root cause: `getStockData()` in `app/(dashboard)/screener/page.tsx` ran `stock_scores.order("final_score", desc)` with no `.range()`. Once S&P 400/600 backfill pushed `stock_scores` past 1000 rows, the silent cap meant "top 1000 by score" now included lots of S&P 400/600 rows that `isLaunchedStock()` then filtered out — leaving only ~340 true S&P 500 stocks visible. **Fixed** with explicit `.range(0, 9999)`. Same pattern found and fixed in:
-- `app/(dashboard)/screener/page.tsx` — both queries, `.range(0, 9999)`
-- `app/market/page.tsx` — `stock_scores` (`.range(0, 9999)`) and `stock_fundamentals` (`.range(0, 19999)`)
-- `app/admin/health/page.tsx` — all 3 queries
-- `app/api/admin/validate-prices/route.ts` — `stock_scores` query (was silently shrinking the admin tool's "random" sample pool to whatever 1000 rows happened to survive — not customer-facing, lower severity)
-- `pipeline/sec/health_report.py` — added a `fetch_all()` pagination helper, applied to all 4 of its queries
+User-reported bug: Pro users saw "ALL 341 STOCKS" on the screener instead of ~502, and BK/ATO showed "—" for CAGR/Return despite having real detail-page data. Root cause: `getStockData()` in `app/(dashboard)/screener/page.tsx` ran `stock_scores.order("final_score", desc)` with no `.range()`. Once S&P 400/600 backfill pushed `stock_scores` past 1000 rows, the silent cap meant "top 1000 by score" now included lots of S&P 400/600 rows that `isLaunchedStock()` then filtered out — leaving only ~340 true S&P 500 stocks visible.
 
-**Lesson**: any Supabase `.select()` without an explicit `.range()` or a tight `.eq()`/`.in()` filter is at risk once the underlying table crosses 1000 rows. `app/(dashboard)/screener/[ticker]/page.tsx` was checked and is safe (always `.eq("ticker", x).single()`). Worth a periodic grep for `from('stock_scores')` / `from('stock_fundamentals')` / `from('stocks')` / `from('stock_prices')` across `app/`, `lib/`, `components/`, `pipeline/` as the universe keeps growing.
+**First fix attempt was wrong** — adding a single `.range(0, 9999)` call does *not* work. Supabase's PostgREST `db-max-rows` setting hard-caps **every single request at 1000 rows regardless of the requested range size** — `.range(0, 9999)` on a query with 1497 real rows silently returns the same 1000 rows as no `.range()` at all. Deployed this fix, then verified against live Vercel function logs (`stocks.length: 340`, completely unchanged) — that's what caught it.
 
-**BK/ATO "—" for CAGR/Return — root-caused and already fixed 2026-07-26**: same bug class, different query. `stock_prices` had grown to 1497 rows; the screener's old unbounded `stock_prices` query (no `.order()`, no `.range()`) silently returned only 1000 of them, and BK/ATO's rows happened to fall outside that arbitrary cutoff — confirmed by replaying the old unbounded query directly (returns exactly 1000 rows, neither ticker present). With no `current_price` in the map, `totalReturnMult()`/`totalReturnCagr()` in `ScreenerTable.tsx` both short-circuit to `null` (`if (!total || !stock.current_price) return null`), rendering "—" for CAGR/Return while every other column — which doesn't depend on price — rendered normally. No separate fix needed: the `.range(0, 9999)` added to `screener/page.tsx`'s `stock_prices` query (see above) already resolves this.
+**Real fix**: added `fetchAllRows()` to `lib/supabase.ts` — pages through in 1000-row chunks via repeated `.range()` calls (a *loop*, not one big range) until a short page comes back. Applied to every affected query:
+- `app/(dashboard)/screener/page.tsx` — both queries
+- `app/market/page.tsx` — `stock_scores` and `stock_fundamentals`
+- `app/admin/health/page.tsx` — `stock_scores`, `stock_fundamentals`, `stock_prices`, `confirmed_exceptions`
+- `app/api/admin/validate-prices/route.ts` — `stock_scores` query (admin-only sampling tool, not customer-facing, lower severity)
+- `pipeline/sec/health_report.py` — same pattern, its own `fetch_all()` (Python), fixed correctly the first time since it already looped
+
+Verified live post-deploy via `vercel logs --json`, grepping the existing `console.log('[screener] stocks.length: ...')` debug line: **`stocks.length: 501`** — matches expected S&P 500 count.
+
+**Lesson**: a single `.range(start, end)` call is *not* sufficient to beat a PostgREST row cap no matter how large the range — you must loop in cap-sized pages. Any Supabase `.select()` without either that loop or a tight `.eq()`/`.in()` filter is at risk once the underlying table crosses 1000 rows. `app/(dashboard)/screener/[ticker]/page.tsx` was checked and is safe (always `.eq("ticker", x).single()`). Worth a periodic grep for `from('stock_scores')` / `from('stock_fundamentals')` / `from('stocks')` / `from('stock_prices')` across `app/`, `lib/`, `components/`, `pipeline/` as the universe keeps growing — and when verifying a fix like this, check the *actual deployed* behavior (function logs), not just that the code compiles or that an offline script (which may use different pagination logic) returns the right count.
+
+**BK/ATO "—" for CAGR/Return**: same bug, different query — `stock_prices` (1497 rows) was silently truncated to 1000, and BK/ATO's rows fell outside that arbitrary slice. With no `current_price` in the map, `totalReturnMult()`/`totalReturnCagr()` in `ScreenerTable.tsx` both short-circuit to `null` (`if (!total || !stock.current_price) return null`), rendering "—" while every other column (which doesn't depend on price) rendered normally. Fixed by the same `fetchAllRows()` change to `screener/page.tsx`'s `stock_prices` query.
 
 ### Fix checklist
 

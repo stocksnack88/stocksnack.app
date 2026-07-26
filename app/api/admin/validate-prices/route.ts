@@ -55,6 +55,7 @@ export async function GET() {
     .from('stock_scores')
     .select('ticker, pe_ratio')
     .not('pe_ratio', 'is', null)
+    .range(0, 9999)
 
   if (!allScores || allScores.length === 0) {
     return NextResponse.json({ error: 'No scored tickers found' }, { status: 500 })

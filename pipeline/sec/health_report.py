@@ -69,6 +69,23 @@ def load_ticker_filter(filename: str | None) -> list[str] | None:
     ]
 
 
+_PAGE_SIZE = 1000
+
+
+def fetch_all(query) -> list[dict]:
+    """Page through a Supabase query with .range() — PostgREST silently caps
+    unbounded selects at 1000 rows, which understates results once a table
+    grows past that (stock_fundamentals, stock_scores post S&P 400/600)."""
+    rows: list[dict] = []
+    offset = 0
+    while True:
+        page = query.range(offset, offset + _PAGE_SIZE - 1).execute().data or []
+        rows.extend(page)
+        if len(page) < _PAGE_SIZE:
+            return rows
+        offset += _PAGE_SIZE
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="StockSnack pipeline health report")
     parser.add_argument("--ticker-file", metavar="FILE",
@@ -84,7 +101,7 @@ def main() -> int:
     )
     if tf:
         scores_q = scores_q.in_("ticker", tf)
-    scores = scores_q.execute().data or []
+    scores = fetch_all(scores_q)
 
     fund_q = client.table("stock_fundamentals").select(
         "ticker, fiscal_year, eps, rd_expense, roe, roic, gross_margin, net_margin, "
@@ -95,19 +112,17 @@ def main() -> int:
     ).order("fiscal_year", desc=True)
     if tf:
         fund_q = fund_q.in_("ticker", tf)
-    fund_all = fund_q.execute().data or []
+    fund_all = fetch_all(fund_q)
 
     prices_q = client.table("stock_prices").select("ticker, market_cap, shares_outstanding")
     if tf:
         prices_q = prices_q.in_("ticker", tf)
-    prices = prices_q.execute().data or []
+    prices = fetch_all(prices_q)
 
+    exceptions_q = client.table("confirmed_exceptions").select("ticker, field, reason, confirmed_date")
     if tf:
-        exceptions = client.table("confirmed_exceptions").select("ticker, field, reason, confirmed_date") \
-            .in_("ticker", tf).execute().data or []
-    else:
-        exceptions = client.table("confirmed_exceptions").select("ticker, field, reason, confirmed_date") \
-            .execute().data or []
+        exceptions_q = exceptions_q.in_("ticker", tf)
+    exceptions = fetch_all(exceptions_q)
     confirmed_set = {(e["ticker"], e["field"]) for e in exceptions}
 
     latest_fund: dict[str, dict] = {}

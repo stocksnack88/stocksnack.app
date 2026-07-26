@@ -133,12 +133,14 @@ const getMarketData = unstable_cache(
       supabaseAdmin
         .from('stock_scores')
         .select('ticker, final_score, signal, ppm_cagr, pe_ratio, fcf_yield, div_yield, stocks(name, sector, index_tags)')
-        .order('final_score', { ascending: false }),
+        .order('final_score', { ascending: false })
+        .range(0, 9999),
       supabaseAdmin
         .from('stock_fundamentals')
         .select('ticker, fiscal_year, revenue, ebitda, free_cash_flow, gross_margin')
         .gte('fiscal_year', 2021)
-        .lte('fiscal_year', 2025),
+        .lte('fiscal_year', 2025)
+        .range(0, 19999),
     ])
     // Backend can freely ingest S&P 400/600 ahead of launch — keep this "S&P 500
     // aggregate" page true to its label until index_tags says otherwise.

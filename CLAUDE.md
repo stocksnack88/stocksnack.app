@@ -6,7 +6,7 @@ This file is for Claude Code agents. Read before working on anything n8n or depl
 
 ---
 
-## Universe Expansion — Data Quality Status — 2026-07-17
+## Universe Expansion — Data Quality Status — 2026-07-26 (updated)
 
 S&P Composite 1500 (500+400+600) fully pulled. Backend can freely ingest new tickers ahead of launch — `stocks.index_tags` + `isLaunchedStock()` in `lib/constants.ts` keep anything tagged `SP400`/`SP600` hidden from the live site until the tag is removed from the gate list. See `pipeline/migrate_add_stock_tags.sql`, `pipeline/sec/run_sec.py --index-tag`, `.github/workflows/backfill-new-universe.yml`.
 
@@ -18,18 +18,36 @@ S&P Composite 1500 (500+400+600) fully pulled. Backend can freely ingest new tic
 | Pulled successfully | 502 | 398 | 598 |
 | Failed | — | 2 (JHG, OZK) | 5 (PFBC, MBGL, MFP, VGNT, CWEN-A) |
 
-**QC status** (`pipeline/sec/health_report.py --ticker-file <file>`, ported from `app/admin/health/page.tsx`'s methodology; 🟢/🟡/🔴 = good/warn/bad):
+### ⚠️ Pagination bug retroactively invalidated some QC numbers below (found & fixed 2026-07-26)
+
+Supabase/PostgREST silently caps any unbounded `.select()` at **1000 rows**. `stock_fundamentals` has ~5 rows/ticker (one per fiscal year) — 2520 rows for S&P 500 alone, 1986 for S&P 400, 2987 for S&P 600 — so every universe's fundamentals query was being silently truncated. `health_report.py` had no `.range()` on any of its 4 queries; fixed via a `fetch_all()` pagination helper (loops `.range()` until a short page returns). Same bug class also hit **live production code** — see incident writeup below — and was fixed everywhere it was found.
+
+Re-running `health_report.py` post-fix changed the picture for checks that need *multi-year* history per ticker (the deeper pages were the ones getting cut off — the single most-recent-year row per ticker mostly survived the cap by luck of `ORDER BY fiscal_year DESC`, so single-year checks like `6d EBITDA null w/ +NI` didn't move):
 
 | | S&P 500 | S&P 400 | S&P 600 |
 |---|---:|---:|---:|
-| Fully clean (zero QC flags) | 🟢 90% | 🟡 82% | 🔴 74% |
-| sga null despite revenue | 🔴 30% | 🔴 32% | 🔴 30% |
-| geo_segments null | 🔴 34% | 🔴 43% | 🔴 51% |
-| EBITDA null w/ positive net income | 🟢 0 | 🟡 16 | 🟡 23 |
-| Interior data gaps | 🟢 2 | 🔴 49 | 🟢 2 |
-| Scale/magnitude spike errors | 🟡 7 | 🟡 7 | 🟡 14 |
+| sga null despite revenue | 🟡 17% (86) *was 30%* | 🔴 32% (129) | 🔴 30% (179) |
+| geo_segments null (unaffected — 1 row/ticker table) | 🔴 33% | 🔴 43% | 🔴 51% |
+| EBITDA null w/ positive net income (unaffected) | 🟢 0 | 🟡 16 | 🟡 23 |
+| Interior data gaps | 🔴 57 *was 2* | 🔴 87 *was 49* | 🔴 115 *was 2* |
+| Scale/magnitude spike errors | 🔴 25 *was 7* | 🟡 20 *was 7* | 🔴 54 *was 14* |
 
-**Important calibration finding**: a sample audit of 50 null-`geo_segments` tickers found **38% (19/50) were real bugs, not legitimate gaps** — don't assume a null field is fine just because it "could" be legitimate. Always sample-check against the raw filing before trusting a null rate as acceptable.
+**The "why is S&P 400 so much worse for interior gaps" mystery from the original QC pass is resolved**: it wasn't S&P-400-specific — S&P 500/600 just had more total fundamentals rows, so they got truncated *more* severely (more history invisible → fewer gaps detectable), inverting the apparent ranking. True gap counts scale roughly with ticker count across all three, no universe is structurally worse than the others on this metric. sp500's SG&A number also moved for a related reason (deeper history restores rows that were losing an arbitrary tie-break at the 1000-row cutoff). **Net effect: interior data gaps and scale/magnitude spikes are worse than previously believed and need root-cause investigation (still open, see checklist); the SG&A finding for S&P 500 specifically was overstated and is less concerning than reported.**
+
+**Important calibration finding**: a sample audit of 50 null-`geo_segments` tickers found **38% (19/50) were real bugs, not legitimate gaps** — don't assume a null field is fine just because it "could" be legitimate. Always sample-check against the raw filing before trusting a null rate as acceptable. (`geo_segments` lives in `stock_scores`, one row/ticker — not affected by the pagination bug.)
+
+### Production incident: same pagination bug hid live data (found & fixed 2026-07-26)
+
+User-reported bug: Pro users saw "ALL 341 STOCKS" on the screener instead of ~502, and BK/ATO showed "—" for CAGR/Return despite having real detail-page data (BK/ATO cause still open, see below — separate from this bug). Root cause: `getStockData()` in `app/(dashboard)/screener/page.tsx` ran `stock_scores.order("final_score", desc)` with no `.range()`. Once S&P 400/600 backfill pushed `stock_scores` past 1000 rows, the silent cap meant "top 1000 by score" now included lots of S&P 400/600 rows that `isLaunchedStock()` then filtered out — leaving only ~340 true S&P 500 stocks visible. **Fixed** with explicit `.range(0, 9999)`. Same pattern found and fixed in:
+- `app/(dashboard)/screener/page.tsx` — both queries, `.range(0, 9999)`
+- `app/market/page.tsx` — `stock_scores` (`.range(0, 9999)`) and `stock_fundamentals` (`.range(0, 19999)`)
+- `app/admin/health/page.tsx` — all 3 queries
+- `app/api/admin/validate-prices/route.ts` — `stock_scores` query (was silently shrinking the admin tool's "random" sample pool to whatever 1000 rows happened to survive — not customer-facing, lower severity)
+- `pipeline/sec/health_report.py` — added a `fetch_all()` pagination helper, applied to all 4 of its queries
+
+**Lesson**: any Supabase `.select()` without an explicit `.range()` or a tight `.eq()`/`.in()` filter is at risk once the underlying table crosses 1000 rows. `app/(dashboard)/screener/[ticker]/page.tsx` was checked and is safe (always `.eq("ticker", x).single()`). Worth a periodic grep for `from('stock_scores')` / `from('stock_fundamentals')` / `from('stocks')` / `from('stock_prices')` across `app/`, `lib/`, `components/`, `pipeline/` as the universe keeps growing.
+
+**Still open**: why BK and ATO show "—" for CAGR/Return on the screener listing despite real detail-page data — not yet root-caused, separate issue from the above.
 
 ### Fix checklist
 
@@ -47,8 +65,8 @@ S&P Composite 1500 (500+400+600) fully pulled. Backend can freely ingest new tic
 **⬜ Found, not yet investigated:**
 - [ ] `rd_expense` null rate — same "sample the raw filing, don't assume" check as geo_segments hasn't been run yet; the 55-62% null rate might have the same ~38%-are-bugs pattern hiding in it
 - [ ] `product_segments` null rate — same check, not yet run
-- [ ] Scale/magnitude spike errors (7-14 across universes) — suspicious round placeholder-looking values (e.g. `-$1M`, `$200K` next to real multi-hundred-million figures) found but root cause not investigated
-- [ ] Interior data gaps — 49 in S&P 400 vs only 2 in S&P 500/600 each; why so much higher specifically for S&P 400 is unexplained
+- [ ] Scale/magnitude spike errors (revised: 25/20/54 across 500/400/600, see pagination note above) — suspicious round placeholder-looking values (e.g. `-$1M`, `$200K` next to real multi-hundred-million figures) found but root cause not investigated
+- [x] ~~Interior data gaps — 49 in S&P 400 vs only 2 in S&P 500/600 each; why so much higher specifically for S&P 400 is unexplained~~ — **explained 2026-07-26**: it was the health_report.py pagination bug, not a real S&P-400-specific issue (see note above). True counts (57/87/115) still need root-cause work — that part remains open.
 - [ ] Balance sheet sanity failures (7 total across universes)
 - [ ] Split mismatch detector hits (~14+ total — APG, RYN, BILL, ARWR flagged in S&P 400 alone)
 - [ ] Peer outliers >3σ (~40+ across universes) — admin page's own note says banks are expected outliers, but non-bank cases haven't been individually verified

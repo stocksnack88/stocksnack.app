@@ -176,14 +176,17 @@ export default async function AdminHealthPage() {
   ] = await Promise.all([
     supabaseAdmin
       .from('stock_scores')
-      .select('ticker, final_score, signal, has_anomaly, updated_at, product_segments, geo_segments, m1_ev_ebitda_multiple, m1_ebitda_current'),
+      .select('ticker, final_score, signal, has_anomaly, updated_at, product_segments, geo_segments, m1_ev_ebitda_multiple, m1_ebitda_current')
+      .range(0, 9999),
     supabaseAdmin
       .from('stock_fundamentals')
       .select('ticker, fiscal_year, eps, rd_expense, roe, roic, gross_margin, net_margin, operating_margin, free_cash_flow, total_debt, total_equity, sga, sbc, tax_rate, capex, shares_outstanding, intangibles, revenue, total_assets, updated_at, ebitda, net_income, cash_and_equivalents, current_liabilities, gross_profit, operating_income, dividends_paid, buybacks, operating_cash_flow, retained_earnings')
-      .order('fiscal_year', { ascending: false }),
+      .order('fiscal_year', { ascending: false })
+      .range(0, 19999),
     supabaseAdmin
       .from('stock_prices')
-      .select('ticker, market_cap, shares_outstanding'),
+      .select('ticker, market_cap, shares_outstanding')
+      .range(0, 9999),
     supabaseAdmin
       .from('fix_log')
       .select('id, ticker, issue, fix_description, run_id, created_at')

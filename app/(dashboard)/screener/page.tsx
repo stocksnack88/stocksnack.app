@@ -37,8 +37,9 @@ const getStockData = unstable_cache(
           div_yield,
           stocks ( name, index_tags )
         `)
-        .order("final_score", { ascending: false }),
-      supabaseAdmin.from("stock_prices").select("ticker, current_price"),
+        .order("final_score", { ascending: false })
+        .range(0, 9999),
+      supabaseAdmin.from("stock_prices").select("ticker, current_price").range(0, 9999),
     ]);
     // Backend can freely ingest S&P 400/600 ahead of launch — this keeps them
     // out of the live screener until index_tags says otherwise. See lib/constants.ts.

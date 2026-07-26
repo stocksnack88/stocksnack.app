@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, fetchAllRows } from '@/lib/supabase'
 import { getCachedUser } from '@/lib/server-auth'
 import { isLaunchedStock } from '@/lib/constants'
 import type { CSSProperties } from 'react'
@@ -130,17 +130,21 @@ function valStatus(
 const getMarketData = unstable_cache(
   async () => {
     const [{ data: scoresRaw }, { data: fundRaw }] = await Promise.all([
-      supabaseAdmin
-        .from('stock_scores')
-        .select('ticker, final_score, signal, ppm_cagr, pe_ratio, fcf_yield, div_yield, stocks(name, sector, index_tags)')
-        .order('final_score', { ascending: false })
-        .range(0, 9999),
-      supabaseAdmin
-        .from('stock_fundamentals')
-        .select('ticker, fiscal_year, revenue, ebitda, free_cash_flow, gross_margin')
-        .gte('fiscal_year', 2021)
-        .lte('fiscal_year', 2025)
-        .range(0, 19999),
+      fetchAllRows((start, end) =>
+        supabaseAdmin
+          .from('stock_scores')
+          .select('ticker, final_score, signal, ppm_cagr, pe_ratio, fcf_yield, div_yield, stocks(name, sector, index_tags)')
+          .order('final_score', { ascending: false })
+          .range(start, end)
+      ),
+      fetchAllRows((start, end) =>
+        supabaseAdmin
+          .from('stock_fundamentals')
+          .select('ticker, fiscal_year, revenue, ebitda, free_cash_flow, gross_margin')
+          .gte('fiscal_year', 2021)
+          .lte('fiscal_year', 2025)
+          .range(start, end)
+      ),
     ])
     // Backend can freely ingest S&P 400/600 ahead of launch — keep this "S&P 500
     // aggregate" page true to its label until index_tags says otherwise.

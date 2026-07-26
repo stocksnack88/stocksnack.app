@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/auth-helpers-nextjs'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, fetchAllRows } from '@/lib/supabase'
 
 const ADMIN_EMAIL = 'stocksnack88@gmail.com'
 const FMP_BASE    = 'https://financialmodelingprep.com/api/v3'
@@ -51,11 +51,13 @@ export async function GET() {
   }
 
   // Pick random tickers that have a stored pe_ratio
-  const { data: allScores } = await supabaseAdmin
-    .from('stock_scores')
-    .select('ticker, pe_ratio')
-    .not('pe_ratio', 'is', null)
-    .range(0, 9999)
+  const { data: allScores } = await fetchAllRows((start, end) =>
+    supabaseAdmin
+      .from('stock_scores')
+      .select('ticker, pe_ratio')
+      .not('pe_ratio', 'is', null)
+      .range(start, end)
+  )
 
   if (!allScores || allScores.length === 0) {
     return NextResponse.json({ error: 'No scored tickers found' }, { status: 500 })

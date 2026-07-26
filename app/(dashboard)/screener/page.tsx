@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { unstable_cache } from 'next/cache'
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin, fetchAllRows } from "@/lib/supabase";
 import { COVERED_STOCK_COUNT, isLaunchedStock } from "@/lib/constants";
 import { getCachedUser, getCachedUserProfile } from "@/lib/server-auth";
 import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
@@ -19,27 +19,31 @@ const EXTENSION_DURATION_MS = 15 * 60 * 1000;
 const getStockData = unstable_cache(
   async () => {
     const [{ data: rawRows, error }, { data: priceRows }] = await Promise.all([
-      supabaseAdmin
-        .from("stock_scores")
-        .select(`
-          ticker,
-          ppm_cagr,
-          ppm_blended_price,
-          growth_score,
-          health_passes,
-          final_score,
-          signal,
-          updated_at,
-          has_anomaly,
-          anomaly_reasons,
-          m_cumulative_div_ps,
-          div_yield_5y_avg,
-          div_yield,
-          stocks ( name, index_tags )
-        `)
-        .order("final_score", { ascending: false })
-        .range(0, 9999),
-      supabaseAdmin.from("stock_prices").select("ticker, current_price").range(0, 9999),
+      fetchAllRows((start, end) =>
+        supabaseAdmin
+          .from("stock_scores")
+          .select(`
+            ticker,
+            ppm_cagr,
+            ppm_blended_price,
+            growth_score,
+            health_passes,
+            final_score,
+            signal,
+            updated_at,
+            has_anomaly,
+            anomaly_reasons,
+            m_cumulative_div_ps,
+            div_yield_5y_avg,
+            div_yield,
+            stocks ( name, index_tags )
+          `)
+          .order("final_score", { ascending: false })
+          .range(start, end)
+      ),
+      fetchAllRows((start, end) =>
+        supabaseAdmin.from("stock_prices").select("ticker, current_price").range(start, end)
+      ),
     ]);
     // Backend can freely ingest S&P 400/600 ahead of launch — this keeps them
     // out of the live screener until index_tags says otherwise. See lib/constants.ts.

@@ -47,7 +47,7 @@ User-reported bug: Pro users saw "ALL 341 STOCKS" on the screener instead of ~50
 
 **Lesson**: any Supabase `.select()` without an explicit `.range()` or a tight `.eq()`/`.in()` filter is at risk once the underlying table crosses 1000 rows. `app/(dashboard)/screener/[ticker]/page.tsx` was checked and is safe (always `.eq("ticker", x).single()`). Worth a periodic grep for `from('stock_scores')` / `from('stock_fundamentals')` / `from('stocks')` / `from('stock_prices')` across `app/`, `lib/`, `components/`, `pipeline/` as the universe keeps growing.
 
-**Still open**: why BK and ATO show "—" for CAGR/Return on the screener listing despite real detail-page data — not yet root-caused, separate issue from the above.
+**BK/ATO "—" for CAGR/Return — root-caused and already fixed 2026-07-26**: same bug class, different query. `stock_prices` had grown to 1497 rows; the screener's old unbounded `stock_prices` query (no `.order()`, no `.range()`) silently returned only 1000 of them, and BK/ATO's rows happened to fall outside that arbitrary cutoff — confirmed by replaying the old unbounded query directly (returns exactly 1000 rows, neither ticker present). With no `current_price` in the map, `totalReturnMult()`/`totalReturnCagr()` in `ScreenerTable.tsx` both short-circuit to `null` (`if (!total || !stock.current_price) return null`), rendering "—" for CAGR/Return while every other column — which doesn't depend on price — rendered normally. No separate fix needed: the `.range(0, 9999)` added to `screener/page.tsx`'s `stock_prices` query (see above) already resolves this.
 
 ### Fix checklist
 

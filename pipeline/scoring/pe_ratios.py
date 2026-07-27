@@ -286,6 +286,7 @@ def compute_pe_ratios(client) -> None:
             "div_yield_5y_avg":          m.get("div_yield_5y_avg"),
             "industry_div_yield":        industry_div_map.get(sector)    if sector else None,
             "industry_div_yield_5y_avg": industry_div_5y_map.get(sector) if sector else None,
+            "ev_ebitda_current":         m.get("ev_ebitda_current"),
             "ev_ebitda_5y_avg":          m.get("ev_ebitda_5y_avg"),
             "industry_ev_ebitda":        industry_ev_ebitda_map.get(sector)    if sector else None,
             "industry_ev_ebitda_5y_avg": industry_ev_ebitda_5y_map.get(sector) if sector else None,

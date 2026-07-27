@@ -435,10 +435,27 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           {/* Market Comparison */}
           <CollapsibleSectionHeader id={1} label="MARKET COMPARISON" shareButton={<BlockShareButton captureIds={['capture-9', 'capture-10', 'capture-11']} mode="multi" fileName={`${ticker}-market`} blockTitle="MARKET COMPARISON" {...shareProps} />}>
           {(() => {
-          const peRatio      = score?.pe_ratio          != null ? Number(score.pe_ratio)          : null
-          const pe5yAvg      = score?.pe_5y_avg          != null ? Number(score.pe_5y_avg)          : null
-          const industryPe   = score?.industry_pe        != null ? Number(score.industry_pe)        : null
-          const industryPe5y = score?.industry_pe_5y_avg != null ? Number(score.industry_pe_5y_avg) : null
+          // Banks/financials are valued on P/E (EV/EBITDA doesn't fit — debt IS
+          // the business). Everyone else (incl. REITs, which lack a better
+          // multiple in this pipeline) gets EV/EBITDA as the primary multiple —
+          // same sector_override the scoring pipeline already computes and
+          // stores per ticker (see _resolve_sector_mode in run_sec.py).
+          const isFinancialMultiple = score?.sector_override === 'Bank' || score?.sector_override === 'Financial'
+          const primaryLabel  = isFinancialMultiple ? 'P/E' : 'EV/EBITDA'
+          const primaryCurrent  = isFinancialMultiple
+            ? (score?.pe_ratio          != null ? Number(score.pe_ratio)          : null)
+            : (score?.ev_ebitda_current != null ? Number(score.ev_ebitda_current) : null)
+          const primary5yAvg    = isFinancialMultiple
+            ? (score?.pe_5y_avg         != null ? Number(score.pe_5y_avg)         : null)
+            : (score?.ev_ebitda_5y_avg  != null ? Number(score.ev_ebitda_5y_avg)  : null)
+          const industryPrimary   = isFinancialMultiple
+            ? (score?.industry_pe          != null ? Number(score.industry_pe)          : null)
+            : (score?.industry_ev_ebitda    != null ? Number(score.industry_ev_ebitda)    : null)
+          const industryPrimary5y = isFinancialMultiple
+            ? (score?.industry_pe_5y_avg       != null ? Number(score.industry_pe_5y_avg)       : null)
+            : (score?.industry_ev_ebitda_5y_avg != null ? Number(score.industry_ev_ebitda_5y_avg) : null)
+          const SP500_PRIMARY_NOW = isFinancialMultiple ? 22   : 14.5
+          const SP500_PRIMARY_5Y  = isFinancialMultiple ? 19   : 13.5
           const fcfYield       = score?.fcf_yield           != null ? Number(score.fcf_yield)           : null
           const fcf5yAvg       = score?.fcf_5y_avg          != null ? Number(score.fcf_5y_avg)          : null
           const industryFcf    = score?.industry_fcf_yield     != null ? Number(score.industry_fcf_yield)     : null
@@ -448,7 +465,6 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           const industryDiv    = score?.industry_div_yield     != null ? Number(score.industry_div_yield)     : null
           const industryDiv5y  = score?.industry_div_yield_5y_avg != null ? Number(score.industry_div_yield_5y_avg) : null
 
-          const SP500_PE_NOW = 22;    const SP500_PE_5Y  = 19
           const SP500_FCF_NOW = 0.035; const SP500_FCF_5Y  = 0.032
           const SP500_DIV_NOW = 0.013; const SP500_DIV_5Y  = 0.018
 
@@ -682,18 +698,18 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           return (
             <>
               {renderMetric(
-                "P/E RATIO ANALYSIS", peRatio,
+                `${primaryLabel} ANALYSIS`, primaryCurrent,
                 [
-                  { label: "STOCK",    cur: peRatio,      avg: pe5yAvg,      isStock: true },
-                  { label: "INDUSTRY", cur: industryPe,   avg: industryPe5y  },
-                  { label: "S&P 500",  cur: SP500_PE_NOW, avg: SP500_PE_5Y   },
+                  { label: "STOCK",    cur: primaryCurrent,    avg: primary5yAvg,      isStock: true },
+                  { label: "INDUSTRY", cur: industryPrimary,   avg: industryPrimary5y  },
+                  { label: "S&P 500",  cur: SP500_PRIMARY_NOW, avg: SP500_PRIMARY_5Y   },
                 ],
                 [
-                  { label: `${ticker} 5Y Avg`,   them: pe5yAvg       },
-                  { label: "Industry Now",        them: industryPe    },
-                  { label: "Industry 5Y Avg",     them: industryPe5y  },
-                  { label: "S&P 500 Now",         them: SP500_PE_NOW  },
-                  { label: "S&P 500 5Y Avg",      them: SP500_PE_5Y   },
+                  { label: `${ticker} 5Y Avg`,   them: primary5yAvg       },
+                  { label: "Industry Now",        them: industryPrimary    },
+                  { label: "Industry 5Y Avg",     them: industryPrimary5y  },
+                  { label: "S&P 500 Now",         them: SP500_PRIMARY_NOW  },
+                  { label: "S&P 500 5Y Avg",      them: SP500_PRIMARY_5Y   },
                 ],
                 fmtPe, false, "pe", 9, "capture-9",
               )}

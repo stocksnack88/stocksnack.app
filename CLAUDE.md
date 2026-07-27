@@ -63,6 +63,21 @@ Verified live post-deploy via `vercel logs --json`, grepping the existing `conso
 - [x] SG&A (`pipeline/sec/tag_mapping.csv`) — added `GeneralAndAdministrativeExpense` as a 3rd candidate tag (verified via CMG)
 - [x] Geo-segment 2-entry threshold bug — segments correctly identified as geo-named (e.g. TRU's "U.S. Markets"/"International") were being discarded because promotion required ≥3 segments; lowered to ≥2 (same bar used everywhere else)
 - [x] Geo-keyword regex — was missing "U.S."/"United States"/"domestic"/"canada" entirely, so any 2-region US/International split silently fell through
+- [x] **`process()` crash on missing yfinance price data (2026-07-27)** — `run_sec.py`'s early-return for "no price from yfinance" returned a bare `False` instead of the 4-tuple every other path returns; the caller unconditionally unpacks 4 values, so this crashed the *entire batch*, silently dropping every ticker after the trigger (found via WSR, which killed 7 tickers behind it in its shard). Fixed to return `(False, None, None, "no price from yfinance")`.
+
+**✅ Full re-extraction pass completed 2026-07-27** — re-ran all three universes end-to-end (`run-pipeline.yml` for S&P 500, `backfill-new-universe.yml` for S&P 400/600) so every fix above actually landed in the data, not just new tickers going forward. Confirmed real, material improvement for S&P 400/600 (S&P 500 already had these fixes from earlier ad-hoc verification runs against CMG/AFG/WAL/EWBC/TRU, so its numbers were already current):
+
+| | S&P 500 | S&P 400 (before → after) | S&P 600 (before → after) |
+|---|---:|---:|---:|
+| sga null despite revenue | 86 (unchanged) | 129 → **74** | 179 → **99** |
+| EBITDA null w/ +NI | 0 (unchanged) | 16 → **6** | 23 → **8** |
+| Scale/magnitude spikes | 25 (unchanged) | 20 → **15** | 54 → **45** |
+| geo_segments null | 166 (unchanged) | 173 → 170 (barely moved) | 305 → 303 (barely moved) |
+| Interior data gaps | 57 → 56 (unchanged) | 87 → 88 (unchanged) | 115 → 116 (unchanged) |
+
+**Takeaway**: the SG&A/EBITDA/scale-spike fixes were real and effective once actually re-run across the full universe. geo_segments and interior data gaps did **not** improve — those need their own separate root-cause work (see below), the segment-extractor fixes so far didn't touch whatever's causing them.
+
+Failed tickers after full re-extraction: same known 7 (JHG, OZK, PFBC, MBGL, MFP, VGNT, CWEN-A) plus one new gap, **FDXF** (S&P 500 — "No stock_fundamentals rows found", not yet investigated). WSR (S&P 600) initially hit the process() crash bug above but succeeded cleanly on retry — likely a transient yfinance hiccup, not a real data gap.
 
 **🟡 Found, partially fixed, needs more work:**
 - [ ] REITs (AMH) — custom `CoreRevenues` tag added, now finds 3 revenue facts (up from 0), but a downstream dedup/rollup filter still blocks a final segment result from being produced. Root cause not yet found.
@@ -71,16 +86,18 @@ Verified live post-deploy via `vercel logs --json`, grepping the existing `conso
 **⬜ Found, not yet investigated:**
 - [ ] `rd_expense` null rate — same "sample the raw filing, don't assume" check as geo_segments hasn't been run yet; the 55-62% null rate might have the same ~38%-are-bugs pattern hiding in it
 - [ ] `product_segments` null rate — same check, not yet run
-- [ ] Scale/magnitude spike errors (revised: 25/20/54 across 500/400/600, see pagination note above) — suspicious round placeholder-looking values (e.g. `-$1M`, `$200K` next to real multi-hundred-million figures) found but root cause not investigated
-- [x] ~~Interior data gaps — 49 in S&P 400 vs only 2 in S&P 500/600 each; why so much higher specifically for S&P 400 is unexplained~~ — **explained 2026-07-26**: it was the health_report.py pagination bug, not a real S&P-400-specific issue (see note above). True counts (57/87/115) still need root-cause work — that part remains open.
+- [ ] geo_segments null rate — barely moved after the full re-extraction (see table above), meaning the 2-entry-threshold/regex fixes weren't the dominant cause of the null rate. Needs a fresh sample audit to find what actually is.
+- [ ] Interior data gaps (56/88/116, unchanged by full re-extraction) — suspiciously untouched by any fix so far; root cause is something else entirely (specific-year XBRL fact availability, not a tag-mapping issue)
+- [ ] Scale/magnitude spike errors (revised: 25/15/45 across 500/400/600 post re-extraction) — suspicious round placeholder-looking values (e.g. `-$1M`, `$200K` next to real multi-hundred-million figures) found but root cause not investigated
+- [ ] FDXF (S&P 500) — new gap found during full re-extraction, "No stock_fundamentals rows found"
 - [ ] Balance sheet sanity failures (7 total across universes)
 - [ ] Split mismatch detector hits (~14+ total — APG, RYN, BILL, ARWR flagged in S&P 400 alone)
 - [ ] Peer outliers >3σ (~40+ across universes) — admin page's own note says banks are expected outliers, but non-bank cases haven't been individually verified
 - [ ] ~1,000+ "all-null unconfirmed" fields per universe — need per-field/per-sector triage into `confirmed_exceptions` (legitimate business-model gaps) vs real bugs
 
-**🔧 Operational — re-run needed:**
-- [ ] Full re-extraction pass across all 1,498 pulled tickers to pick up every fix above (all fixes so far only apply to newly-processed tickers going forward)
-- [ ] Retry/investigate the 7 failed tickers (JHG, OZK, PFBC, MBGL, MFP, VGNT, CWEN-A)
+**🔧 Operational:**
+- [x] ~~Full re-extraction pass across all 1,498 pulled tickers~~ — done 2026-07-27, see above
+- [ ] Retry/investigate the 7 still-failed tickers (JHG, OZK, PFBC, MBGL, MFP, VGNT, CWEN-A) + new FDXF gap
 
 ### International expansion roadmap (agreed 2026-07-17)
 

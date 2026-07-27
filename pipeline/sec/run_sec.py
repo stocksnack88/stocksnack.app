@@ -788,7 +788,7 @@ def _send_failure_email(
 
 # ── Per-ticker processor ──────────────────────────────────────────────────────
 
-def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool) -> bool:
+def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool) -> tuple:
     try:
         sector_mode = _resolve_sector_mode(
             ticker, client=writer.client if writer is not None else None
@@ -801,7 +801,7 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
 
         if not data["profile"].get("price"):
             log.warning("[%s] No price from yfinance — skipped", ticker)
-            return False
+            return False, None, None, "no price from yfinance"
 
         # Hazard check — exclude fiscal years with sparse sector coverage
         _data_years = [

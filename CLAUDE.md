@@ -6,6 +6,14 @@ This file is for Claude Code agents. Read before working on anything n8n or depl
 
 ---
 
+## Market Comparison: EV/EBITDA vs P/E — fixed 2026-07-28
+
+Ticker page's "Market Comparison" section was hardcoded to always show P/E, even for non-financial companies (e.g. AMZN) where EV/EBITDA is the standard comparison. Fixed in `TickerPageContent.tsx`: banks/financials (`stock_scores.sector_override === 'Bank' | 'Financial'`) still get P/E; everything else (incl. REITs, pending a proper P/AFFO metric — a judgment call, flagged not fully resolved) now gets EV/EBITDA. Reuses `sector_override`, already computed per-ticker by `_resolve_sector_mode()` in `run_sec.py` — no new backend classification needed.
+
+**Real bug found along the way**: `pipeline/scoring/pe_ratios.py` computed `ev_ebitda_current` per ticker but never included it in the Supabase upsert dict — silently discarded on every run since the metric was introduced, and the column didn't even exist in `stock_scores`. Fixed the upsert, added `pipeline/migrate_add_ev_ebitda_current.sql` (additive, run manually by user), backfilled all 1,497 tickers via `--pe-ratios-only`. Verified: AMZN → EV/EBITDA 17.13x, JPM (Bank) → P/E 16.46x, O (REIT) → EV/EBITDA 17.02x — confirmed live on production by user.
+
+---
+
 ## Universe Expansion — Data Quality Status — 2026-07-26 (updated)
 
 S&P Composite 1500 (500+400+600) fully pulled. Backend can freely ingest new tickers ahead of launch — `stocks.index_tags` + `isLaunchedStock()` in `lib/constants.ts` keep anything tagged `SP400`/`SP600` hidden from the live site until the tag is removed from the gate list. See `pipeline/migrate_add_stock_tags.sql`, `pipeline/sec/run_sec.py --index-tag`, `.github/workflows/backfill-new-universe.yml`.

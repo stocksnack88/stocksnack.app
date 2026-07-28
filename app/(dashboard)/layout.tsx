@@ -33,7 +33,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <Navbar />
-      <div className="flex-1 flex flex-col pb-14 md:pb-0">{children}</div>
+      <div className="flex-1 flex flex-col pb-24 md:pb-0">{children}</div>
       <Footer />
       <BottomNav />
       <TrialManager initialTrialStatus={initialTrialStatus} />

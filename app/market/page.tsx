@@ -33,7 +33,7 @@ const FUND_YEARS = [2021, 2022, 2023, 2024, 2025]
 
 const S = {
   page:    { background: '#000', color: GREEN, minHeight: '100vh', ...FONT } as CSSProperties,
-  wrap:    { maxWidth: 896, margin: '0 auto', padding: '0 1.5rem 4rem' } as CSSProperties,
+  wrap:    { maxWidth: 896, margin: '0 auto', padding: '0 1.5rem 6rem' } as CSSProperties,
   section: { marginTop: '2rem' } as CSSProperties,
   head: {
     fontSize: 12, fontWeight: 'bold', letterSpacing: '0.1em',

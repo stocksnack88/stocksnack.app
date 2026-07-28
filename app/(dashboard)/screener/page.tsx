@@ -158,18 +158,18 @@ export default async function ScreenerPage({
       {/* Header */}
       <div className="border-b border-[#00ff41]/20 px-6 py-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1 md:gap-4">
-            <div className="flex flex-col">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-[0.15em] sm:tracking-[0.3em] text-[#00ff41]">
+          <div className="flex flex-row items-start justify-between gap-2 md:items-baseline md:gap-4">
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold tracking-[0.1em] sm:tracking-[0.3em] text-[#00ff41] truncate">
                 STOCK SCREENER
               </h1>
             </div>
-            <div className="text-left md:text-right">
+            <div className="text-right shrink-0">
               {updatedAt && (
-                <p className="text-[10px] md:text-xs text-[#00ff41]/40">UPDATED {updatedAt.toUpperCase()}</p>
+                <p className="text-[9px] sm:text-xs text-[#00ff41]/40 whitespace-nowrap">UPDATED {updatedAt.toUpperCase()}</p>
               )}
               {(isPro || isTrialActive) && (
-                <p className="text-[10px] md:text-xs md:mt-0.5">
+                <p className="text-[9px] sm:text-xs md:mt-0.5 whitespace-nowrap">
                   <span className="text-[#00ff41]">● {isTrialActive ? "PRO PREVIEW" : "PRO"} · ALL {stocks.length} STOCKS</span>
                 </p>
               )}

@@ -31,10 +31,10 @@ export default function BottomNav() {
             key={item.href}
             href={item.href}
             onClick={() => playClick()}
-            className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-6 transition-colors"
             style={{ color: active ? "#00ff41" : "rgba(0,255,65,0.4)" }}
           >
-            <span className="text-[10px] tracking-[0.1em] font-bold">
+            <span className="text-[11px] tracking-[0.1em] font-bold">
               {item.label}
               {item.locked && <span style={{ fontSize: 9, marginLeft: 3 }}>🔒</span>}
             </span>

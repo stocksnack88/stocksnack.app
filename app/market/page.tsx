@@ -8,6 +8,7 @@ import { isLaunchedStock } from '@/lib/constants'
 import type { CSSProperties } from 'react'
 import AggregateCharts, { type AggregateYear } from './AggregateCharts'
 import SectorTrendChart, { type SectorYearData } from './SectorTrendChart'
+import BottomNav from '@/components/ui/BottomNav'
 
 const INTERNAL_EMAILS = ['mrepsiloned@gmail.com', 'stocksnack88@gmail.com']
 
@@ -487,6 +488,7 @@ export default async function MarketPage() {
         </p>
 
       </div>
+      <BottomNav />
     </div>
   )
 }

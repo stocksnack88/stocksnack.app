@@ -1,5 +1,6 @@
 import Navbar from "@/components/ui/Navbar";
 import Footer from "@/components/ui/Footer";
+import BottomNav from "@/components/ui/BottomNav";
 import TrialManager from "@/components/TrialManager";
 import { getCachedUser, getCachedUserProfile } from "@/lib/server-auth";
 import { hasInternalAccess } from "@/lib/internal-access";
@@ -32,8 +33,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-black flex flex-col">
       <Navbar />
-      <div className="flex-1 flex flex-col">{children}</div>
+      <div className="flex-1 flex flex-col pb-14 md:pb-0">{children}</div>
       <Footer />
+      <BottomNav />
       <TrialManager initialTrialStatus={initialTrialStatus} />
     </div>
   );

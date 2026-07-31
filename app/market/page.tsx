@@ -158,7 +158,7 @@ const getMarketData = unstable_cache(
       fund:   (fundRaw   ?? []) as FundRow[],
     }
   },
-  ['market-v2-data'],
+  ['market-v3-data'],
   { revalidate: 3600 },
 )
 

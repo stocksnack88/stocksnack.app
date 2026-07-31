@@ -9,6 +9,7 @@ export type AggregateYear = {
   revenue: number | null
   ebitda: number | null
   fcf: number | null
+  dividends: number | null
 }
 
 const GREEN = '#00ff41'
@@ -58,7 +59,7 @@ function SingleChart({
   title, dataKey, data, color,
 }: {
   title: string
-  dataKey: 'revenue' | 'ebitda' | 'fcf'
+  dataKey: 'revenue' | 'ebitda' | 'fcf' | 'dividends'
   data: AggregateYear[]
   color: string
 }) {
@@ -124,9 +125,10 @@ function SingleChart({
 export default function AggregateCharts({ data }: { data: AggregateYear[] }) {
   return (
     <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-      <SingleChart title="TOTAL REVENUE" dataKey="revenue" data={data} color={GREEN} />
-      <SingleChart title="TOTAL EBITDA"  dataKey="ebitda"  data={data} color="#f59e0b" />
-      <SingleChart title="TOTAL FCF"     dataKey="fcf"     data={data} color="#3b82f6" />
+      <SingleChart title="TOTAL REVENUE"   dataKey="revenue"   data={data} color={GREEN} />
+      <SingleChart title="TOTAL EBITDA"    dataKey="ebitda"    data={data} color="#f59e0b" />
+      <SingleChart title="TOTAL FCF"       dataKey="fcf"       data={data} color="#3b82f6" />
+      <SingleChart title="TOTAL DIVIDENDS" dataKey="dividends" data={data} color="#d55181" />
     </div>
   )
 }

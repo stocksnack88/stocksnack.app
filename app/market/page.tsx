@@ -7,7 +7,7 @@ import { getCachedUser } from '@/lib/server-auth'
 import { isLaunchedStock } from '@/lib/constants'
 import type { CSSProperties } from 'react'
 import AggregateCharts, { type AggregateYear } from './AggregateCharts'
-import SectorTrendChart, { type SectorYearData } from './SectorTrendChart'
+import ValuationTrendCharts, { type ValuationYear } from './ValuationTrendCharts'
 import BottomNav from '@/components/ui/BottomNav'
 
 const INTERNAL_EMAILS = ['mrepsiloned@gmail.com', 'stocksnack88@gmail.com']
@@ -63,7 +63,10 @@ type FundRow = {
   revenue: number | null
   ebitda: number | null
   free_cash_flow: number | null
-  gross_margin: number | null
+  dividends_paid: number | null
+  net_income: number | null
+  market_cap_at_year: number | null
+  ev_to_ebitda: number | null
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -141,7 +144,7 @@ const getMarketData = unstable_cache(
       fetchAllRows((start, end) =>
         supabaseAdmin
           .from('stock_fundamentals')
-          .select('ticker, fiscal_year, revenue, ebitda, free_cash_flow, gross_margin')
+          .select('ticker, fiscal_year, revenue, ebitda, free_cash_flow, dividends_paid, net_income, market_cap_at_year, ev_to_ebitda')
           .gte('fiscal_year', 2021)
           .lte('fiscal_year', 2025)
           .range(start, end)
@@ -183,13 +186,6 @@ export default async function MarketPage() {
   const sentiment     = bullishPct > 50 ? 'CHEAP' : bullishPct >= 30 ? 'FAIRLY VALUED' : 'EXPENSIVE'
   const sentimentColor =
     sentiment === 'CHEAP' ? GREEN : sentiment === 'FAIRLY VALUED' ? '#ffcc00' : '#ef4444'
-
-  const sigBars = SIGNALS.map(sig => ({
-    sig,
-    count: sigCounts[sig],
-    pct: pct(sigCounts[sig], total),
-    color: SIGNAL_COLOR[sig],
-  }))
 
   // ── market valuation ────────────────────────────────────────────────────────
   const peVals  = scores.map(r => r.pe_ratio).filter((v): v is number => v != null && v > 0 && v < 200)
@@ -242,64 +238,131 @@ export default async function MarketPage() {
 
   const totalSectors = sectorRows.length
 
-  // ── aggregate fundamentals by year ─────────────────────────────────────────
-  const aggMap = new Map<number, { rev: number; ebitda: number; fcf: number }>()
-  for (const y of FUND_YEARS) aggMap.set(y, { rev: 0, ebitda: 0, fcf: 0 })
+  // ── signal funnel ────────────────────────────────────────────────────────────
+  // Narrowing tiers, upside-down-pyramid style: total screened -> hold-or-better
+  // -> buy-or-better -> buy+ only.
+  const holdOrBetter = sigCounts['HOLD'] + sigCounts['BUY'] + sigCounts['BUY+']
+  const buyOrBetter  = sigCounts['BUY'] + sigCounts['BUY+']
+  const funnelTiers = [
+    { label: 'TOTAL SCREENED',   count: total,          pctOfTotal: 100 },
+    { label: 'HOLD OR BETTER',   count: holdOrBetter,   pctOfTotal: pct(holdOrBetter, total) },
+    { label: 'BUY OR BETTER',    count: buyOrBetter,     pctOfTotal: pct(buyOrBetter, total) },
+    { label: 'BUY+ ONLY',        count: sigCounts['BUY+'], pctOfTotal: pct(sigCounts['BUY+'], total) },
+  ]
 
-  const sectorYearMap = new Map<string, Map<number, {
-    revSum: number; revN: number
-    ebitdaSum: number; ebitdaN: number
-    fcfSum: number; fcfN: number
-    gmSum: number; gmN: number
-  }>>()
+  // ── raw fundamentals by year (sum across the universe) ─────────────────────
+  const aggMap = new Map<number, { rev: number; ebitda: number; fcf: number; div: number }>()
+  for (const y of FUND_YEARS) aggMap.set(y, { rev: 0, ebitda: 0, fcf: 0, div: 0 })
+
+  // ── market valuation by year (avg multiple/yield across the universe) ──────
+  type ValAcc = {
+    peSum: number; peN: number
+    evSum: number; evN: number
+    fcfYSum: number; fcfYN: number
+    divYSum: number; divYN: number
+  }
+  const valMap = new Map<number, ValAcc>()
+  for (const y of FUND_YEARS) valMap.set(y, { peSum: 0, peN: 0, evSum: 0, evN: 0, fcfYSum: 0, fcfYN: 0, divYSum: 0, divYN: 0 })
 
   for (const row of fund) {
-    const y      = row.fiscal_year
-    const sector = sectorMap.get(row.ticker) ?? 'Other'
+    const y = row.fiscal_year
 
-    // aggregate
     const agg = aggMap.get(y)
     if (agg) {
       if (row.revenue        != null) agg.rev    += row.revenue
       if (row.ebitda         != null) agg.ebitda += row.ebitda
       if (row.free_cash_flow != null) agg.fcf    += row.free_cash_flow
+      if (row.dividends_paid != null) agg.div    += Math.abs(row.dividends_paid)
     }
 
-    // sector breakdown
-    if (!sectorYearMap.has(sector)) sectorYearMap.set(sector, new Map())
-    const sm = sectorYearMap.get(sector)!
-    if (!sm.has(y)) sm.set(y, { revSum: 0, revN: 0, ebitdaSum: 0, ebitdaN: 0, fcfSum: 0, fcfN: 0, gmSum: 0, gmN: 0 })
-    const sd = sm.get(y)!
-    if (row.revenue        != null) { sd.revSum   += row.revenue;        sd.revN++ }
-    if (row.ebitda         != null) { sd.ebitdaSum += row.ebitda;        sd.ebitdaN++ }
-    if (row.free_cash_flow != null) { sd.fcfSum   += row.free_cash_flow; sd.fcfN++ }
-    if (row.gross_margin   != null) { sd.gmSum    += row.gross_margin;   sd.gmN++ }
+    const v = valMap.get(y)
+    if (v) {
+      const mcap = row.market_cap_at_year
+      if (mcap != null && mcap > 0) {
+        if (row.net_income != null && row.net_income > 0) {
+          const peY = mcap / row.net_income
+          if (peY > 0 && peY < 200) { v.peSum += peY; v.peN++ }
+        }
+        if (row.free_cash_flow != null && row.free_cash_flow > 0) {
+          const fcfYieldY = row.free_cash_flow / mcap
+          if (fcfYieldY > 0 && fcfYieldY < 0.5) { v.fcfYSum += fcfYieldY; v.fcfYN++ }
+        }
+        if (row.dividends_paid != null && row.dividends_paid !== 0) {
+          const divYieldY = Math.abs(row.dividends_paid) / mcap
+          if (divYieldY > 0 && divYieldY < 0.15) { v.divYSum += divYieldY; v.divYN++ }
+        }
+      }
+      if (row.ev_to_ebitda != null && row.ev_to_ebitda > 0 && row.ev_to_ebitda < 200) {
+        v.evSum += row.ev_to_ebitda; v.evN++
+      }
+    }
   }
 
   const aggregateYears: AggregateYear[] = FUND_YEARS.map(y => {
     const a = aggMap.get(y)!
     return {
-      year:    y,
-      revenue: a.rev    || null,
-      ebitda:  a.ebitda || null,
-      fcf:     a.fcf    || null,
+      year:      y,
+      revenue:   a.rev    || null,
+      ebitda:    a.ebitda || null,
+      fcf:       a.fcf    || null,
+      dividends: a.div    || null,
     }
   })
 
-  const sectorYears: SectorYearData[] = []
-  for (const [sector, yearMap] of Array.from(sectorYearMap.entries())) {
-    for (const y of FUND_YEARS) {
-      const d = yearMap.get(y)
-      sectorYears.push({
-        sector,
-        year:           y,
-        revenue:        d && d.revN   > 0 ? d.revSum   / d.revN   : null,
-        ebitda:         d && d.ebitdaN > 0 ? d.ebitdaSum / d.ebitdaN : null,
-        fcf:            d && d.fcfN   > 0 ? d.fcfSum   / d.fcfN   : null,
-        avgGrossMargin: d && d.gmN    > 0 ? d.gmSum    / d.gmN    : null,
-      })
+  const valuationYears: ValuationYear[] = FUND_YEARS.map(y => {
+    const v = valMap.get(y)!
+    return {
+      year:      y,
+      pe:        v.peN    > 0 ? v.peSum    / v.peN    : null,
+      evEbitda:  v.evN    > 0 ? v.evSum    / v.evN    : null,
+      fcfYield:  v.fcfYN  > 0 ? v.fcfYSum  / v.fcfYN  : null,
+      divYield:  v.divYN  > 0 ? v.divYSum  / v.divYN  : null,
     }
+  })
+
+  // ── market sentiment summary ────────────────────────────────────────────────
+  // Rule-based read: compare the direction (and, when both move the same way,
+  // the relative magnitude) of aggregate earnings (EBITDA) against the average
+  // valuation multiple (EV/EBITDA) over the same window. Not a model output --
+  // a transparent, explainable comparison.
+  function pctChange(first: number | null, last: number | null): number | null {
+    if (first == null || last == null || first === 0) return null
+    return (last - first) / Math.abs(first)
   }
+  function trendDirection(change: number | null, upThresh: number): 'up' | 'down' | 'flat' {
+    if (change == null) return 'flat'
+    if (change > upThresh) return 'up'
+    if (change < -upThresh) return 'down'
+    return 'flat'
+  }
+  const firstEbitda = aggregateYears[0]?.ebitda ?? null
+  const lastEbitda  = aggregateYears[aggregateYears.length - 1]?.ebitda ?? null
+  const firstEv     = valuationYears.find(v => v.evEbitda != null)?.evEbitda ?? null
+  const lastEv      = [...valuationYears].reverse().find(v => v.evEbitda != null)?.evEbitda ?? null
+  const earningsChange  = pctChange(firstEbitda, lastEbitda)
+  const valuationChange = pctChange(firstEv, lastEv)
+  const earningsDir     = trendDirection(earningsChange, 0.03)
+  const valuationDir    = trendDirection(valuationChange, 0.05)
+
+  const sentimentCopy: Record<string, string> = {
+    'up|down':   'Earnings are growing while valuations are contracting — the market hasn\'t caught up to the fundamentals yet.',
+    'up|flat':   'Earnings are growing and valuations have stayed roughly flat — growth is being priced in for free.',
+    'up|up_faster':    'Earnings are growing, but valuations are expanding even faster — the market is already pricing in the improvement.',
+    'up|up_slower':    'Earnings are growing faster than valuations are expanding — the market hasn\'t fully caught up to the improvement yet.',
+    'flat|down': 'Earnings are steady while valuations compress — the market is paying less for the same business.',
+    'flat|flat': 'Both earnings and valuations are roughly flat — no major re-rating happening either way.',
+    'flat|up':   'Earnings are flat but valuations are expanding — multiples are doing the work, not the business.',
+    'down|down_faster': 'Earnings and valuations are both pulling back, with valuations falling faster — the market is de-rating ahead of the business.',
+    'down|down_slower': 'Earnings and valuations are both pulling back, with earnings falling faster — the market hasn\'t fully priced in the weakness yet.',
+    'down|flat': 'Earnings are declining while valuations hold — the market may not have caught up to the weakness yet.',
+    'down|up':   'Earnings are declining even as valuations expand — worth watching closely.',
+  }
+  const sameDirSuffix = (earningsChange != null && valuationChange != null && Math.abs(valuationChange) > Math.abs(earningsChange)) ? 'faster' : 'slower'
+  const sentimentKey =
+    (earningsDir === 'up' && valuationDir === 'up')     ? `up|up_${sameDirSuffix}` :
+    (earningsDir === 'down' && valuationDir === 'down') ? `down|down_${sameDirSuffix}` :
+    `${earningsDir}|${valuationDir}`
+  const sentimentSummary = sentimentCopy[sentimentKey] ?? sentimentCopy['flat|flat']
 
   // ── render ─────────────────────────────────────────────────────────────────
 
@@ -324,46 +387,37 @@ export default async function MarketPage() {
           </p>
         </div>
 
-        {/* ── SECTION 1: SIGNAL DISTRIBUTION ── */}
+        {/* ── SECTION 1: SIGNAL FUNNEL ── */}
         <div style={S.section}>
           <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
-              <p style={S.head}>01 — SIGNAL DISTRIBUTION</p>
+              <p style={S.head}>01 — SIGNAL FUNNEL</p>
               <p style={{ fontSize: 11, color: DIM, margin: 0, letterSpacing: '0.08em' }}>
                 Where {total} stocks stand today
               </p>
             </div>
             <div style={{ padding: '1.25rem' }}>
-              {/* stacked bar */}
-              <div style={{
-                display: 'flex', height: 36, borderRadius: 4, overflow: 'hidden',
-                border: `1px solid ${FAINT}`, marginBottom: '1rem',
-              }}>
-                {sigBars.map(({ sig, pct: p, color }) =>
-                  p > 0 && (
-                    <div
-                      key={sig}
-                      title={`${sig}: ${sigCounts[sig]} stocks (${p}%)`}
-                      style={{
-                        width: `${p}%`, background: color, display: 'flex',
-                        alignItems: 'center', justifyContent: 'center',
-                        fontSize: 9, fontWeight: 'bold', color: '#000',
-                        letterSpacing: '0.1em', transition: 'width 0.3s',
-                      }}
-                    >
-                      {p >= 8 ? sig : ''}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {funnelTiers.map((tier, i) => (
+                  <div key={tier.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      flex: Math.max(tier.pctOfTotal, 4) / 100,
+                      marginLeft: `${i * 8}%`,
+                      height: 34,
+                      background: i === 0 ? 'rgba(0,255,65,0.10)' : i === 1 ? 'rgba(0,255,65,0.18)' : i === 2 ? 'rgba(0,255,65,0.30)' : '#00ff41',
+                      display: 'flex', alignItems: 'center', padding: '0 16px',
+                      fontSize: 11, fontWeight: 'bold', letterSpacing: '0.05em',
+                      color: i === 3 ? '#000' : GREEN,
+                      whiteSpace: 'nowrap', transition: 'flex 0.3s',
+                    }}>
+                      {tier.label}
                     </div>
-                  )
-                )}
-              </div>
-              {/* legend */}
-              <div style={{ display: 'flex', gap: '0 2rem', flexWrap: 'wrap' }}>
-                {sigBars.map(({ sig, count, pct: p, color }) => (
-                  <div key={sig} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 10, height: 10, background: color, borderRadius: 2 }} />
-                    <span style={{ fontSize: 10, color: DIM, letterSpacing: '0.08em' }}>{sig}</span>
-                    <span style={{ fontSize: 13, fontWeight: 'bold', color }}>{count}</span>
-                    <span style={{ fontSize: 9, color: DIM }}>({p}%)</span>
+                    <div style={{ width: 70, textAlign: 'right', fontSize: 13, fontWeight: 'bold', flexShrink: 0 }}>
+                      {tier.count}
+                    </div>
+                    <div style={{ width: 40, textAlign: 'right', fontSize: 9, color: DIM, flexShrink: 0 }}>
+                      {tier.pctOfTotal}%
+                    </div>
                   </div>
                 ))}
               </div>
@@ -371,10 +425,25 @@ export default async function MarketPage() {
           </div>
         </div>
 
-        {/* ── SECTION 2: MARKET VALUATION ── */}
+        {/* ── SECTION 2: RAW FUNDAMENTAL TRENDS ── */}
         <div style={S.section}>
-          <p style={{ ...S.head, marginBottom: '0.75rem' }}>02 — MARKET VALUATION — S&P 500 AVERAGE</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+          <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
+              <p style={S.head}>02 — RAW FUNDAMENTAL TRENDS — SUM ACROSS UNIVERSE (FY21–FY25)</p>
+              <p style={{ fontSize: 11, color: DIM, margin: '4px 0 0', letterSpacing: '0.08em' }}>
+                What the businesses are actually doing, before the market prices it
+              </p>
+            </div>
+            <div style={{ padding: '1.25rem' }}>
+              <AggregateCharts data={aggregateYears} />
+            </div>
+          </div>
+        </div>
+
+        {/* ── SECTION 3: MARKET VALUATION ── */}
+        <div style={S.section}>
+          <p style={{ ...S.head, marginBottom: '0.75rem' }}>03 — MARKET VALUATION — S&P 500 AVERAGE</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
             <ValuationCard
               label="P/E RATIO"
               displayValue={fmtPE(avgPE)}
@@ -397,13 +466,38 @@ export default async function MarketPage() {
               status={divStatus}
             />
           </div>
+          <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
+              <p style={{ ...S.head, fontSize: 10, letterSpacing: '0.08em', color: DIM }}>HOW WE GOT HERE — AVG MULTIPLE/YIELD BY YEAR (FY21–FY25)</p>
+            </div>
+            <div style={{ padding: '1.25rem' }}>
+              <ValuationTrendCharts data={valuationYears} />
+            </div>
+          </div>
         </div>
 
-        {/* ── SECTION 3: SECTOR RANKINGS ── */}
+        {/* ── SECTION 4: MARKET SENTIMENT SUMMARY ── */}
         <div style={S.section}>
           <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
-              <p style={S.head}>03 — SECTOR RANKINGS — SORTED BY AVG SCORE</p>
+              <p style={S.head}>04 — MARKET SENTIMENT SUMMARY</p>
+            </div>
+            <div style={{ padding: '1.25rem' }}>
+              <p style={{ fontSize: 13, lineHeight: 1.7, color: 'rgba(0,255,65,0.8)', margin: 0 }}>
+                {sentimentSummary}
+              </p>
+              <p style={{ fontSize: 9, color: 'rgba(0,255,65,0.25)', margin: '10px 0 0', letterSpacing: '0.04em' }}>
+                Based on aggregate EBITDA trend ({earningsDir}) vs. average EV/EBITDA trend ({valuationDir}), FY21→FY25.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── SECTION 5: SECTOR RANKINGS ── */}
+        <div style={S.section}>
+          <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
+              <p style={S.head}>05 — SECTOR RANKINGS — SORTED BY AVG SCORE</p>
             </div>
             <div style={{ padding: '0 1.25rem', overflowX: 'auto' }}>
               <table style={{ ...S.table, fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}>
@@ -450,29 +544,6 @@ export default async function MarketPage() {
                   })}
                 </tbody>
               </table>
-            </div>
-          </div>
-        </div>
-
-        {/* ── SECTION 4: MARKET HEALTH & GROWTH ── */}
-        <div style={S.section}>
-          <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
-            {/* 4A header */}
-            <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
-              <p style={S.head}>04A — S&P 500 AGGREGATE TRENDS (SUM, FY21–FY25)</p>
-            </div>
-            <div style={{ padding: '1.25rem' }}>
-              <AggregateCharts data={aggregateYears} />
-            </div>
-          </div>
-
-          {/* 4B card */}
-          <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden', marginTop: '0.75rem' }}>
-            <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
-              <p style={S.head}>04B — SECTOR TRENDS (AVG PER COMPANY, FY21–FY25)</p>
-            </div>
-            <div style={{ padding: '1.25rem' }}>
-              <SectorTrendChart sectorYears={sectorYears} />
             </div>
           </div>
         </div>

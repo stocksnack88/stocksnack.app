@@ -28,10 +28,10 @@ const FUND_YEARS = [2021, 2022, 2023, 2024, 2025]
 // pulled (S&P 500+400+600); the rest filter to one index tag. Extend this
 // list as new tag groups (NASDAQ, custom watchlists, etc.) get added.
 const GROUPS = [
-  { key: 'ALL',   label: 'ALL STOCKS', tag: null as string | null },
-  { key: 'SP500', label: 'S&P 500',    tag: 'SP500' },
-  { key: 'SP400', label: 'S&P 400',    tag: 'SP400' },
-  { key: 'SP600', label: 'S&P 600',    tag: 'SP600' },
+  { key: 'ALL',   label: 'ALL',     noun: 'all tracked',  tag: null as string | null },
+  { key: 'SP500', label: 'S&P 500', noun: 'S&P 500',      tag: 'SP500' },
+  { key: 'SP400', label: 'S&P 400', noun: 'S&P 400',      tag: 'SP400' },
+  { key: 'SP600', label: 'S&P 600', noun: 'S&P 600',      tag: 'SP600' },
 ] as const
 
 // ── styles ─────────────────────────────────────────────────────────────────────
@@ -407,11 +407,11 @@ export default async function MarketPage({
           padding: '2.5rem 0 1.5rem',
         }}>
           <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.25em', margin: '0 0 14px' }}>
-            STOCKSNACK · {activeGroup.label} MARKET OVERVIEW
+            STOCKSNACK · {activeGroup.key === 'ALL' ? 'MARKET OVERVIEW' : `${activeGroup.label} MARKET OVERVIEW`}
           </p>
           <p style={{ fontSize: 'clamp(16px, 2.5vw, 22px)', fontWeight: 'bold', lineHeight: 1.4, margin: '0 0 1.25rem', letterSpacing: '0.03em' }}>
             <span style={{ color: GREEN }}>{bullishPct}%</span>
-            <span style={{ color: 'rgba(0,255,65,0.75)' }}> of {activeGroup.label} stocks are projected to beat the market right now — </span>
+            <span style={{ color: 'rgba(0,255,65,0.75)' }}> of {activeGroup.noun} stocks are projected to beat the market right now — </span>
             <span style={{ color: 'rgba(0,255,65,0.75)' }}>the market is </span>
             <span style={{ color: sentimentColor }}>{sentiment}</span>
             <span style={{ color: 'rgba(0,255,65,0.75)' }}> by StockSnack&apos;s scoring.</span>

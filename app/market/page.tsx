@@ -120,13 +120,6 @@ function fmtCagr(v: number | null): string {
   return v == null ? '—' : `${(v * 100).toFixed(1)}%`
 }
 
-function fmtT(v: number): string {
-  const abs = Math.abs(v)
-  if (abs >= 1e12) return `$${(v / 1e12).toFixed(1)}T`
-  if (abs >= 1e9)  return `$${(v / 1e9).toFixed(1)}B`
-  return `$${(v / 1e6).toFixed(0)}M`
-}
-
 function scoreColor(s: number): string {
   if (s >= 70) return GREEN
   if (s >= 50) return '#f59e0b'
@@ -346,16 +339,16 @@ export default async function MarketPage({
   })
 
   const rawTrendMetrics: MetricDef[] = [
-    { key: 'revenue',   label: 'REVENUE',   color: GREEN,     format: fmtT },
-    { key: 'ebitda',    label: 'EBITDA',    color: '#f59e0b', format: fmtT },
-    { key: 'fcf',       label: 'FCF',       color: '#3b82f6', format: fmtT },
-    { key: 'dividends', label: 'DIVIDENDS', color: '#d55181', format: fmtT },
+    { key: 'revenue',   label: 'REVENUE',   color: GREEN,     kind: 'currency' },
+    { key: 'ebitda',    label: 'EBITDA',    color: '#f59e0b', kind: 'currency' },
+    { key: 'fcf',       label: 'FCF',       color: '#3b82f6', kind: 'currency' },
+    { key: 'dividends', label: 'DIVIDENDS', color: '#d55181', kind: 'currency' },
   ]
   const valuationTrendMetrics: MetricDef[] = [
-    { key: 'pe',       label: 'P/E RATIO',      color: GREEN,     format: v => `${v.toFixed(1)}x` },
-    { key: 'evEbitda', label: 'EV/EBITDA',      color: '#f59e0b', format: v => `${v.toFixed(1)}x` },
-    { key: 'fcfYield', label: 'FCF YIELD',      color: '#3b82f6', format: v => `${(v * 100).toFixed(2)}%` },
-    { key: 'divYield', label: 'DIVIDEND YIELD', color: '#d55181', format: v => `${(v * 100).toFixed(2)}%` },
+    { key: 'pe',       label: 'P/E RATIO',      color: GREEN,     kind: 'multiple' },
+    { key: 'evEbitda', label: 'EV/EBITDA',      color: '#f59e0b', kind: 'multiple' },
+    { key: 'fcfYield', label: 'FCF YIELD',      color: '#3b82f6', kind: 'pct' },
+    { key: 'divYield', label: 'DIVIDEND YIELD', color: '#d55181', kind: 'pct' },
   ]
 
   // ── market sentiment summary ────────────────────────────────────────────────

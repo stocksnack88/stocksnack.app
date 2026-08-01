@@ -5,17 +5,31 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
+// 'format' used to be a function prop, but Server Components can't pass
+// functions to Client Components (not serializable across that boundary) --
+// hence 'kind', mapped to a formatter locally instead.
+export type MetricKind = 'currency' | 'multiple' | 'pct'
+
 export type MetricDef = {
   key: string
   label: string
   color: string
-  format: (v: number) => string
+  kind: MetricKind
 }
 
 export type YearRow = { year: number; [key: string]: number | null }
 
 const DIM  = 'rgba(0,255,65,0.4)'
 const FONT = "var(--font-geist-mono), 'Courier New', monospace"
+
+function formatValue(v: number, kind: MetricKind): string {
+  if (kind === 'multiple') return `${v.toFixed(1)}x`
+  if (kind === 'pct') return `${(v * 100).toFixed(2)}%`
+  const abs = Math.abs(v)
+  if (abs >= 1e12) return `$${(v / 1e12).toFixed(1)}T`
+  if (abs >= 1e9)  return `$${(v / 1e9).toFixed(1)}B`
+  return `$${(v / 1e6).toFixed(0)}M`
+}
 
 function yoy(curr: number | null, prev: number | null): string {
   if (curr == null || prev == null || prev === 0) return '—'
@@ -92,7 +106,7 @@ export default function MetricChartPicker({
                   tick={{ fill: DIM, fontSize: 8, fontFamily: FONT }}
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={v => m.format(v)}
+                  tickFormatter={v => formatValue(v, m.kind)}
                   width={56}
                 />
                 <Tooltip
@@ -102,7 +116,7 @@ export default function MetricChartPicker({
                     return (
                       <div style={{ background: '#000', border: '1px solid rgba(0,255,65,0.2)', padding: '6px 10px', fontFamily: FONT, fontSize: 11 }}>
                         <p style={{ color: DIM, margin: '0 0 2px' }}>FY{label}</p>
-                        <p style={{ color: m.color, margin: 0 }}>{v != null ? m.format(v) : '—'}</p>
+                        <p style={{ color: m.color, margin: 0 }}>{v != null ? formatValue(v, m.kind) : '—'}</p>
                       </div>
                     )
                   }}

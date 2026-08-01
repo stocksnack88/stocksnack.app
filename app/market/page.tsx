@@ -5,6 +5,7 @@ import { unstable_cache } from 'next/cache'
 import { supabaseAdmin, fetchAllRows } from '@/lib/supabase'
 import type { CSSProperties } from 'react'
 import MetricChartPicker, { type MetricDef, type YearRow } from './MetricChartPicker'
+import GrowthComparisonChart from './GrowthComparisonChart'
 import BottomNav from '@/components/ui/BottomNav'
 
 // ── constants ──────────────────────────────────────────────────────────────────
@@ -62,9 +63,6 @@ type ScoreRow = {
   final_score: number | null
   signal: string | null
   ppm_cagr: number | null
-  pe_ratio: number | null
-  fcf_yield: number | null
-  div_yield: number | null
   stocks: { name: string | null; sector: string | null; index_tags: string[] | null } | { name: string | null; sector: string | null; index_tags: string[] | null }[] | null
 }
 
@@ -100,22 +98,6 @@ function pct(n: number, total: number): number {
   return total === 0 ? 0 : Math.round((n / total) * 100)
 }
 
-function arrAvg(nums: number[]): number | null {
-  return nums.length === 0 ? null : nums.reduce((a, b) => a + b, 0) / nums.length
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v))
-}
-
-function fmtPE(v: number | null): string {
-  return v == null ? '—' : `${v.toFixed(1)}x`
-}
-
-function fmtPct(v: number | null, dec = 1): string {
-  return v == null ? '—' : `${(v * 100).toFixed(dec)}%`
-}
-
 function fmtCagr(v: number | null): string {
   return v == null ? '—' : `${(v * 100).toFixed(1)}%`
 }
@@ -124,20 +106,6 @@ function scoreColor(s: number): string {
   if (s >= 70) return GREEN
   if (s >= 50) return '#f59e0b'
   return '#ef4444'
-}
-
-function valStatus(
-  val: number | null,
-  cheapThresh: number,
-  expThresh: number,
-  higherIsCheap: boolean,
-): { label: string; color: string } {
-  if (val == null) return { label: '—', color: DIM }
-  const cheap = higherIsCheap ? val > cheapThresh : val < cheapThresh
-  const exp   = higherIsCheap ? val < expThresh   : val > expThresh
-  if (cheap) return { label: 'CHEAP',     color: GREEN }
-  if (exp)   return { label: 'EXPENSIVE', color: '#ef4444' }
-  return { label: 'FAIR', color: '#f59e0b' }
 }
 
 // ── data ──────────────────────────────────────────────────────────────────────
@@ -151,7 +119,7 @@ const getMarketData = unstable_cache(
       fetchAllRows((start, end) =>
         supabaseAdmin
           .from('stock_scores')
-          .select('ticker, final_score, signal, ppm_cagr, pe_ratio, fcf_yield, div_yield, stocks(name, sector, index_tags)')
+          .select('ticker, final_score, signal, ppm_cagr, stocks(name, sector, index_tags)')
           .order('final_score', { ascending: false })
           .range(start, end)
       ),
@@ -186,7 +154,7 @@ export default async function MarketPage({
 
   const { scores: allScores, fund: allFund } = await getMarketData()
 
-  const activeGroup = GROUPS.find(g => g.key === searchParams.group) ?? GROUPS[0]
+  const activeGroup = GROUPS.find(g => g.key === searchParams.group) ?? GROUPS.find(g => g.key === 'SP500')!
   const scores = activeGroup.tag == null
     ? allScores
     : allScores.filter(r => indexTagsOf(r).includes(activeGroup.tag as string))
@@ -209,24 +177,6 @@ export default async function MarketPage({
   const sentiment     = bullishPct > 50 ? 'CHEAP' : bullishPct >= 30 ? 'FAIRLY VALUED' : 'EXPENSIVE'
   const sentimentColor =
     sentiment === 'CHEAP' ? GREEN : sentiment === 'FAIRLY VALUED' ? '#ffcc00' : '#ef4444'
-
-  // ── market valuation ────────────────────────────────────────────────────────
-  const peVals  = scores.map(r => r.pe_ratio).filter((v): v is number => v != null && v > 0 && v < 200)
-  const fcfVals = scores.map(r => r.fcf_yield).filter((v): v is number => v != null && v > 0 && v < 0.5)
-  const divVals = scores.map(r => r.div_yield).filter((v): v is number => v != null && v > 0 && v < 0.15)
-
-  const avgPE  = arrAvg(peVals)
-  const avgFCF = arrAvg(fcfVals)
-  const avgDiv = arrAvg(divVals)
-
-  const peStatus  = valStatus(avgPE,  19,    22,    false)
-  const fcfStatus = valStatus(avgFCF, 0.035, 0.032, true)
-  const divStatus = valStatus(avgDiv, 0.018, 0.013, true)
-
-  // Marker position 0-100 (0=cheap left, 100=expensive right)
-  const peMarker  = avgPE  != null ? clamp((avgPE  - 10) / 20  * 100, 1, 99) : 50
-  const fcfMarker = avgFCF != null ? clamp((1 - avgFCF / 0.08) * 100, 1, 99) : 50
-  const divMarker = avgDiv != null ? clamp((1 - avgDiv / 0.04) * 100, 1, 99) : 50
 
   // ── sector rankings ─────────────────────────────────────────────────────────
   type SectorStat = {
@@ -268,7 +218,7 @@ export default async function MarketPage({
   const holdOrBetter = sigCounts['HOLD'] + sigCounts['BUY'] + sigCounts['BUY+']
   const buyOrBetter  = sigCounts['BUY'] + sigCounts['BUY+']
   const funnelTiers = [
-    { label: 'TOTAL SCREENED', count: total,              pctOfTotal: 100 },
+    { label: 'TOTAL STOCKS',   count: total,              pctOfTotal: 100 },
     { label: 'HOLD OR BETTER', count: holdOrBetter,       pctOfTotal: pct(holdOrBetter, total) },
     { label: 'BUY OR BETTER',  count: buyOrBetter,        pctOfTotal: pct(buyOrBetter, total) },
     { label: 'BUY+ ONLY',      count: sigCounts['BUY+'],  pctOfTotal: pct(sigCounts['BUY+'], total) },
@@ -351,6 +301,25 @@ export default async function MarketPage({
     { key: 'divYield', label: 'DIVIDEND YIELD', color: '#d55181', kind: 'pct' },
   ]
 
+  // ── growth comparison (indexed, FY21=100) ───────────────────────────────────
+  // Merges raw fundamentals + valuation into one dataset so both can be
+  // rebased and overlaid on a single chart — see GrowthComparisonChart.
+  const combinedYearData: YearRow[] = FUND_YEARS.map((y, i) => ({
+    ...rawTrendData[i],
+    ...valuationTrendData[i],
+    year: y,
+  }))
+  const combinedMetrics: MetricDef[] = [
+    { key: 'revenue',   label: 'REVENUE',        color: GREEN,     kind: 'currency' },
+    { key: 'ebitda',    label: 'EBITDA',         color: '#f59e0b', kind: 'currency' },
+    { key: 'fcf',       label: 'FCF',            color: '#3b82f6', kind: 'currency' },
+    { key: 'dividends', label: 'DIVIDENDS',      color: '#d55181', kind: 'currency' },
+    { key: 'pe',        label: 'P/E RATIO',      color: '#a78bfa', kind: 'multiple' },
+    { key: 'evEbitda',  label: 'EV/EBITDA',      color: '#22d3ee', kind: 'multiple' },
+    { key: 'fcfYield',  label: 'FCF YIELD',      color: '#facc15', kind: 'pct' },
+    { key: 'divYield',  label: 'DIVIDEND YIELD', color: '#fb7185', kind: 'pct' },
+  ]
+
   // ── market sentiment summary ────────────────────────────────────────────────
   // Rule-based read: compare the direction (and, when both move the same way,
   // the relative magnitude) of aggregate earnings (EBITDA) against the average
@@ -424,7 +393,7 @@ export default async function MarketPage({
               return (
                 <Link
                   key={g.key}
-                  href={g.key === 'ALL' ? '/market' : `/market?group=${g.key}`}
+                  href={g.key === 'SP500' ? '/market' : `/market?group=${g.key}`}
                   style={{
                     ...FONT, fontSize: 10, fontWeight: 'bold', letterSpacing: '0.08em',
                     padding: '6px 14px', borderRadius: 4, textDecoration: 'none',
@@ -450,30 +419,24 @@ export default async function MarketPage({
               </p>
             </div>
             <div style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 {funnelTiers.map((tier, i) => {
                   // Visual-only floor so the narrowest tier's bar stays visible;
                   // the NUMBER shown is always the real, unrounded percentage.
-                  // Label sits above the bar (not inside it) so it never has to
-                  // fit inside a shrinking box.
-                  const barWidthPct = Math.max(tier.pctOfTotal, 6)
+                  // Bar width is pixels against a fixed reference (not a % of
+                  // the row), so the taper is precise. Label sits beside the
+                  // bar, not inside it, so it never has to fit inside a
+                  // shrinking box (that overflowed badly on the narrowest tier).
+                  const MAX_BAR_PX = 200
+                  const barPx = Math.round(Math.max(tier.pctOfTotal, 6) / 100 * MAX_BAR_PX)
                   const barColor = i === 0 ? 'rgba(0,255,65,0.20)' : i === 1 ? 'rgba(0,255,65,0.40)' : i === 2 ? 'rgba(0,255,65,0.65)' : '#00ff41'
                   return (
-                    <div key={tier.label}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px 44px', columnGap: 12, alignItems: 'baseline', marginBottom: 6 }}>
-                        <span style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.05em', color: GREEN }}>{tier.label}</span>
-                        <span style={{ textAlign: 'right', fontSize: 13, fontWeight: 'bold' }}>{tier.count}</span>
-                        <span style={{ textAlign: 'right', fontSize: 9, color: DIM }}>{tier.pctOfTotal}%</span>
-                      </div>
-                      <div style={{ height: 16, display: 'flex', justifyContent: 'center' }}>
-                        <div style={{
-                          width: `${barWidthPct}%`,
-                          height: '100%',
-                          background: barColor,
-                          borderRadius: 2,
-                          transition: 'width 0.3s',
-                        }} />
-                      </div>
+                    <div key={tier.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: barPx, height: 20, background: barColor, borderRadius: 2, flexShrink: 0, transition: 'width 0.3s' }} />
+                      <span style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.05em', color: GREEN, whiteSpace: 'nowrap' }}>{tier.label}</span>
+                      <div style={{ flex: 1 }} />
+                      <span style={{ width: 68, textAlign: 'right', fontSize: 13, fontWeight: 'bold', color: GREEN, flexShrink: 0 }}>{tier.count.toLocaleString()}</span>
+                      <span style={{ width: 48, textAlign: 'right', fontSize: 13, fontWeight: 'bold', color: GREEN, flexShrink: 0 }}>{tier.pctOfTotal}%</span>
                     </div>
                   )
                 })}
@@ -500,29 +463,6 @@ export default async function MarketPage({
         {/* ── SECTION 3: MARKET VALUATION ── */}
         <div style={S.section}>
           <p style={{ ...S.head, marginBottom: '0.75rem' }}>03 — MARKET VALUATION — {activeGroup.label} AVERAGE</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
-            <ValuationCard
-              label="P/E RATIO"
-              displayValue={fmtPE(avgPE)}
-              benchmark="CHEAP < 19x  ·  FAIR 19–22x  ·  EXPENSIVE > 22x"
-              markerPct={peMarker}
-              status={peStatus}
-            />
-            <ValuationCard
-              label="FCF YIELD"
-              displayValue={fmtPct(avgFCF)}
-              benchmark="CHEAP > 3.5%  ·  FAIR 3.2–3.5%  ·  EXPENSIVE < 3.2%"
-              markerPct={fcfMarker}
-              status={fcfStatus}
-            />
-            <ValuationCard
-              label="DIVIDEND YIELD"
-              displayValue={fmtPct(avgDiv)}
-              benchmark="CHEAP > 1.8%  ·  FAIR 1.3–1.8%  ·  EXPENSIVE < 1.3%"
-              markerPct={divMarker}
-              status={divStatus}
-            />
-          </div>
           <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
               <p style={{ ...S.head, fontSize: 10, letterSpacing: '0.08em', color: DIM }}>HOW WE GOT HERE — AVG MULTIPLE/YIELD BY YEAR — click a metric to add/remove its chart</p>
@@ -533,11 +473,26 @@ export default async function MarketPage({
           </div>
         </div>
 
-        {/* ── SECTION 4: MARKET SENTIMENT SUMMARY ── */}
+        {/* ── SECTION 4: GROWTH COMPARISON (INDEXED) ── */}
         <div style={S.section}>
           <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
-              <p style={S.head}>04 — MARKET SENTIMENT SUMMARY</p>
+              <p style={S.head}>04 — GROWTH COMPARISON — INDEXED TO FY21 = 100</p>
+              <p style={{ fontSize: 11, color: DIM, margin: '4px 0 0', letterSpacing: '0.08em' }}>
+                Pick any combination of fundamentals and valuation metrics to compare growth rates directly, regardless of original units
+              </p>
+            </div>
+            <div style={{ padding: '1.25rem' }}>
+              <GrowthComparisonChart metrics={combinedMetrics} data={combinedYearData} defaultSelected={['revenue', 'ebitda']} />
+            </div>
+          </div>
+        </div>
+
+        {/* ── SECTION 5: MARKET SENTIMENT SUMMARY ── */}
+        <div style={S.section}>
+          <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
+              <p style={S.head}>05 — MARKET SENTIMENT SUMMARY</p>
             </div>
             <div style={{ padding: '1.25rem' }}>
               <p style={{ fontSize: 13, lineHeight: 1.7, color: 'rgba(0,255,65,0.8)', margin: 0 }}>
@@ -550,11 +505,11 @@ export default async function MarketPage({
           </div>
         </div>
 
-        {/* ── SECTION 5: SECTOR RANKINGS ── */}
+        {/* ── SECTION 6: SECTOR RANKINGS ── */}
         <div style={S.section}>
           <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
-              <p style={S.head}>05 — SECTOR RANKINGS — SORTED BY AVG SCORE</p>
+              <p style={S.head}>06 — SECTOR RANKINGS — SORTED BY AVG SCORE</p>
             </div>
             <div style={{ padding: '0 1.25rem', overflowX: 'auto' }}>
               <table style={{ ...S.table, fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}>
@@ -563,7 +518,7 @@ export default async function MarketPage({
                     <th style={{ ...S.th, position: 'sticky', left: 0, zIndex: 2, background: STICKY_TH_BG, width: STICKY_COL1_W, minWidth: STICKY_COL1_W }}>SECTOR</th>
                     <th style={{ ...S.th, textAlign: 'right' as const, position: 'sticky', left: STICKY_COL1_W, zIndex: 2, background: STICKY_TH_BG, width: STICKY_COL2_W, minWidth: STICKY_COL2_W }}>STOCKS</th>
                     <th style={{ ...S.th, textAlign: 'right' as const }}>AVG SCORE</th>
-                    <th style={{ ...S.th, textAlign: 'right' as const }}>AVG CAGR</th>
+                    <th style={{ ...S.th, textAlign: 'right' as const }} title="Forward-looking: the 5-year CAGR implied by StockSnack's price projection model, not a historical growth rate">CAGR (PROJ.)</th>
                     {SIGNALS.map(s => (
                       <th key={s} style={{ ...S.th, textAlign: 'right' as const, color: SIGNAL_COLOR[s] }}>{s}</th>
                     ))}
@@ -590,7 +545,7 @@ export default async function MarketPage({
                         </td>
                         {SIGNALS.map(sig => (
                           <td key={sig} style={{ ...S.td, textAlign: 'right' as const, color: r.signals[sig] > 0 ? SIGNAL_COLOR[sig] : DIM }}>
-                            {r.signals[sig] > 0 ? r.signals[sig] : '—'}
+                            {r.signals[sig] > 0 ? `${r.signals[sig]} (${pct(r.signals[sig], r.count)}%)` : '—'}
                           </td>
                         ))}
                         <td style={{ ...S.td, textAlign: 'right' as const, fontWeight: 'bold', fontSize: 9, letterSpacing: '0.1em', color: verdictColor }}>
@@ -617,81 +572,6 @@ export default async function MarketPage({
 
       </div>
       <BottomNav />
-    </div>
-  )
-}
-
-// ── sub-components ─────────────────────────────────────────────────────────────
-
-function ValuationCard({
-  label, displayValue, benchmark, markerPct, status,
-}: {
-  label: string
-  displayValue: string
-  benchmark: string
-  markerPct: number
-  status: { label: string; color: string }
-}) {
-  return (
-    <div style={{
-      border: '1px solid rgba(0,255,65,0.2)',
-      background: 'rgba(0,255,65,0.02)',
-      borderRadius: 4,
-      overflow: 'hidden',
-    }}>
-      {/* card header */}
-      <div style={{
-        background: '#001a00',
-        borderBottom: '1px solid rgba(0,255,65,0.1)',
-        padding: '0.75rem 1.25rem',
-      }}>
-        <p style={{ fontSize: 9, color: 'rgba(0,255,65,0.4)', letterSpacing: '0.18em', margin: 0, fontWeight: 'bold' }}>{label}</p>
-      </div>
-
-      {/* card body */}
-      <div style={{ padding: '1rem 1.25rem 1.25rem' }}>
-        <p style={{ fontSize: 30, fontWeight: 'bold', margin: '0 0 14px', color: status.color }}>{displayValue}</p>
-
-        {/* spectrum bar with marker */}
-        <div style={{ position: 'relative', marginBottom: 18 }}>
-          <div style={{
-            display: 'flex', height: 7, borderRadius: 3, overflow: 'visible',
-            position: 'relative',
-          }}>
-            <div style={{ flex: 1, background: '#00ff41', opacity: 0.55, borderRadius: '3px 0 0 3px' }} />
-            <div style={{ flex: 1, background: '#f59e0b', opacity: 0.55 }} />
-            <div style={{ flex: 1, background: '#ef4444', opacity: 0.55, borderRadius: '0 3px 3px 0' }} />
-          </div>
-          {/* marker */}
-          <div style={{
-            position: 'absolute',
-            left: `${markerPct}%`,
-            top: -3,
-            width: 3,
-            height: 13,
-            background: '#fff',
-            borderRadius: 2,
-            transform: 'translateX(-50%)',
-            boxShadow: '0 0 4px rgba(255,255,255,0.6)',
-          }} />
-        </div>
-
-        {/* zone labels */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 7, color: 'rgba(0,255,65,0.25)', marginBottom: 10 }}>
-          <span>CHEAP</span>
-          <span>FAIR</span>
-          <span>EXPENSIVE</span>
-        </div>
-
-        {/* benchmark */}
-        <p style={{ fontSize: 8, color: 'rgba(0,255,65,0.25)', margin: '0 0 10px', lineHeight: 1.6 }}>
-          {benchmark}
-        </p>
-
-        <p style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.15em', color: status.color, margin: 0 }}>
-          {status.label}
-        </p>
-      </div>
     </div>
   )
 }

@@ -1,11 +1,10 @@
 export const dynamic = 'force-dynamic'
 
+import Link from 'next/link'
 import { unstable_cache } from 'next/cache'
 import { supabaseAdmin, fetchAllRows } from '@/lib/supabase'
-import { isLaunchedStock } from '@/lib/constants'
-import type { CSSProperties } from 'react'
-import AggregateCharts, { type AggregateYear } from './AggregateCharts'
-import ValuationTrendCharts, { type ValuationYear } from './ValuationTrendCharts'
+import { Fragment, type CSSProperties } from 'react'
+import MetricChartPicker, { type MetricDef, type YearRow } from './MetricChartPicker'
 import BottomNav from '@/components/ui/BottomNav'
 
 // ── constants ──────────────────────────────────────────────────────────────────
@@ -25,6 +24,16 @@ const SIGNAL_COLOR: Record<string, string> = {
 
 const FUND_YEARS = [2021, 2022, 2023, 2024, 2025]
 
+// Universe groups, driven by stocks.index_tags. 'ALL' spans everything we've
+// pulled (S&P 500+400+600); the rest filter to one index tag. Extend this
+// list as new tag groups (NASDAQ, custom watchlists, etc.) get added.
+const GROUPS = [
+  { key: 'ALL',   label: 'ALL STOCKS', tag: null as string | null },
+  { key: 'SP500', label: 'S&P 500',    tag: 'SP500' },
+  { key: 'SP400', label: 'S&P 400',    tag: 'SP400' },
+  { key: 'SP600', label: 'S&P 600',    tag: 'SP600' },
+] as const
+
 // ── styles ─────────────────────────────────────────────────────────────────────
 
 const S = {
@@ -39,6 +48,12 @@ const S = {
   th:     { textAlign: 'left' as const, color: 'rgba(0,255,65,0.35)', padding: '4px 10px 6px 0', fontWeight: 'normal', letterSpacing: '0.1em', fontSize: 9, borderBottom: '1px solid rgba(0,255,65,0.12)' },
   td:     { padding: '5px 10px 5px 0', borderBottom: '1px solid rgba(0,255,65,0.07)', verticalAlign: 'middle' as const },
 }
+
+// sticky first-two-columns widths (sector rankings table)
+const STICKY_COL1_W = 130
+const STICKY_COL2_W = 64
+const STICKY_TH_BG = '#001a00'
+const STICKY_TD_BG = '#000502'
 
 // ── types ──────────────────────────────────────────────────────────────────────
 
@@ -74,11 +89,11 @@ function sectorOf(row: ScoreRow): string {
   return ref?.sector ?? 'Other'
 }
 
-function indexTagsOf(row: ScoreRow): string[] | null {
+function indexTagsOf(row: ScoreRow): string[] {
   const s = row.stocks
-  if (!s) return null
-  const ref = Array.isArray(s) ? s[0] : s
-  return ref?.index_tags ?? null
+  const ref = s ? (Array.isArray(s) ? s[0] : s) : null
+  const tags = ref?.index_tags
+  return tags && tags.length > 0 ? tags : ['SP500'] // fails open, matches lib/constants.ts convention
 }
 
 function pct(n: number, total: number): number {
@@ -105,6 +120,13 @@ function fmtCagr(v: number | null): string {
   return v == null ? '—' : `${(v * 100).toFixed(1)}%`
 }
 
+function fmtT(v: number): string {
+  const abs = Math.abs(v)
+  if (abs >= 1e12) return `$${(v / 1e12).toFixed(1)}T`
+  if (abs >= 1e9)  return `$${(v / 1e9).toFixed(1)}B`
+  return `$${(v / 1e6).toFixed(0)}M`
+}
+
 function scoreColor(s: number): string {
   if (s >= 70) return GREEN
   if (s >= 50) return '#f59e0b'
@@ -126,6 +148,9 @@ function valStatus(
 }
 
 // ── data ──────────────────────────────────────────────────────────────────────
+// Fetches the FULL universe (S&P 500+400+600) once, cached. Group filtering
+// happens per-request below, driven by ?group= — cheap in-memory filtering,
+// no need to re-query per group.
 
 const getMarketData = unstable_cache(
   async () => {
@@ -146,26 +171,34 @@ const getMarketData = unstable_cache(
           .range(start, end)
       ),
     ])
-    // Backend can freely ingest S&P 400/600 ahead of launch — keep this "S&P 500
-    // aggregate" page true to its label until index_tags says otherwise.
-    const scores = ((scoresRaw ?? []) as unknown as ScoreRow[]).filter((r) => isLaunchedStock(indexTagsOf(r)))
     return {
-      scores,
+      scores: (scoresRaw ?? []) as unknown as ScoreRow[],
       fund:   (fundRaw   ?? []) as FundRow[],
     }
   },
-  ['market-v3-data'],
+  ['market-v4-data'],
   { revalidate: 3600 },
 )
 
 // ── page ──────────────────────────────────────────────────────────────────────
 
-export default async function MarketPage() {
+export default async function MarketPage({
+  searchParams,
+}: {
+  searchParams: { group?: string }
+}) {
   // Access gate intentionally removed 2026-08-01 (no live users yet -- see
   // CLAUDE.md). Re-add before real customers are on the platform: an
   // internal-email check (getCachedUser + redirect) previously lived here.
 
-  const { scores, fund } = await getMarketData()
+  const { scores: allScores, fund: allFund } = await getMarketData()
+
+  const activeGroup = GROUPS.find(g => g.key === searchParams.group) ?? GROUPS[0]
+  const scores = activeGroup.tag == null
+    ? allScores
+    : allScores.filter(r => indexTagsOf(r).includes(activeGroup.tag as string))
+  const tickerSet = new Set(scores.map(r => r.ticker))
+  const fund = allFund.filter(r => tickerSet.has(r.ticker))
 
   // ── sector map from scores ──────────────────────────────────────────────────
   const sectorMap = new Map<string, string>()
@@ -237,14 +270,15 @@ export default async function MarketPage() {
 
   // ── signal funnel ────────────────────────────────────────────────────────────
   // Narrowing tiers, upside-down-pyramid style: total screened -> hold-or-better
-  // -> buy-or-better -> buy+ only.
+  // -> buy-or-better -> buy+ only. widthPct drives the ACTUAL rendered bar
+  // width (min-clamped only for visibility, never for the displayed number).
   const holdOrBetter = sigCounts['HOLD'] + sigCounts['BUY'] + sigCounts['BUY+']
   const buyOrBetter  = sigCounts['BUY'] + sigCounts['BUY+']
   const funnelTiers = [
-    { label: 'TOTAL SCREENED',   count: total,          pctOfTotal: 100 },
-    { label: 'HOLD OR BETTER',   count: holdOrBetter,   pctOfTotal: pct(holdOrBetter, total) },
-    { label: 'BUY OR BETTER',    count: buyOrBetter,     pctOfTotal: pct(buyOrBetter, total) },
-    { label: 'BUY+ ONLY',        count: sigCounts['BUY+'], pctOfTotal: pct(sigCounts['BUY+'], total) },
+    { label: 'TOTAL SCREENED', count: total,              pctOfTotal: 100 },
+    { label: 'HOLD OR BETTER', count: holdOrBetter,       pctOfTotal: pct(holdOrBetter, total) },
+    { label: 'BUY OR BETTER',  count: buyOrBetter,        pctOfTotal: pct(buyOrBetter, total) },
+    { label: 'BUY+ ONLY',      count: sigCounts['BUY+'],  pctOfTotal: pct(sigCounts['BUY+'], total) },
   ]
 
   // ── raw fundamentals by year (sum across the universe) ─────────────────────
@@ -295,27 +329,34 @@ export default async function MarketPage() {
     }
   }
 
-  const aggregateYears: AggregateYear[] = FUND_YEARS.map(y => {
+  const rawTrendData: YearRow[] = FUND_YEARS.map(y => {
     const a = aggMap.get(y)!
+    return { year: y, revenue: a.rev || null, ebitda: a.ebitda || null, fcf: a.fcf || null, dividends: a.div || null }
+  })
+
+  const valuationTrendData: YearRow[] = FUND_YEARS.map(y => {
+    const v = valMap.get(y)!
     return {
-      year:      y,
-      revenue:   a.rev    || null,
-      ebitda:    a.ebitda || null,
-      fcf:       a.fcf    || null,
-      dividends: a.div    || null,
+      year:     y,
+      pe:       v.peN   > 0 ? v.peSum   / v.peN   : null,
+      evEbitda: v.evN   > 0 ? v.evSum   / v.evN   : null,
+      fcfYield: v.fcfYN > 0 ? v.fcfYSum / v.fcfYN : null,
+      divYield: v.divYN > 0 ? v.divYSum / v.divYN : null,
     }
   })
 
-  const valuationYears: ValuationYear[] = FUND_YEARS.map(y => {
-    const v = valMap.get(y)!
-    return {
-      year:      y,
-      pe:        v.peN    > 0 ? v.peSum    / v.peN    : null,
-      evEbitda:  v.evN    > 0 ? v.evSum    / v.evN    : null,
-      fcfYield:  v.fcfYN  > 0 ? v.fcfYSum  / v.fcfYN  : null,
-      divYield:  v.divYN  > 0 ? v.divYSum  / v.divYN  : null,
-    }
-  })
+  const rawTrendMetrics: MetricDef[] = [
+    { key: 'revenue',   label: 'REVENUE',   color: GREEN,     format: fmtT },
+    { key: 'ebitda',    label: 'EBITDA',    color: '#f59e0b', format: fmtT },
+    { key: 'fcf',       label: 'FCF',       color: '#3b82f6', format: fmtT },
+    { key: 'dividends', label: 'DIVIDENDS', color: '#d55181', format: fmtT },
+  ]
+  const valuationTrendMetrics: MetricDef[] = [
+    { key: 'pe',       label: 'P/E RATIO',      color: GREEN,     format: v => `${v.toFixed(1)}x` },
+    { key: 'evEbitda', label: 'EV/EBITDA',      color: '#f59e0b', format: v => `${v.toFixed(1)}x` },
+    { key: 'fcfYield', label: 'FCF YIELD',      color: '#3b82f6', format: v => `${(v * 100).toFixed(2)}%` },
+    { key: 'divYield', label: 'DIVIDEND YIELD', color: '#d55181', format: v => `${(v * 100).toFixed(2)}%` },
+  ]
 
   // ── market sentiment summary ────────────────────────────────────────────────
   // Rule-based read: compare the direction (and, when both move the same way,
@@ -332,10 +373,10 @@ export default async function MarketPage() {
     if (change < -upThresh) return 'down'
     return 'flat'
   }
-  const firstEbitda = aggregateYears[0]?.ebitda ?? null
-  const lastEbitda  = aggregateYears[aggregateYears.length - 1]?.ebitda ?? null
-  const firstEv     = valuationYears.find(v => v.evEbitda != null)?.evEbitda ?? null
-  const lastEv      = [...valuationYears].reverse().find(v => v.evEbitda != null)?.evEbitda ?? null
+  const firstEbitda = rawTrendData[0]?.ebitda ?? null
+  const lastEbitda  = rawTrendData[rawTrendData.length - 1]?.ebitda ?? null
+  const firstEv     = valuationTrendData.find(v => v.evEbitda != null)?.evEbitda ?? null
+  const lastEv      = [...valuationTrendData].reverse().find(v => v.evEbitda != null)?.evEbitda ?? null
   const earningsChange  = pctChange(firstEbitda, lastEbitda)
   const valuationChange = pctChange(firstEv, lastEv)
   const earningsDir     = trendDirection(earningsChange, 0.03)
@@ -370,18 +411,40 @@ export default async function MarketPage() {
         {/* ── HERO ── */}
         <div style={{
           borderBottom: `1px solid ${FAINT}`,
-          padding: '2.5rem 0 2rem',
+          padding: '2.5rem 0 1.5rem',
         }}>
           <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.25em', margin: '0 0 14px' }}>
-            STOCKSNACK · S&P 500 MARKET OVERVIEW
+            STOCKSNACK · {activeGroup.label} MARKET OVERVIEW
           </p>
-          <p style={{ fontSize: 'clamp(16px, 2.5vw, 22px)', fontWeight: 'bold', lineHeight: 1.4, margin: 0, letterSpacing: '0.03em' }}>
+          <p style={{ fontSize: 'clamp(16px, 2.5vw, 22px)', fontWeight: 'bold', lineHeight: 1.4, margin: '0 0 1.25rem', letterSpacing: '0.03em' }}>
             <span style={{ color: GREEN }}>{bullishPct}%</span>
-            <span style={{ color: 'rgba(0,255,65,0.75)' }}> of S&P 500 stocks are projected to beat the market right now — </span>
+            <span style={{ color: 'rgba(0,255,65,0.75)' }}> of {activeGroup.label} stocks are projected to beat the market right now — </span>
             <span style={{ color: 'rgba(0,255,65,0.75)' }}>the market is </span>
             <span style={{ color: sentimentColor }}>{sentiment}</span>
             <span style={{ color: 'rgba(0,255,65,0.75)' }}> by StockSnack&apos;s scoring.</span>
           </p>
+
+          {/* group filter */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {GROUPS.map(g => {
+              const active = g.key === activeGroup.key
+              return (
+                <Link
+                  key={g.key}
+                  href={g.key === 'ALL' ? '/market' : `/market?group=${g.key}`}
+                  style={{
+                    ...FONT, fontSize: 10, fontWeight: 'bold', letterSpacing: '0.08em',
+                    padding: '6px 14px', borderRadius: 4, textDecoration: 'none',
+                    border: `1px solid ${active ? GREEN : 'rgba(0,255,65,0.2)'}`,
+                    background: active ? GREEN : 'transparent',
+                    color: active ? '#000' : 'rgba(0,255,65,0.5)',
+                  }}
+                >
+                  {g.label}
+                </Link>
+              )
+            })}
+          </div>
         </div>
 
         {/* ── SECTION 1: SIGNAL FUNNEL ── */}
@@ -394,29 +457,36 @@ export default async function MarketPage() {
               </p>
             </div>
             <div style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {funnelTiers.map((tier, i) => (
-                  <div key={tier.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      flex: Math.max(tier.pctOfTotal, 4) / 100,
-                      marginLeft: `${i * 8}%`,
-                      height: 34,
-                      background: i === 0 ? 'rgba(0,255,65,0.10)' : i === 1 ? 'rgba(0,255,65,0.18)' : i === 2 ? 'rgba(0,255,65,0.30)' : '#00ff41',
-                      display: 'flex', alignItems: 'center', padding: '0 16px',
-                      fontSize: 11, fontWeight: 'bold', letterSpacing: '0.05em',
-                      color: i === 3 ? '#000' : GREEN,
-                      whiteSpace: 'nowrap', transition: 'flex 0.3s',
-                    }}>
-                      {tier.label}
-                    </div>
-                    <div style={{ width: 70, textAlign: 'right', fontSize: 13, fontWeight: 'bold', flexShrink: 0 }}>
-                      {tier.count}
-                    </div>
-                    <div style={{ width: 40, textAlign: 'right', fontSize: 9, color: DIM, flexShrink: 0 }}>
-                      {tier.pctOfTotal}%
-                    </div>
-                  </div>
-                ))}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px 44px', rowGap: 8, columnGap: 12, alignItems: 'center' }}>
+                {funnelTiers.map((tier, i) => {
+                  // Visual-only floor so the narrowest tier stays visible; the
+                  // NUMBER shown is always the real, unrounded percentage.
+                  const barWidthPct = Math.max(tier.pctOfTotal, 10)
+                  return (
+                    <Fragment key={tier.label}>
+                      <div style={{ height: 34, display: 'flex', justifyContent: 'center' }}>
+                        <div style={{
+                          width: `${barWidthPct}%`,
+                          height: '100%',
+                          background: i === 0 ? 'rgba(0,255,65,0.10)' : i === 1 ? 'rgba(0,255,65,0.18)' : i === 2 ? 'rgba(0,255,65,0.30)' : '#00ff41',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px',
+                          fontSize: 11, fontWeight: 'bold', letterSpacing: '0.05em',
+                          color: i === 3 ? '#000' : GREEN,
+                          whiteSpace: 'nowrap', transition: 'width 0.3s',
+                          boxSizing: 'border-box',
+                        }}>
+                          {tier.label}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 'bold' }}>
+                        {tier.count}
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: 9, color: DIM }}>
+                        {tier.pctOfTotal}%
+                      </div>
+                    </Fragment>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -428,18 +498,18 @@ export default async function MarketPage() {
             <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
               <p style={S.head}>02 — RAW FUNDAMENTAL TRENDS — SUM ACROSS UNIVERSE (FY21–FY25)</p>
               <p style={{ fontSize: 11, color: DIM, margin: '4px 0 0', letterSpacing: '0.08em' }}>
-                What the businesses are actually doing, before the market prices it
+                What the businesses are actually doing, before the market prices it — click a metric to add/remove its chart
               </p>
             </div>
             <div style={{ padding: '1.25rem' }}>
-              <AggregateCharts data={aggregateYears} />
+              <MetricChartPicker metrics={rawTrendMetrics} data={rawTrendData} defaultSelected={['revenue']} />
             </div>
           </div>
         </div>
 
         {/* ── SECTION 3: MARKET VALUATION ── */}
         <div style={S.section}>
-          <p style={{ ...S.head, marginBottom: '0.75rem' }}>03 — MARKET VALUATION — S&P 500 AVERAGE</p>
+          <p style={{ ...S.head, marginBottom: '0.75rem' }}>03 — MARKET VALUATION — {activeGroup.label} AVERAGE</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
             <ValuationCard
               label="P/E RATIO"
@@ -465,10 +535,10 @@ export default async function MarketPage() {
           </div>
           <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
-              <p style={{ ...S.head, fontSize: 10, letterSpacing: '0.08em', color: DIM }}>HOW WE GOT HERE — AVG MULTIPLE/YIELD BY YEAR (FY21–FY25)</p>
+              <p style={{ ...S.head, fontSize: 10, letterSpacing: '0.08em', color: DIM }}>HOW WE GOT HERE — AVG MULTIPLE/YIELD BY YEAR — click a metric to add/remove its chart</p>
             </div>
             <div style={{ padding: '1.25rem' }}>
-              <ValuationTrendCharts data={valuationYears} />
+              <MetricChartPicker metrics={valuationTrendMetrics} data={valuationTrendData} defaultSelected={['evEbitda']} />
             </div>
           </div>
         </div>
@@ -500,8 +570,8 @@ export default async function MarketPage() {
               <table style={{ ...S.table, fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}>
                 <thead>
                   <tr>
-                    <th style={S.th}>SECTOR</th>
-                    <th style={{ ...S.th, textAlign: 'right' as const }}>STOCKS</th>
+                    <th style={{ ...S.th, position: 'sticky', left: 0, zIndex: 2, background: STICKY_TH_BG, width: STICKY_COL1_W, minWidth: STICKY_COL1_W }}>SECTOR</th>
+                    <th style={{ ...S.th, textAlign: 'right' as const, position: 'sticky', left: STICKY_COL1_W, zIndex: 2, background: STICKY_TH_BG, width: STICKY_COL2_W, minWidth: STICKY_COL2_W }}>STOCKS</th>
                     <th style={{ ...S.th, textAlign: 'right' as const }}>AVG SCORE</th>
                     <th style={{ ...S.th, textAlign: 'right' as const }}>AVG CAGR</th>
                     {SIGNALS.map(s => (
@@ -520,8 +590,8 @@ export default async function MarketPage() {
                       verdict === 'Lagging' ? '#ef4444' : DIM
                     return (
                       <tr key={r.sector}>
-                        <td style={S.td}>{r.sector}</td>
-                        <td style={{ ...S.td, textAlign: 'right' as const, color: DIM }}>{r.count}</td>
+                        <td style={{ ...S.td, position: 'sticky', left: 0, zIndex: 1, background: STICKY_TD_BG, width: STICKY_COL1_W, minWidth: STICKY_COL1_W }}>{r.sector}</td>
+                        <td style={{ ...S.td, textAlign: 'right' as const, color: DIM, position: 'sticky', left: STICKY_COL1_W, zIndex: 1, background: STICKY_TD_BG, width: STICKY_COL2_W, minWidth: STICKY_COL2_W }}>{r.count}</td>
                         <td style={{ ...S.td, textAlign: 'right' as const, fontWeight: 'bold', color: scoreColor(r.avgScore) }}>
                           {r.avgScore.toFixed(1)}
                         </td>

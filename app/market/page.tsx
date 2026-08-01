@@ -1,16 +1,12 @@
 export const dynamic = 'force-dynamic'
 
-import { redirect } from 'next/navigation'
 import { unstable_cache } from 'next/cache'
 import { supabaseAdmin, fetchAllRows } from '@/lib/supabase'
-import { getCachedUser } from '@/lib/server-auth'
 import { isLaunchedStock } from '@/lib/constants'
 import type { CSSProperties } from 'react'
 import AggregateCharts, { type AggregateYear } from './AggregateCharts'
 import ValuationTrendCharts, { type ValuationYear } from './ValuationTrendCharts'
 import BottomNav from '@/components/ui/BottomNav'
-
-const INTERNAL_EMAILS = ['mrepsiloned@gmail.com', 'stocksnack88@gmail.com']
 
 // ── constants ──────────────────────────────────────────────────────────────────
 
@@ -165,8 +161,9 @@ const getMarketData = unstable_cache(
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default async function MarketPage() {
-  const user = await getCachedUser()
-  if (!user || !INTERNAL_EMAILS.includes(user.email ?? '')) redirect('/screener')
+  // Access gate intentionally removed 2026-08-01 (no live users yet -- see
+  // CLAUDE.md). Re-add before real customers are on the platform: an
+  // internal-email check (getCachedUser + redirect) previously lived here.
 
   const { scores, fund } = await getMarketData()
 

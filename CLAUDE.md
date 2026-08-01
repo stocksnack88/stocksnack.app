@@ -6,6 +6,17 @@ This file is for Claude Code agents. Read before working on anything n8n or depl
 
 ---
 
+## ⚠️ /market is publicly accessible — 2026-08-01
+
+The internal-email access gate (`getCachedUser` + `INTERNAL_EMAILS` redirect) was **deliberately removed** from `app/market/page.tsx` at the user's explicit request, to make it easier to test/iterate on without needing real login credentials — justified as low-risk since there are no live paying users yet. **Re-add an access gate before real customers are on the platform** — the page exposes aggregate S&P 500 business-intelligence (valuation trends, sector rankings, signal funnel) that shouldn't be casually public once there's real traffic. The removed check was:
+```ts
+const user = await getCachedUser()
+if (!user || !INTERNAL_EMAILS.includes(user.email ?? '')) redirect('/screener')
+```
+with `INTERNAL_EMAILS = ['mrepsiloned@gmail.com', 'stocksnack88@gmail.com']`.
+
+---
+
 ## Market Comparison: EV/EBITDA vs P/E — fixed 2026-07-28
 
 Ticker page's "Market Comparison" section was hardcoded to always show P/E, even for non-financial companies (e.g. AMZN) where EV/EBITDA is the standard comparison. Fixed in `TickerPageContent.tsx`: banks/financials (`stock_scores.sector_override === 'Bank' | 'Financial'`) still get P/E; everything else (incl. REITs, pending a proper P/AFFO metric — a judgment call, flagged not fully resolved) now gets EV/EBITDA. Reuses `sector_override`, already computed per-ticker by `_resolve_sector_mode()` in `run_sec.py` — no new backend classification needed.

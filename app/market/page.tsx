@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { unstable_cache } from 'next/cache'
 import { supabaseAdmin, fetchAllRows } from '@/lib/supabase'
-import { Fragment, type CSSProperties } from 'react'
+import type { CSSProperties } from 'react'
 import MetricChartPicker, { type MetricDef, type YearRow } from './MetricChartPicker'
 import BottomNav from '@/components/ui/BottomNav'
 
@@ -450,34 +450,31 @@ export default async function MarketPage({
               </p>
             </div>
             <div style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px 44px', rowGap: 8, columnGap: 12, alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {funnelTiers.map((tier, i) => {
-                  // Visual-only floor so the narrowest tier stays visible; the
-                  // NUMBER shown is always the real, unrounded percentage.
-                  const barWidthPct = Math.max(tier.pctOfTotal, 10)
+                  // Visual-only floor so the narrowest tier's bar stays visible;
+                  // the NUMBER shown is always the real, unrounded percentage.
+                  // Label sits above the bar (not inside it) so it never has to
+                  // fit inside a shrinking box.
+                  const barWidthPct = Math.max(tier.pctOfTotal, 6)
+                  const barColor = i === 0 ? 'rgba(0,255,65,0.20)' : i === 1 ? 'rgba(0,255,65,0.40)' : i === 2 ? 'rgba(0,255,65,0.65)' : '#00ff41'
                   return (
-                    <Fragment key={tier.label}>
-                      <div style={{ height: 34, display: 'flex', justifyContent: 'center' }}>
+                    <div key={tier.label}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px 44px', columnGap: 12, alignItems: 'baseline', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.05em', color: GREEN }}>{tier.label}</span>
+                        <span style={{ textAlign: 'right', fontSize: 13, fontWeight: 'bold' }}>{tier.count}</span>
+                        <span style={{ textAlign: 'right', fontSize: 9, color: DIM }}>{tier.pctOfTotal}%</span>
+                      </div>
+                      <div style={{ height: 16, display: 'flex', justifyContent: 'center' }}>
                         <div style={{
                           width: `${barWidthPct}%`,
                           height: '100%',
-                          background: i === 0 ? 'rgba(0,255,65,0.10)' : i === 1 ? 'rgba(0,255,65,0.18)' : i === 2 ? 'rgba(0,255,65,0.30)' : '#00ff41',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px',
-                          fontSize: 11, fontWeight: 'bold', letterSpacing: '0.05em',
-                          color: i === 3 ? '#000' : GREEN,
-                          whiteSpace: 'nowrap', transition: 'width 0.3s',
-                          boxSizing: 'border-box',
-                        }}>
-                          {tier.label}
-                        </div>
+                          background: barColor,
+                          borderRadius: 2,
+                          transition: 'width 0.3s',
+                        }} />
                       </div>
-                      <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 'bold' }}>
-                        {tier.count}
-                      </div>
-                      <div style={{ textAlign: 'right', fontSize: 9, color: DIM }}>
-                        {tier.pctOfTotal}%
-                      </div>
-                    </Fragment>
+                    </div>
                   )
                 })}
               </div>

@@ -1,0 +1,203 @@
+'use client'
+import { useState, useEffect } from 'react'
+import AccordionRow from '@/components/ui/AccordionRow'
+import { InstallIcon, CardIcon, SoundIcon, FeedbackIcon } from '@/components/ui/AccountIcons'
+import CancelSubscriptionButton from '@/components/ui/CancelSubscriptionButton'
+import Link from 'next/link'
+
+const MONO: React.CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }
+const DIM = 'rgba(0,255,65,0.45)'
+
+function SoundToggle() {
+  const [soundOn, setSoundOn] = useState(true)
+
+  useEffect(() => {
+    setSoundOn(localStorage.getItem('ss_sound') !== '0')
+  }, [])
+
+  function toggle() {
+    const next = !soundOn
+    setSoundOn(next)
+    localStorage.setItem('ss_sound', next ? '1' : '0')
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      style={{
+        width: 38, height: 20, borderRadius: 10,
+        border: `1px solid ${soundOn ? '#00ff41' : 'rgba(0,255,65,0.2)'}`,
+        background: soundOn ? 'rgba(0,255,65,0.15)' : 'rgba(0,255,65,0.03)',
+        position: 'relative', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0,
+      }}
+      aria-label={soundOn ? 'Mute sounds' : 'Unmute sounds'}
+    >
+      <span style={{
+        position: 'absolute', top: 2, left: soundOn ? 20 : 2, width: 14, height: 14,
+        borderRadius: '50%', background: soundOn ? '#00ff41' : 'rgba(0,255,65,0.3)',
+        transition: 'left 0.2s, background 0.2s',
+      }} />
+    </button>
+  )
+}
+
+export default function AccountRows({
+  email, isPro, periodEndStr, cancelAtPeriodEnd, userEmail,
+}: {
+  email: string
+  isPro: boolean
+  periodEndStr: string | null
+  cancelAtPeriodEnd: boolean
+  userEmail: string
+}) {
+  const [installed, setInstalled] = useState(false)
+  const [message, setMessage] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    setInstalled(
+      window.matchMedia('(display-mode: standalone)').matches
+      || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone)
+    )
+  }, [])
+
+  async function handleFeedback(e: React.FormEvent) {
+    e.preventDefault()
+    if (!message.trim()) return
+    setSubmitting(true)
+    setError('')
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: message.trim(), email: userEmail, page_url: window.location.href }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error ?? 'Something went wrong')
+      }
+      setSubmitted(true)
+      setMessage('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div style={{ ...MONO, animation: 'fadeInUp 300ms ease-out 50ms both' }}>
+      <AccordionRow label="EMAIL" right={{ kind: 'value', text: email }} />
+
+      <AccordionRow
+        icon={<CardIcon />}
+        label="PLAN"
+        right={{ kind: 'pill', text: isPro ? 'PRO' : 'FREE', active: isPro }}
+      >
+        {isPro ? (
+          cancelAtPeriodEnd && periodEndStr ? (
+            <div
+              className="rounded px-3 py-2.5 text-xs leading-relaxed"
+              style={{ border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)', color: '#f87171' }}
+            >
+              Scheduled to cancel on <strong>{periodEndStr}</strong>. You&apos;ll keep Pro access until then.
+            </div>
+          ) : (
+            <>
+              {periodEndStr && (
+                <div className="flex justify-between text-xs mb-3">
+                  <span style={{ color: DIM }}>NEXT BILLING</span>
+                  <span style={{ color: 'rgba(0,255,65,0.85)' }}>{periodEndStr}</span>
+                </div>
+              )}
+              <CancelSubscriptionButton periodEnd={periodEndStr ?? ''} />
+            </>
+          )
+        ) : (
+          <>
+            <Link
+              href="/api/subscribe"
+              className="inline-block font-bold text-xs tracking-widest py-2 px-5 rounded transition-colors"
+              style={{ background: '#00ff41', color: '#000' }}
+            >
+              UPGRADE TO PRO &rarr;
+            </Link>
+            <p className="mt-2 text-[10px]" style={{ color: 'rgba(0,255,65,0.3)' }}>
+              $20/mo &middot; all 20 stocks &middot; full detail pages
+            </p>
+          </>
+        )}
+      </AccordionRow>
+
+      <AccordionRow
+        icon={<SoundIcon />}
+        label="SOUND EFFECTS"
+        right={{ kind: 'custom', node: <SoundToggle /> }}
+      />
+
+      <AccordionRow
+        icon={<InstallIcon />}
+        label="ADD TO HOME SCREEN"
+        right={{ kind: 'pill', text: installed ? 'INSTALLED' : 'INSTALL', active: !installed }}
+      >
+        <p className="text-[10px] leading-relaxed mb-2.5" style={{ color: 'rgba(0,255,65,0.45)' }}>
+          One tap from your home screen, no browser bar, stays in sync automatically.
+        </p>
+        <div className="flex justify-between items-baseline py-1.5" style={{ borderTop: '1px solid rgba(0,255,65,0.08)' }}>
+          <span className="text-[10px] flex-shrink-0" style={{ color: DIM }}>IPHONE</span>
+          <span className="text-xs text-right">Share icon &rarr; <strong>Add to Home Screen</strong></span>
+        </div>
+        <div className="flex justify-between items-baseline py-1.5" style={{ borderTop: '1px solid rgba(0,255,65,0.08)' }}>
+          <span className="text-[10px] flex-shrink-0" style={{ color: DIM }}>ANDROID</span>
+          <span className="text-xs text-right">&#8942; menu &rarr; <strong>Install app</strong></span>
+        </div>
+      </AccordionRow>
+
+      <AccordionRow icon={<FeedbackIcon />} label="FEEDBACK" right={{ kind: 'chevron' }}>
+        {submitted ? (
+          <div>
+            <p className="text-xs font-bold tracking-widest mb-1" style={{ color: '#00ff41' }}>&#10003; GOT IT</p>
+            <p className="text-[10px]" style={{ color: 'rgba(0,255,65,0.4)' }}>We&apos;ll email you if we ship a fix based on this.</p>
+            <button
+              onClick={() => setSubmitted(false)}
+              className="mt-3 text-[10px] tracking-widest"
+              style={{ background: 'none', border: 'none', color: 'rgba(0,255,65,0.35)', cursor: 'pointer', padding: 0 }}
+            >
+              SEND ANOTHER &rarr;
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleFeedback}>
+            <textarea
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              rows={2}
+              placeholder="Bug, missing data, feature request…"
+              required
+              style={{
+                width: '100%', background: '#0a0a0a', border: '1px solid rgba(0,255,65,0.15)',
+                borderRadius: 4, color: '#00ff41', padding: '8px 10px', fontSize: 11,
+                resize: 'none', boxSizing: 'border-box', outline: 'none',
+              }}
+            />
+            {error && <p className="text-[11px] mt-1" style={{ color: '#ef4444' }}>{error}</p>}
+            <button
+              type="submit"
+              disabled={submitting || !message.trim()}
+              className="mt-1.5 font-bold text-[10px] tracking-widest px-4 py-1.5 rounded"
+              style={{
+                background: message.trim() ? '#00ff41' : 'rgba(0,255,65,0.1)',
+                color: message.trim() ? '#000' : 'rgba(0,255,65,0.3)',
+                border: 'none', cursor: message.trim() ? 'pointer' : 'default',
+              }}
+            >
+              {submitting ? 'SENDING…' : 'SUBMIT →'}
+            </button>
+          </form>
+        )}
+      </AccordionRow>
+    </div>
+  )
+}

@@ -15,7 +15,7 @@ export function StatusPill({ text, active }: { text: string; active: boolean }) 
         border: `1px solid ${active ? 'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.15)'}`,
       }}
     >
-      [{text}]
+      {text}
     </span>
   )
 }

@@ -6,9 +6,9 @@ import { playClick } from "@/lib/sounds";
 const MONO: React.CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" };
 
 const ITEMS = [
-  { href: "/screener", label: "SCREENER", locked: false },
-  { href: "/market", label: "MARKET", locked: true },
-  { href: "/account", label: "ACCOUNT", locked: false },
+  { href: "/screener", label: "SCREENER" },
+  { href: "/market", label: "MARKET" },
+  { href: "/account", label: "ACCOUNT" },
 ] as const;
 
 export default function BottomNav() {
@@ -34,9 +34,8 @@ export default function BottomNav() {
             className="flex-1 flex flex-col items-center justify-center gap-1 py-6 transition-colors"
             style={{ color: active ? "#00ff41" : "rgba(0,255,65,0.4)" }}
           >
-            <span className="text-[11px] tracking-[0.1em] font-bold">
+            <span className="text-[11px] tracking-[0.1em]" style={{ fontWeight: 700 }}>
               {item.label}
-              {item.locked && <span style={{ fontSize: 9, marginLeft: 3 }}>🔒</span>}
             </span>
           </Link>
         );

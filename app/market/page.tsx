@@ -8,6 +8,7 @@ import MetricChartPicker, { type MetricDef, type YearRow } from './MetricChartPi
 import GrowthComparisonChart from './GrowthComparisonChart'
 import SignalFunnel from './SignalFunnel'
 import BottomNav from '@/components/ui/BottomNav'
+import { getCachedUser, getCachedUserProfile } from '@/lib/server-auth'
 
 // ── constants ──────────────────────────────────────────────────────────────────
 
@@ -164,11 +165,18 @@ export default async function MarketPage({
 }: {
   searchParams: { group?: string }
 }) {
-  // Access gate intentionally removed 2026-08-01 (no live users yet -- see
-  // CLAUDE.md). Re-add before real customers are on the platform: an
-  // internal-email check (getCachedUser + redirect) previously lived here.
-
-  const { scores: allScores, fund: allFund } = await getMarketData()
+  // Page itself has no login gate -- anyone can load /market. Content below
+  // the signal funnel (§02 onward) is Pro-only; free/anonymous visitors see
+  // the hero + funnel and a gate card in place of everything past it.
+  const [{ scores: allScores, fund: allFund }, user] = await Promise.all([
+    getMarketData(),
+    getCachedUser(),
+  ])
+  let isPro = false
+  if (user) {
+    const profile = await getCachedUserProfile(user.id)
+    isPro = profile?.subscription_status === 'active' || profile?.subscription_status === 'trialing'
+  }
 
   const activeGroup = GROUPS.find(g => g.key === searchParams.group) ?? GROUPS.find(g => g.key === 'SP500')!
   const groupScores = activeGroup.tag == null
@@ -475,6 +483,35 @@ export default async function MarketPage({
           </div>
         </div>
 
+        {!isPro ? (
+          <div style={S.section}>
+            <div style={{
+              border: '1px solid rgba(0,255,65,0.25)', borderRadius: 6,
+              background: 'rgba(0,255,65,0.02)', padding: '2.5rem 1.5rem', textAlign: 'center' as const,
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.15em', color: DIM, margin: '0 0 8px' }}>
+                STOCKSNACK PRO
+              </p>
+              <p style={{ fontSize: 16, fontWeight: 'bold', color: GREEN, margin: '0 0 8px' }}>
+                Unlock the full market picture
+              </p>
+              <p style={{ fontSize: 12, color: DIM, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 20px' }}>
+                Fundamental &amp; valuation trends, growth comparison, sentiment summary, and full sector rankings — all Pro-only.
+              </p>
+              <Link
+                href="/api/subscribe"
+                style={{
+                  display: 'inline-block', background: GREEN, color: '#000', fontWeight: 'bold',
+                  fontSize: 12, letterSpacing: '0.08em', padding: '10px 28px', borderRadius: 6, textDecoration: 'none',
+                }}
+              >
+                UPGRADE TO PRO →
+              </Link>
+              <p style={{ fontSize: 10, color: 'rgba(0,255,65,0.3)', margin: '10px 0 0' }}>$20/mo</p>
+            </div>
+          </div>
+        ) : (
+        <>
         {/* ── SECTION 2: RAW FUNDAMENTAL TRENDS ── */}
         <div style={S.section}>
           <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
@@ -596,6 +633,8 @@ export default async function MarketPage({
             </div>
           </div>
         </div>
+        </>
+        )}
 
         {/* ── footer ── */}
         <p style={{

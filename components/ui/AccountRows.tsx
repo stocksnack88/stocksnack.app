@@ -1,12 +1,25 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AccordionRow from '@/components/ui/AccordionRow'
-import { InstallIcon, CardIcon, SoundIcon, FeedbackIcon } from '@/components/ui/AccountIcons'
+import { InstallIcon, CardIcon, SoundIcon, FeedbackIcon, MailIcon } from '@/components/ui/AccountIcons'
 import CancelSubscriptionButton from '@/components/ui/CancelSubscriptionButton'
 import Link from 'next/link'
 
 const MONO: React.CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }
 const DIM = 'rgba(0,255,65,0.45)'
+
+type FeedbackItem = {
+  id: number
+  message: string
+  status: string
+  fix_summary: string | null
+  created_at: string
+  resolved_at: string | null
+}
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
 
 function SoundToggle() {
   const [soundOn, setSoundOn] = useState(true)
@@ -55,6 +68,7 @@ export default function AccountRows({
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [history, setHistory] = useState<FeedbackItem[]>([])
 
   useEffect(() => {
     setInstalled(
@@ -62,6 +76,18 @@ export default function AccountRows({
       || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone)
     )
   }, [])
+
+  async function loadHistory() {
+    try {
+      const res = await fetch('/api/feedback/mine')
+      const d = await res.json().catch(() => ({}))
+      if (Array.isArray(d.feedback)) setHistory(d.feedback)
+    } catch {
+      // non-fatal -- history is a nice-to-have, form still works without it
+    }
+  }
+
+  useEffect(() => { loadHistory() }, [])
 
   async function handleFeedback(e: React.FormEvent) {
     e.preventDefault()
@@ -80,6 +106,7 @@ export default function AccountRows({
       }
       setSubmitted(true)
       setMessage('')
+      loadHistory()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -89,7 +116,7 @@ export default function AccountRows({
 
   return (
     <div style={{ ...MONO, animation: 'fadeInUp 300ms ease-out 50ms both' }}>
-      <AccordionRow label="EMAIL" right={{ kind: 'value', text: email }} />
+      <AccordionRow icon={<MailIcon />} label="EMAIL" right={{ kind: 'value', text: email }} />
 
       <AccordionRow
         icon={<CardIcon />}
@@ -137,11 +164,10 @@ export default function AccountRows({
         right={{ kind: 'custom', node: <SoundToggle /> }}
       />
 
-      <AccordionRow
-        icon={<InstallIcon />}
-        label="ADD TO HOME SCREEN"
-        right={{ kind: 'pill', text: installed ? 'INSTALLED' : 'INSTALL', active: !installed }}
-      >
+      <AccordionRow icon={<InstallIcon />} label="ADD TO HOME SCREEN" right={{ kind: 'chevron' }}>
+        {installed && (
+          <p className="text-[10px] mb-2" style={{ color: '#00ff41' }}>&#10003; Already installed on this device.</p>
+        )}
         <p className="text-[10px] leading-relaxed mb-2.5" style={{ color: 'rgba(0,255,65,0.45)' }}>
           One tap from your home screen, no browser bar, stays in sync automatically.
         </p>
@@ -157,7 +183,7 @@ export default function AccountRows({
 
       <AccordionRow icon={<FeedbackIcon />} label="FEEDBACK" right={{ kind: 'chevron' }}>
         {submitted ? (
-          <div>
+          <div className="mb-4">
             <p className="text-xs font-bold tracking-widest mb-1" style={{ color: '#00ff41' }}>&#10003; GOT IT</p>
             <p className="text-[10px]" style={{ color: 'rgba(0,255,65,0.4)' }}>We&apos;ll email you if we ship a fix based on this.</p>
             <button
@@ -169,16 +195,19 @@ export default function AccountRows({
             </button>
           </div>
         ) : (
-          <form onSubmit={handleFeedback}>
+          <form onSubmit={handleFeedback} className="mb-4">
+            {/* text-base (16px) is deliberate, not a typo -- iOS Safari
+                auto-zooms the viewport on focus for any field under 16px */}
             <textarea
               value={message}
               onChange={e => setMessage(e.target.value)}
-              rows={2}
+              rows={5}
               placeholder="Bug, missing data, feature request…"
               required
+              className="text-base md:text-xs"
               style={{
                 width: '100%', background: '#0a0a0a', border: '1px solid rgba(0,255,65,0.15)',
-                borderRadius: 4, color: '#00ff41', padding: '8px 10px', fontSize: 11,
+                borderRadius: 4, color: '#00ff41', padding: '10px', lineHeight: 1.5,
                 resize: 'none', boxSizing: 'border-box', outline: 'none',
               }}
             />
@@ -196,6 +225,37 @@ export default function AccountRows({
               {submitting ? 'SENDING…' : 'SUBMIT →'}
             </button>
           </form>
+        )}
+
+        {history.length > 0 && (
+          <div style={{ borderTop: '1px solid rgba(0,255,65,0.08)', paddingTop: 10 }}>
+            <p className="text-[9px] font-bold tracking-widest mb-2" style={{ color: DIM }}>YOUR PAST FEEDBACK</p>
+            <div className="flex flex-col gap-2.5">
+              {history.map(item => (
+                <div key={item.id}>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-[11px] leading-snug" style={{ color: 'rgba(0,255,65,0.7)' }}>{item.message}</p>
+                    <span
+                      className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded flex-shrink-0"
+                      style={
+                        item.status === 'resolved'
+                          ? { background: 'rgba(0,255,65,0.12)', color: '#00ff41' }
+                          : { background: 'rgba(255,204,0,0.12)', color: '#ffcc00' }
+                      }
+                    >
+                      {item.status === 'resolved' ? 'FIXED' : 'OPEN'}
+                    </span>
+                  </div>
+                  <p className="text-[9px] mt-0.5" style={{ color: 'rgba(0,255,65,0.25)' }}>{fmtDate(item.created_at)}</p>
+                  {item.status === 'resolved' && item.fix_summary && (
+                    <p className="text-[10px] mt-1 pl-2" style={{ color: 'rgba(0,255,65,0.5)', borderLeft: '2px solid rgba(0,255,65,0.2)' }}>
+                      {item.fix_summary}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </AccordionRow>
     </div>

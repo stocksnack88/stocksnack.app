@@ -524,11 +524,18 @@ export default async function MarketPage({
             <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
               <p style={S.head}>06 — SECTOR RANKINGS — SORTED BY AVG SCORE</p>
             </div>
-            <div style={{ padding: '0 1.25rem', overflowX: 'auto' }}>
+            {/* No left padding here -- it left a gap between the container's
+                edge and the sticky SECTOR column that the column's own
+                background never covered, so scrolled-away content bled
+                through that strip. The 20px inset is applied as SECTOR's
+                own left padding instead, so its background actually covers
+                it (box-sizing:border-box keeps the total column width
+                unchanged, so STOCKS's sticky offset still lines up). */}
+            <div style={{ padding: '0 1.25rem 0 0', overflowX: 'auto' }}>
               <table style={{ ...S.table, fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}>
                 <thead>
                   <tr>
-                    <th style={{ ...S.th, position: 'sticky', left: 0, zIndex: 2, background: STICKY_TH_BG, width: STICKY_COL1_W, minWidth: STICKY_COL1_W }}>SECTOR</th>
+                    <th style={{ ...S.th, position: 'sticky', left: 0, zIndex: 2, background: STICKY_TH_BG, width: STICKY_COL1_W, minWidth: STICKY_COL1_W, paddingLeft: 20 }}>SECTOR</th>
                     <th style={{ ...S.th, textAlign: 'right' as const, position: 'sticky', left: STICKY_COL1_W, zIndex: 2, background: STICKY_TH_BG, width: STICKY_COL2_W, minWidth: STICKY_COL2_W }}>STOCKS</th>
                     <th style={{ ...S.th, textAlign: 'right' as const }}>AVG SCORE</th>
                     <th style={{ ...S.th, textAlign: 'right' as const }} title="Forward-looking: the 5-year CAGR implied by StockSnack's price projection model, not a historical growth rate">CAGR (PROJ.)</th>
@@ -548,7 +555,7 @@ export default async function MarketPage({
                       verdict === 'Lagging' ? '#ef4444' : DIM
                     return (
                       <tr key={r.sector}>
-                        <td style={{ ...S.td, position: 'sticky', left: 0, zIndex: 1, background: STICKY_TD_BG, width: STICKY_COL1_W, minWidth: STICKY_COL1_W }}>{r.sector}</td>
+                        <td style={{ ...S.td, position: 'sticky', left: 0, zIndex: 1, background: STICKY_TD_BG, width: STICKY_COL1_W, minWidth: STICKY_COL1_W, paddingLeft: 20 }}>{r.sector}</td>
                         <td style={{ ...S.td, textAlign: 'right' as const, color: DIM, position: 'sticky', left: STICKY_COL1_W, zIndex: 1, background: STICKY_TD_BG, width: STICKY_COL2_W, minWidth: STICKY_COL2_W }}>{r.count}</td>
                         <td style={{ ...S.td, textAlign: 'right' as const, fontWeight: 'bold', color: scoreColor(r.avgScore) }}>
                           {r.avgScore.toFixed(1)}

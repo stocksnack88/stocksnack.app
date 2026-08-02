@@ -1,5 +1,4 @@
 const GREEN = '#00ff41'
-const DIM   = 'rgba(0,255,65,0.4)'
 const FONT  = "var(--font-geist-mono), 'Courier New', monospace"
 
 export type FunnelTier = { label: string; count: number; pctOfTotal: number }

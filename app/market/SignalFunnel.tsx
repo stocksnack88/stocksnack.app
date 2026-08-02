@@ -3,14 +3,29 @@ const FONT  = "var(--font-geist-mono), 'Courier New', monospace"
 
 export type FunnelTier = { label: string; count: number; pctOfTotal: number }
 
-const VBW = 840
-const CENTER_X = 310 // off-center: right side reserved for outside leader-line labels
-const MAX_W = 540
-const MIN_W = 70
+// Horizontal geometry -- MAX_W/VBW ratio controls how much of the width the
+// funnel itself takes up vs. the reserved outside-label column on the right.
+const VBW = 1000
+const CENTER_X = 360 // off-center: right side reserved for outside leader-line labels
+const MAX_W = 640
+const MIN_W = 85
 const FLOOR_PCT = 4 // visual-only floor so a near-zero tier still renders a sliver; never affects the displayed number
-const BAND_H = 60
-const BAND_GAP = 8
-const INSIDE_LABEL_THRESHOLD = 150 // band bottom width below this can't fit text -> label moves outside
+
+// Vertical geometry -- taller bands + bigger fonts than the first version,
+// per feedback that it read too small/cramped.
+const BAND_H = 115
+const BAND_GAP = 16
+
+// Two font scales: INSIDE text is constrained by the band's own (data-driven)
+// width, so it stays modest; OUTSIDE text sits in the unconstrained label
+// column, so it can go bigger. The threshold is picked so the same two tiers
+// that fit inside at the old, smaller size still fit here -- the layout
+// doesn't reshuffle, everything just reads bigger.
+const INSIDE_LABEL_FONT = 18
+const INSIDE_VALUE_FONT = 15
+const OUTSIDE_LABEL_FONT = 24
+const OUTSIDE_VALUE_FONT = 20
+const INSIDE_LABEL_THRESHOLD = 190 // band bottom width below this can't fit INSIDE_LABEL_FONT text -> label moves outside
 
 function widthForPct(pct: number) {
   const visualPct = Math.max(pct, FLOOR_PCT)
@@ -31,14 +46,15 @@ export default function SignalFunnel({ tiers }: { tiers: FunnelTier[] }) {
   const bottomWidths = tiers.map(t => widthForPct(t.pctOfTotal))
   const topWidths = [MAX_W, ...bottomWidths.slice(0, -1)]
 
-  const totalH = tiers.length * BAND_H + (tiers.length - 1) * BAND_GAP + 20
-  const outsideLabelX = CENTER_X + MAX_W / 2 + 40
+  const topMargin = 16
+  const totalH = topMargin * 2 + tiers.length * BAND_H + (tiers.length - 1) * BAND_GAP
+  const outsideLabelX = CENTER_X + MAX_W / 2 + 60
 
   return (
     <svg viewBox={`0 0 ${VBW} ${totalH}`} width="100%" role="img" style={{ fontFamily: FONT }}>
       <title>Signal funnel: {tiers.map(t => `${t.label} ${t.count} (${t.pctOfTotal}%)`).join(', ')}</title>
       {tiers.map((tier, i) => {
-        const top = 10 + i * (BAND_H + BAND_GAP)
+        const top = topMargin + i * (BAND_H + BAND_GAP)
         const bottom = top + BAND_H
         const midY = top + BAND_H / 2
         const topW = topWidths[i]
@@ -57,25 +73,25 @@ export default function SignalFunnel({ tiers }: { tiers: FunnelTier[] }) {
               points={`${topLeft},${top} ${topRight},${top} ${bottomRight},${bottom} ${bottomLeft},${bottom}`}
               fill={bandColors[i]}
               stroke="rgba(0,255,65,0.3)"
-              strokeWidth={1}
+              strokeWidth={1.5}
             />
             {inside ? (
               <>
-                <text x={CENTER_X} y={midY - 6} textAnchor="middle" fontSize={13} fontWeight="bold" fill={i === 3 ? '#001a08' : GREEN} letterSpacing="0.05em">
+                <text x={CENTER_X} y={midY - 8} textAnchor="middle" fontSize={INSIDE_LABEL_FONT} fontWeight="bold" fill={i === 3 ? '#001a08' : GREEN} letterSpacing="0.05em">
                   {tier.label}
                 </text>
-                <text x={CENTER_X} y={midY + 13} textAnchor="middle" fontSize={12} fill={i === 3 ? 'rgba(0,26,8,0.7)' : 'rgba(0,255,65,0.7)'}>
+                <text x={CENTER_X} y={midY + 15} textAnchor="middle" fontSize={INSIDE_VALUE_FONT} fill={i === 3 ? 'rgba(0,26,8,0.7)' : 'rgba(0,255,65,0.7)'}>
                   {tier.count.toLocaleString()} ({tier.pctOfTotal}%)
                 </text>
               </>
             ) : (
               <>
-                <line x1={edgeMidX} y1={midY} x2={outsideLabelX - 10} y2={midY} stroke="rgba(0,255,65,0.55)" strokeWidth={1} />
-                <circle cx={edgeMidX} cy={midY} r={2.5} fill={GREEN} />
-                <text x={outsideLabelX} y={midY - 4} fontSize={12} fontWeight="bold" fill={GREEN} letterSpacing="0.05em">
+                <line x1={edgeMidX} y1={midY} x2={outsideLabelX - 12} y2={midY} stroke="rgba(0,255,65,0.55)" strokeWidth={1.5} />
+                <circle cx={edgeMidX} cy={midY} r={4} fill={GREEN} />
+                <text x={outsideLabelX} y={midY - 8} fontSize={OUTSIDE_LABEL_FONT} fontWeight="bold" fill={GREEN} letterSpacing="0.05em">
                   {tier.label}
                 </text>
-                <text x={outsideLabelX} y={midY + 13} fontSize={12} fill="rgba(0,255,65,0.7)">
+                <text x={outsideLabelX} y={midY + 18} fontSize={OUTSIDE_VALUE_FONT} fill="rgba(0,255,65,0.7)">
                   {tier.count.toLocaleString()} ({tier.pctOfTotal}%)
                 </text>
               </>

@@ -29,11 +29,13 @@ const FUND_YEARS = [2021, 2022, 2023, 2024, 2025]
 // Universe groups, driven by stocks.index_tags. 'ALL' spans everything we've
 // pulled (S&P 500+400+600); the rest filter to one index tag. Extend this
 // list as new tag groups (NASDAQ, custom watchlists, etc.) get added.
+// SP400/SP600 are real indices (S&P MidCap 400 / S&P SmallCap 600) -- using
+// their official names here since "S&P 400"/"S&P 600" alone reads as made up.
 const GROUPS = [
-  { key: 'ALL',   label: 'ALL',     noun: 'all tracked',  tag: null as string | null },
-  { key: 'SP500', label: 'S&P 500', noun: 'S&P 500',      tag: 'SP500' },
-  { key: 'SP400', label: 'S&P 400', noun: 'S&P 400',      tag: 'SP400' },
-  { key: 'SP600', label: 'S&P 600', noun: 'S&P 600',      tag: 'SP600' },
+  { key: 'ALL',   label: 'ALL',              noun: 'all tracked',       tag: null as string | null },
+  { key: 'SP500', label: 'S&P 500',          noun: 'S&P 500',           tag: 'SP500' },
+  { key: 'SP400', label: 'S&P MidCap 400',   noun: 'S&P MidCap 400',    tag: 'SP400' },
+  { key: 'SP600', label: 'S&P SmallCap 600', noun: 'S&P SmallCap 600',  tag: 'SP600' },
 ] as const
 
 // ── styles ─────────────────────────────────────────────────────────────────────
@@ -412,12 +414,24 @@ export default async function MarketPage({
           <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.25em', margin: '0 0 14px' }}>
             STOCKSNACK · {activeGroup.key === 'ALL' ? 'MARKET OVERVIEW' : `${activeGroup.label} MARKET OVERVIEW`}
           </p>
-          <p style={{ fontSize: 'clamp(16px, 2.5vw, 22px)', fontWeight: 'bold', lineHeight: 1.4, margin: '0 0 1.25rem', letterSpacing: '0.03em' }}>
-            <span style={{ color: GREEN }}>{bullishPct}%</span>
-            <span style={{ color: 'rgba(0,255,65,0.75)' }}> of {activeGroup.noun} stocks are projected to beat the market right now — </span>
-            <span style={{ color: 'rgba(0,255,65,0.75)' }}>the market is </span>
-            <span style={{ color: sentimentColor }}>{sentiment}</span>
-            <span style={{ color: 'rgba(0,255,65,0.75)' }}> by StockSnack&apos;s scoring.</span>
+          {/* Verdict card: the one-word takeaway, up front and skimmable.
+              Title tooltip carries the methodology so it's still discoverable
+              without bloating the visible copy. */}
+          <div
+            title="Based on the share of stocks currently scoring BUY or better by StockSnack's model: >50% bullish = cheap, 30-50% = fairly valued, <30% = expensive."
+            style={{
+              display: 'inline-flex', alignItems: 'baseline', gap: 10,
+              border: `1px solid ${sentimentColor}66`, borderRadius: 6,
+              padding: '8px 16px', marginBottom: '0.75rem',
+              background: `${sentimentColor}1a`,
+            }}
+          >
+            <span style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.18em', color: 'rgba(0,255,65,0.5)' }}>MARKET</span>
+            <span style={{ fontSize: 20, fontWeight: 'bold', letterSpacing: '0.04em', color: sentimentColor }}>{sentiment}</span>
+          </div>
+
+          <p style={{ fontSize: 13, lineHeight: 1.5, margin: '0 0 1.25rem', color: 'rgba(0,255,65,0.75)' }}>
+            <span style={{ color: GREEN, fontWeight: 'bold' }}>{bullishPct}%</span> of {activeGroup.noun} stocks are projected to beat the market right now.
           </p>
 
           {/* group filter */}

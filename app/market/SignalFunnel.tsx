@@ -10,18 +10,19 @@ const CENTER_X = 360 // off-center: right side reserved for outside leader-line 
 const MAX_W = 640
 const FLOOR_PX = 3 // absolute-pixel floor so an exact-0% tier still renders a visible sliver instead of vanishing -- never large enough to distort any real ratio
 
-// Vertical geometry
-const BAND_H = 115
-const BAND_GAP = 16
+// Vertical geometry -- doubled again per feedback ("double the funnel size")
+const BAND_H = 230
+const BAND_GAP = 32
 
 // Two font scales: INSIDE text is constrained by the band's own (data-driven)
 // width, so it stays modest; OUTSIDE text sits in the unconstrained label
-// column, so it can go much bigger without any overflow risk.
-const INSIDE_LABEL_FONT = 22
-const INSIDE_VALUE_FONT = 18
+// column, so it can go much bigger without any overflow risk. INSIDE fonts
+// doubled per feedback ("TOTAL STOCKS ###%" text was still hard to read).
+const INSIDE_LABEL_FONT = 44
+const INSIDE_VALUE_FONT = 36
 const OUTSIDE_LABEL_FONT = 32
 const OUTSIDE_VALUE_FONT = 26
-const INSIDE_LABEL_THRESHOLD = 160 // band bottom width below this can't fit INSIDE_LABEL_FONT text -> label moves outside
+const INSIDE_LABEL_THRESHOLD = 320 // band bottom width below this can't fit INSIDE_LABEL_FONT text -> label moves outside
 
 // width IS the percentage, directly -- no floor/offset that would inflate a
 // small tier's width relative to a big one. 498 stocks and 29 stocks must be
@@ -44,7 +45,7 @@ export default function SignalFunnel({ tiers }: { tiers: FunnelTier[] }) {
   const bottomWidths = tiers.map(t => widthForPct(t.pctOfTotal))
   const topWidths = [MAX_W, ...bottomWidths.slice(0, -1)]
 
-  const topMargin = 16
+  const topMargin = 32
   const totalH = topMargin * 2 + tiers.length * BAND_H + (tiers.length - 1) * BAND_GAP
   const outsideLabelX = CENTER_X + MAX_W / 2 + 60
 
@@ -75,10 +76,10 @@ export default function SignalFunnel({ tiers }: { tiers: FunnelTier[] }) {
             />
             {inside ? (
               <>
-                <text x={CENTER_X} y={midY - 9} textAnchor="middle" fontSize={INSIDE_LABEL_FONT} fontWeight="bold" fill={i === 3 ? '#001a08' : GREEN} letterSpacing="0.05em">
+                <text x={CENTER_X} y={midY - 18} textAnchor="middle" fontSize={INSIDE_LABEL_FONT} fontWeight="bold" fill={i === 3 ? '#001a08' : GREEN} letterSpacing="0.05em">
                   {tier.label}
                 </text>
-                <text x={CENTER_X} y={midY + 17} textAnchor="middle" fontSize={INSIDE_VALUE_FONT} fill={i === 3 ? 'rgba(0,26,8,0.7)' : 'rgba(0,255,65,0.7)'}>
+                <text x={CENTER_X} y={midY + 34} textAnchor="middle" fontSize={INSIDE_VALUE_FONT} fill={i === 3 ? 'rgba(0,26,8,0.7)' : 'rgba(0,255,65,0.7)'}>
                   {tier.count.toLocaleString()} ({tier.pctOfTotal}%)
                 </text>
               </>

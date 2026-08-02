@@ -6,6 +6,7 @@ import { supabaseAdmin, fetchAllRows } from '@/lib/supabase'
 import type { CSSProperties } from 'react'
 import MetricChartPicker, { type MetricDef, type YearRow } from './MetricChartPicker'
 import GrowthComparisonChart from './GrowthComparisonChart'
+import SignalFunnel from './SignalFunnel'
 import BottomNav from '@/components/ui/BottomNav'
 
 // ── constants ──────────────────────────────────────────────────────────────────
@@ -446,31 +447,7 @@ export default async function MarketPage({
               </p>
             </div>
             <div style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                {funnelTiers.map((tier, i) => {
-                  // Visual-only floor so the narrowest tier's bar stays visible;
-                  // the NUMBER shown is always the real, unrounded percentage.
-                  // The bar track can SHRINK (flex: 0 1 200px) on narrow
-                  // viewports -- an earlier fixed-pixel version didn't shrink,
-                  // which pushed count/pct off-screen on mobile. Label sits
-                  // beside the bar, not inside it, so it never has to fit
-                  // inside a shrinking box (that overflowed on the narrowest
-                  // tier in an even earlier version).
-                  const barWidthPct = Math.max(tier.pctOfTotal, 6)
-                  const barColor = i === 0 ? 'rgba(0,255,65,0.20)' : i === 1 ? 'rgba(0,255,65,0.40)' : i === 2 ? 'rgba(0,255,65,0.65)' : '#00ff41'
-                  return (
-                    <div key={tier.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ flex: '0 1 200px', minWidth: 20, height: 20 }}>
-                        <div style={{ width: `${barWidthPct}%`, height: '100%', background: barColor, borderRadius: 2, transition: 'width 0.3s' }} />
-                      </div>
-                      <span style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.05em', color: GREEN, whiteSpace: 'nowrap' }}>{tier.label}</span>
-                      <div style={{ flex: 1 }} />
-                      <span style={{ width: 68, textAlign: 'right', fontSize: 13, fontWeight: 'bold', color: GREEN, flexShrink: 0 }}>{tier.count.toLocaleString()}</span>
-                      <span style={{ width: 48, textAlign: 'right', fontSize: 13, fontWeight: 'bold', color: GREEN, flexShrink: 0 }}>{tier.pctOfTotal}%</span>
-                    </div>
-                  )
-                })}
-              </div>
+              <SignalFunnel tiers={funnelTiers} />
             </div>
           </div>
         </div>

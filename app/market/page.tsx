@@ -46,7 +46,13 @@ const S = {
     fontSize: 12, fontWeight: 'bold', letterSpacing: '0.1em',
     color: GREEN, margin: 0,
   } as CSSProperties,
-  table:  { width: '100%', borderCollapse: 'collapse' as const, fontSize: 11 },
+  // 'separate' (not 'collapse') -- border-collapse breaks position:sticky
+  // cells in a well-known cross-browser way: the collapsed border paints in
+  // a layer the sticky cell's background doesn't fully cover, so scrolled
+  // content bleeds through at the sticky column boundary during horizontal
+  // scroll. Only borderBottom is used anywhere in this table, so 'separate'
+  // renders identically -- there's no vertical/adjacent-row border to double.
+  table:  { width: '100%', borderCollapse: 'separate' as const, borderSpacing: 0, fontSize: 11 },
   th:     { textAlign: 'left' as const, color: 'rgba(0,255,65,0.35)', padding: '4px 10px 6px 0', fontWeight: 'normal', letterSpacing: '0.1em', fontSize: 9, borderBottom: '1px solid rgba(0,255,65,0.12)' },
   td:     { padding: '5px 10px 5px 0', borderBottom: '1px solid rgba(0,255,65,0.07)', verticalAlign: 'middle' as const },
 }

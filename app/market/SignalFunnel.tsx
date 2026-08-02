@@ -5,31 +5,29 @@ export type FunnelTier = { label: string; count: number; pctOfTotal: number }
 
 // Horizontal geometry -- MAX_W/VBW ratio controls how much of the width the
 // funnel itself takes up vs. the reserved outside-label column on the right.
-const VBW = 1000
+const VBW = 1150
 const CENTER_X = 360 // off-center: right side reserved for outside leader-line labels
 const MAX_W = 640
-const MIN_W = 85
-const FLOOR_PCT = 4 // visual-only floor so a near-zero tier still renders a sliver; never affects the displayed number
+const FLOOR_PX = 3 // absolute-pixel floor so an exact-0% tier still renders a visible sliver instead of vanishing -- never large enough to distort any real ratio
 
-// Vertical geometry -- taller bands + bigger fonts than the first version,
-// per feedback that it read too small/cramped.
+// Vertical geometry
 const BAND_H = 115
 const BAND_GAP = 16
 
 // Two font scales: INSIDE text is constrained by the band's own (data-driven)
 // width, so it stays modest; OUTSIDE text sits in the unconstrained label
-// column, so it can go bigger. The threshold is picked so the same two tiers
-// that fit inside at the old, smaller size still fit here -- the layout
-// doesn't reshuffle, everything just reads bigger.
-const INSIDE_LABEL_FONT = 18
-const INSIDE_VALUE_FONT = 15
-const OUTSIDE_LABEL_FONT = 24
-const OUTSIDE_VALUE_FONT = 20
-const INSIDE_LABEL_THRESHOLD = 190 // band bottom width below this can't fit INSIDE_LABEL_FONT text -> label moves outside
+// column, so it can go much bigger without any overflow risk.
+const INSIDE_LABEL_FONT = 22
+const INSIDE_VALUE_FONT = 18
+const OUTSIDE_LABEL_FONT = 32
+const OUTSIDE_VALUE_FONT = 26
+const INSIDE_LABEL_THRESHOLD = 160 // band bottom width below this can't fit INSIDE_LABEL_FONT text -> label moves outside
 
+// width IS the percentage, directly -- no floor/offset that would inflate a
+// small tier's width relative to a big one. 498 stocks and 29 stocks must be
+// in the same 498:29 ratio on screen as they are in the data.
 function widthForPct(pct: number) {
-  const visualPct = Math.max(pct, FLOOR_PCT)
-  return MIN_W + (MAX_W - MIN_W) * (visualPct / 100)
+  return Math.max(MAX_W * (pct / 100), FLOOR_PX)
 }
 
 export default function SignalFunnel({ tiers }: { tiers: FunnelTier[] }) {
@@ -77,21 +75,21 @@ export default function SignalFunnel({ tiers }: { tiers: FunnelTier[] }) {
             />
             {inside ? (
               <>
-                <text x={CENTER_X} y={midY - 8} textAnchor="middle" fontSize={INSIDE_LABEL_FONT} fontWeight="bold" fill={i === 3 ? '#001a08' : GREEN} letterSpacing="0.05em">
+                <text x={CENTER_X} y={midY - 9} textAnchor="middle" fontSize={INSIDE_LABEL_FONT} fontWeight="bold" fill={i === 3 ? '#001a08' : GREEN} letterSpacing="0.05em">
                   {tier.label}
                 </text>
-                <text x={CENTER_X} y={midY + 15} textAnchor="middle" fontSize={INSIDE_VALUE_FONT} fill={i === 3 ? 'rgba(0,26,8,0.7)' : 'rgba(0,255,65,0.7)'}>
+                <text x={CENTER_X} y={midY + 17} textAnchor="middle" fontSize={INSIDE_VALUE_FONT} fill={i === 3 ? 'rgba(0,26,8,0.7)' : 'rgba(0,255,65,0.7)'}>
                   {tier.count.toLocaleString()} ({tier.pctOfTotal}%)
                 </text>
               </>
             ) : (
               <>
-                <line x1={edgeMidX} y1={midY} x2={outsideLabelX - 12} y2={midY} stroke="rgba(0,255,65,0.55)" strokeWidth={1.5} />
-                <circle cx={edgeMidX} cy={midY} r={4} fill={GREEN} />
-                <text x={outsideLabelX} y={midY - 8} fontSize={OUTSIDE_LABEL_FONT} fontWeight="bold" fill={GREEN} letterSpacing="0.05em">
+                <line x1={edgeMidX} y1={midY} x2={outsideLabelX - 14} y2={midY} stroke="rgba(0,255,65,0.55)" strokeWidth={2} />
+                <circle cx={edgeMidX} cy={midY} r={5} fill={GREEN} />
+                <text x={outsideLabelX} y={midY - 10} fontSize={OUTSIDE_LABEL_FONT} fontWeight="bold" fill={GREEN} letterSpacing="0.05em">
                   {tier.label}
                 </text>
-                <text x={outsideLabelX} y={midY + 18} fontSize={OUTSIDE_VALUE_FONT} fill="rgba(0,255,65,0.7)">
+                <text x={outsideLabelX} y={midY + 24} fontSize={OUTSIDE_VALUE_FONT} fill="rgba(0,255,65,0.7)">
                   {tier.count.toLocaleString()} ({tier.pctOfTotal}%)
                 </text>
               </>

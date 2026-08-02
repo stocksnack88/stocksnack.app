@@ -414,20 +414,23 @@ export default async function MarketPage({
           <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.25em', margin: '0 0 14px' }}>
             STOCKSNACK · {activeGroup.key === 'ALL' ? 'MARKET OVERVIEW' : `${activeGroup.label} MARKET OVERVIEW`}
           </p>
-          {/* Verdict card: the one-word takeaway, up front and skimmable.
-              Title tooltip carries the methodology so it's still discoverable
-              without bloating the visible copy. */}
+          {/* Verdict card: "MARKET" as a plain label, verdict as its own big
+              badge below -- not smushed together on one line. Title tooltip
+              carries the methodology so it's still discoverable without
+              bloating the visible copy. */}
+          <p style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.18em', color: DIM, margin: '0 0 8px' }}>
+            MARKET
+          </p>
           <div
             title="Based on the share of stocks currently scoring BUY or better by StockSnack's model: >50% bullish = cheap, 30-50% = fairly valued, <30% = expensive."
             style={{
-              display: 'inline-flex', alignItems: 'baseline', gap: 10,
-              border: `1px solid ${sentimentColor}66`, borderRadius: 6,
-              padding: '8px 16px', marginBottom: '0.75rem',
-              background: `${sentimentColor}1a`,
+              display: 'inline-block',
+              border: `2px solid ${sentimentColor}`, borderRadius: 8,
+              padding: '10px 28px', marginBottom: '0.75rem',
+              background: `${sentimentColor}14`,
             }}
           >
-            <span style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.18em', color: 'rgba(0,255,65,0.5)' }}>MARKET</span>
-            <span style={{ fontSize: 20, fontWeight: 'bold', letterSpacing: '0.04em', color: sentimentColor }}>{sentiment}</span>
+            <span style={{ fontSize: 30, fontWeight: 'bold', letterSpacing: '0.06em', color: sentimentColor }}>{sentiment}</span>
           </div>
 
           <p style={{ fontSize: 13, lineHeight: 1.5, margin: '0 0 1.25rem', color: 'rgba(0,255,65,0.75)' }}>

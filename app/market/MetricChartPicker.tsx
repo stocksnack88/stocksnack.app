@@ -19,8 +19,9 @@ export type MetricDef = {
 
 export type YearRow = { year: number; [key: string]: number | null }
 
-const DIM  = 'rgba(0,255,65,0.4)'
-const FONT = "var(--font-geist-mono), 'Courier New', monospace"
+const GREEN = '#00ff41'
+const DIM   = 'rgba(0,255,65,0.4)'
+const FONT  = "var(--font-geist-mono), 'Courier New', monospace"
 
 function formatValue(v: number, kind: MetricKind): string {
   if (kind === 'multiple') return `${v.toFixed(1)}x`
@@ -48,28 +49,37 @@ export default function MetricChartPicker({
   data: YearRow[]
   defaultSelected: string[]
 }) {
-  const [selected, setSelected] = useState<string[]>(defaultSelected)
+  // Single-select swap, not multi-toggle: clicking a pill shows ONLY that
+  // metric's chart, keeping exactly one chart on screen at a time. 'ALL'
+  // is the one exception -- it shows every metric stacked, same as the
+  // old multi-select behavior used to when everything was toggled on.
+  const [selectedKey, setSelectedKey] = useState<string>(defaultSelected[0] ?? metrics[0]?.key ?? 'ALL')
 
-  function toggle(key: string) {
-    setSelected(prev => {
-      if (prev.includes(key)) {
-        // never allow zero metrics selected
-        return prev.length === 1 ? prev : prev.filter(k => k !== key)
-      }
-      return [...prev, key]
-    })
-  }
+  const shownMetrics = selectedKey === 'ALL' ? metrics : metrics.filter(m => m.key === selectedKey)
 
   return (
     <div>
       {/* picker pills */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+        <button
+          onClick={() => setSelectedKey('ALL')}
+          style={{
+            fontFamily: FONT, fontSize: 10, fontWeight: 'bold', letterSpacing: '0.08em',
+            padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
+            border: `1px solid ${selectedKey === 'ALL' ? GREEN : 'rgba(0,255,65,0.2)'}`,
+            background: selectedKey === 'ALL' ? GREEN : 'transparent',
+            color: selectedKey === 'ALL' ? '#000' : 'rgba(0,255,65,0.5)',
+            transition: 'all 0.15s',
+          }}
+        >
+          ALL
+        </button>
         {metrics.map(m => {
-          const active = selected.includes(m.key)
+          const active = selectedKey === m.key
           return (
             <button
               key={m.key}
-              onClick={() => toggle(m.key)}
+              onClick={() => setSelectedKey(m.key)}
               style={{
                 fontFamily: FONT, fontSize: 10, fontWeight: 'bold', letterSpacing: '0.08em',
                 padding: '6px 14px', borderRadius: 4, cursor: 'pointer',
@@ -85,9 +95,9 @@ export default function MetricChartPicker({
         })}
       </div>
 
-      {/* stacked charts, one per selected metric */}
+      {/* one chart, unless ALL is selected */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {metrics.filter(m => selected.includes(m.key)).map(m => (
+        {shownMetrics.map(m => (
           <div key={m.key}>
             <p style={{ fontSize: 9, letterSpacing: '0.18em', color: DIM, marginBottom: '0.6rem', fontFamily: FONT }}>
               {m.label}

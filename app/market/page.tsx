@@ -87,6 +87,13 @@ function sectorOf(row: ScoreRow): string {
   return ref?.sector ?? 'Other'
 }
 
+function nameOf(row: ScoreRow): string | null {
+  const s = row.stocks
+  if (!s) return null
+  const ref = Array.isArray(s) ? s[0] : s
+  return ref?.name ?? null
+}
+
 function indexTagsOf(row: ScoreRow): string[] {
   const s = row.stocks
   const ref = s ? (Array.isArray(s) ? s[0] : s) : null
@@ -155,9 +162,29 @@ export default async function MarketPage({
   const { scores: allScores, fund: allFund } = await getMarketData()
 
   const activeGroup = GROUPS.find(g => g.key === searchParams.group) ?? GROUPS.find(g => g.key === 'SP500')!
-  const scores = activeGroup.tag == null
+  const groupScores = activeGroup.tag == null
     ? allScores
     : allScores.filter(r => indexTagsOf(r).includes(activeGroup.tag as string))
+
+  // Dual-class companies (GOOG/GOOGL, NWS/NWSA, UA/UAA, FOX/FOXA, CENT/CENTA,
+  // ...) file one set of consolidated financials shared by both tickers --
+  // summing/averaging across every ticker on this page would double-count
+  // those companies. Keep one ticker per company name (alphabetically first,
+  // arbitrary but deterministic -- financials are identical either way, so
+  // it doesn't change any number, just which ticker symbol represents it).
+  // The actual /screener page is untouched and still lists every ticker
+  // individually, which is correct there.
+  const seenNames = new Set<string>()
+  const scores = [...groupScores]
+    .sort((a, b) => a.ticker.localeCompare(b.ticker))
+    .filter(r => {
+      const name = nameOf(r)
+      if (name == null) return true // no name on file -- can't dedupe, keep it
+      if (seenNames.has(name)) return false
+      seenNames.add(name)
+      return true
+    })
+
   const tickerSet = new Set(scores.map(r => r.ticker))
   const fund = allFund.filter(r => tickerSet.has(r.ticker))
 

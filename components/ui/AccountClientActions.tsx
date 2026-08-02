@@ -2,10 +2,15 @@
 import { useState, useEffect } from 'react'
 
 const MONO: React.CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }
-const border = 'rgba(0,255,65,0.12)'
-const row = 'rgba(0,255,65,0.06)'
 
-export default function AccountClientActions({ userEmail }: { userEmail: string }) {
+export default function AccountClientActions({
+  userEmail, sectionLabel, rowStyle, dim,
+}: {
+  userEmail: string
+  sectionLabel: React.CSSProperties
+  rowStyle: React.CSSProperties
+  dim: string
+}) {
   const [soundOn, setSoundOn] = useState(true)
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -49,105 +54,90 @@ export default function AccountClientActions({ userEmail }: { userEmail: string 
   return (
     <>
       {/* Sound */}
-      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}`, animation: 'fadeInUp 300ms ease-out 200ms both' }}>
-        <div className="px-5 py-3" style={{ background: 'rgba(0,255,65,0.04)', borderBottom: `1px solid ${border}` }}>
-          <p className="text-xs font-bold tracking-widest" style={{ color: 'rgba(0,255,65,0.5)', ...MONO }}>PREFERENCES</p>
-        </div>
-        <div className="px-5 py-4 flex items-center justify-between" style={{ background: row }}>
-          <div>
-            <p className="text-xs tracking-widest mb-0.5" style={{ color: 'rgba(0,255,65,0.45)', ...MONO }}>SOUND EFFECTS</p>
-            <p className="text-[10px]" style={{ color: 'rgba(0,255,65,0.25)', ...MONO }}>UI clicks, chimes and tones</p>
-          </div>
-          <button
-            onClick={toggleSound}
-            style={{
-              width: 44,
-              height: 24,
-              borderRadius: 12,
-              border: `1px solid ${soundOn ? '#00ff41' : 'rgba(0,255,65,0.2)'}`,
-              background: soundOn ? 'rgba(0,255,65,0.15)' : 'rgba(0,255,65,0.03)',
-              position: 'relative',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              flexShrink: 0,
-            }}
-            aria-label={soundOn ? 'Mute sounds' : 'Unmute sounds'}
-          >
-            <span style={{
-              position: 'absolute',
-              top: 3,
-              left: soundOn ? 22 : 3,
-              width: 16,
-              height: 16,
-              borderRadius: '50%',
-              background: soundOn ? '#00ff41' : 'rgba(0,255,65,0.3)',
-              transition: 'left 0.2s, background 0.2s',
-            }} />
-          </button>
-        </div>
+      <p style={sectionLabel}>PREFERENCES</p>
+      <div style={{ ...rowStyle, ...MONO }}>
+        <span style={{ color: dim }}>SOUND EFFECTS</span>
+        <button
+          onClick={toggleSound}
+          style={{
+            width: 38,
+            height: 20,
+            borderRadius: 10,
+            border: `1px solid ${soundOn ? '#00ff41' : 'rgba(0,255,65,0.2)'}`,
+            background: soundOn ? 'rgba(0,255,65,0.15)' : 'rgba(0,255,65,0.03)',
+            position: 'relative',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            flexShrink: 0,
+          }}
+          aria-label={soundOn ? 'Mute sounds' : 'Unmute sounds'}
+        >
+          <span style={{
+            position: 'absolute',
+            top: 2,
+            left: soundOn ? 20 : 2,
+            width: 14,
+            height: 14,
+            borderRadius: '50%',
+            background: soundOn ? '#00ff41' : 'rgba(0,255,65,0.3)',
+            transition: 'left 0.2s, background 0.2s',
+          }} />
+        </button>
       </div>
 
-      {/* Feedback */}
-      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}`, animation: 'fadeInUp 300ms ease-out 250ms both' }}>
-        <div className="px-5 py-3" style={{ background: 'rgba(0,255,65,0.04)', borderBottom: `1px solid ${border}` }}>
-          <p className="text-xs font-bold tracking-widest" style={{ color: 'rgba(0,255,65,0.5)', ...MONO }}>FEEDBACK</p>
-        </div>
-        <div className="px-5 py-4" style={{ background: row }}>
-          {submitted ? (
-            <div>
-              <p className="text-xs font-bold tracking-widest mb-1" style={{ color: '#00ff41', ...MONO }}>✓ GOT IT</p>
-              <p className="text-[10px]" style={{ color: 'rgba(0,255,65,0.4)', ...MONO }}>We&apos;ll email you if we ship a fix based on this.</p>
-              <button
-                onClick={() => setSubmitted(false)}
-                className="mt-3 text-[10px] tracking-widest"
-                style={{ background: 'none', border: 'none', color: 'rgba(0,255,65,0.35)', cursor: 'pointer', padding: 0, ...MONO }}
-              >
-                SEND ANOTHER →
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleFeedback}>
-              <label className="text-[10px] tracking-widest block mb-2" style={{ color: 'rgba(0,255,65,0.4)', ...MONO }}>
-                WHAT&apos;S ON YOUR MIND?
-              </label>
-              <textarea
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                rows={3}
-                placeholder="Bug, missing data, feature request…"
-                required
-                style={{
-                  width: '100%',
-                  background: '#0a0a0a',
-                  border: '1px solid rgba(0,255,65,0.2)',
-                  borderRadius: 4,
-                  color: '#00ff41',
-                  padding: '8px 10px',
-                  fontSize: 12,
-                  resize: 'vertical',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  ...MONO,
-                }}
-              />
-              {error && <p className="text-[11px] mt-1" style={{ color: '#ef4444', ...MONO }}>{error}</p>}
-              <button
-                type="submit"
-                disabled={submitting || !message.trim()}
-                className="mt-3 font-bold text-[10px] tracking-widest px-4 py-2 rounded"
-                style={{
-                  background: message.trim() ? '#00ff41' : 'rgba(0,255,65,0.1)',
-                  color: message.trim() ? '#000' : 'rgba(0,255,65,0.3)',
-                  border: 'none',
-                  cursor: message.trim() ? 'pointer' : 'default',
-                  ...MONO,
-                }}
-              >
-                {submitting ? 'SENDING…' : 'SUBMIT →'}
-              </button>
-            </form>
-          )}
-        </div>
+      {/* Feedback -- not a single row (needs a textarea), but keeps the
+          same section-label + no-card-chrome treatment as everything else. */}
+      <p style={sectionLabel}>FEEDBACK</p>
+      <div style={{ paddingTop: 4, paddingBottom: 10, ...MONO }}>
+        {submitted ? (
+          <div>
+            <p className="text-xs font-bold tracking-widest mb-1" style={{ color: '#00ff41' }}>✓ GOT IT</p>
+            <p className="text-[10px]" style={{ color: 'rgba(0,255,65,0.4)' }}>We&apos;ll email you if we ship a fix based on this.</p>
+            <button
+              onClick={() => setSubmitted(false)}
+              className="mt-3 text-[10px] tracking-widest"
+              style={{ background: 'none', border: 'none', color: 'rgba(0,255,65,0.35)', cursor: 'pointer', padding: 0 }}
+            >
+              SEND ANOTHER →
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleFeedback}>
+            <textarea
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              rows={2}
+              placeholder="Bug, missing data, feature request…"
+              required
+              style={{
+                width: '100%',
+                background: '#0a0a0a',
+                border: '1px solid rgba(0,255,65,0.15)',
+                borderRadius: 4,
+                color: '#00ff41',
+                padding: '8px 10px',
+                fontSize: 11,
+                resize: 'none',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+            {error && <p className="text-[11px] mt-1" style={{ color: '#ef4444' }}>{error}</p>}
+            <button
+              type="submit"
+              disabled={submitting || !message.trim()}
+              className="mt-1.5 font-bold text-[10px] tracking-widest px-4 py-1.5 rounded"
+              style={{
+                background: message.trim() ? '#00ff41' : 'rgba(0,255,65,0.1)',
+                color: message.trim() ? '#000' : 'rgba(0,255,65,0.3)',
+                border: 'none',
+                cursor: message.trim() ? 'pointer' : 'default',
+              }}
+            >
+              {submitting ? 'SENDING…' : 'SUBMIT →'}
+            </button>
+          </form>
+        )}
       </div>
     </>
   )

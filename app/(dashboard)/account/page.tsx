@@ -17,6 +17,26 @@ function fmt(ts: number) {
   });
 }
 
+const DIM = "rgba(0,255,65,0.45)";
+const DIVIDER = "rgba(0,255,65,0.08)";
+
+const sectionLabel: React.CSSProperties = {
+  fontSize: 9,
+  fontWeight: "bold",
+  letterSpacing: "0.2em",
+  color: "rgba(0,255,65,0.35)",
+  margin: "18px 0 4px",
+};
+
+const row: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "9px 0",
+  borderBottom: `1px solid ${DIVIDER}`,
+  fontSize: 12,
+};
+
 export default async function AccountPage() {
   const cookieStore = cookies();
   const supabase = createServerClient(
@@ -67,50 +87,60 @@ export default async function AccountPage() {
 
   const periodEndStr = periodEnd ? fmt(periodEnd) : null;
 
-  const row = "rgba(0,255,65,0.06)";
-  const border = "rgba(0,255,65,0.12)";
-
   return (
     <div
-      className="max-w-xl mx-auto px-6 py-12"
+      className="max-w-md mx-auto px-6 py-12"
       style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}
     >
       <p className="text-xs tracking-[0.3em] mb-3" style={{ color: "rgba(0,255,65,0.35)" }}>
         SETTINGS
       </p>
-      <h1 className="text-xl font-bold tracking-widest mb-8" style={{ color: "#00ff41" }}>
+      <h1 className="text-xl font-bold tracking-widest mb-6" style={{ color: "#00ff41" }}>
         ACCOUNT
       </h1>
 
-      {/* Profile */}
-      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}`, animation: "fadeInUp 300ms ease-out 50ms both" }}>
-        <div className="px-5 py-3" style={{ background: "rgba(0,255,65,0.04)", borderBottom: `1px solid ${border}` }}>
-          <p className="text-xs font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>PROFILE</p>
+      {/* Install app -- up top, above everything else, so it's the first
+          thing anyone lands on this page sees rather than buried below
+          billing/preferences. */}
+      <div
+        className="rounded mb-6"
+        style={{
+          border: "1px solid rgba(0,255,65,0.2)",
+          background: "rgba(0,255,65,0.02)",
+          padding: "14px 16px",
+          animation: "fadeInUp 300ms ease-out 50ms both",
+        }}
+      >
+        <p className="text-xs font-bold tracking-widest mb-1" style={{ color: "#00ff41" }}>
+          📲 INSTALL THE APP
+        </p>
+        <p className="text-[10px] leading-relaxed mb-2.5" style={{ color: "rgba(0,255,65,0.45)" }}>
+          One tap from your home screen, no browser bar, stays in sync automatically.
+        </p>
+        <div className="flex justify-between items-baseline py-1.5" style={{ borderTop: `1px solid ${DIVIDER}` }}>
+          <span className="text-[10px] flex-shrink-0" style={{ color: DIM }}>IPHONE</span>
+          <span className="text-xs text-right">Share icon &rarr; <strong>Add to Home Screen</strong></span>
         </div>
-        <div className="px-5 py-4 flex items-center justify-between" style={{ background: row }}>
-          <p className="text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.45)" }}>EMAIL</p>
-          <p className="text-xs truncate max-w-[55%]" style={{ color: "rgba(0,255,65,0.8)" }}>{user.email}</p>
+        <div className="flex justify-between items-baseline py-1.5" style={{ borderTop: `1px solid ${DIVIDER}` }}>
+          <span className="text-[10px] flex-shrink-0" style={{ color: DIM }}>ANDROID</span>
+          <span className="text-xs text-right">&#8942; menu &rarr; <strong>Install app</strong></span>
         </div>
       </div>
 
-      {/* Sign out */}
-      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}`, animation: "fadeInUp 300ms ease-out 150ms both" }}>
-        <div className="px-5 py-4 flex items-center justify-between" style={{ background: row }}>
-          <p className="text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.45)" }}>SESSION</p>
-          <SignOutButton />
-        </div>
-      </div>
-
-      {/* Plan */}
-      <div className="rounded mb-6 overflow-hidden" style={{ border: `1px solid ${border}`, animation: "fadeInUp 300ms ease-out 250ms both" }}>
-        <div className="px-5 py-3" style={{ background: "rgba(0,255,65,0.04)", borderBottom: `1px solid ${border}` }}>
-          <p className="text-xs font-bold tracking-widest" style={{ color: "rgba(0,255,65,0.5)" }}>SUBSCRIPTION</p>
+      {/* Dense fact table -- one hairline row per item, label left / value
+          right, instead of a boxy card per section. */}
+      <div style={{ animation: "fadeInUp 300ms ease-out 100ms both" }}>
+        <p style={{ ...sectionLabel, marginTop: 0 }}>PROFILE</p>
+        <div style={row}>
+          <span style={{ color: DIM }}>EMAIL</span>
+          <span className="truncate max-w-[60%]" style={{ color: "rgba(0,255,65,0.85)" }}>{user.email}</span>
         </div>
 
-        <div className="px-5 py-4 flex items-center justify-between" style={{ background: row, borderBottom: `1px solid ${border}` }}>
-          <p className="text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.45)" }}>PLAN</p>
+        <p style={sectionLabel}>SUBSCRIPTION</p>
+        <div style={row}>
+          <span style={{ color: DIM }}>PLAN</span>
           <span
-            className="text-xs font-bold tracking-widest px-2.5 py-1 rounded"
+            className="text-[10px] font-bold tracking-widest px-2 py-0.5 rounded"
             style={
               isPro
                 ? { background: "rgba(0,255,65,0.12)", color: "#00ff41" }
@@ -121,54 +151,56 @@ export default async function AccountPage() {
           </span>
         </div>
 
-        {isPro && periodEndStr && (
-          <div className="px-5 py-4 flex items-center justify-between" style={{ background: row, borderBottom: `1px solid ${border}` }}>
-            <p className="text-xs tracking-widest" style={{ color: "rgba(0,255,65,0.45)" }}>
-              {cancelAtPeriodEnd ? "ACCESS UNTIL" : "NEXT BILLING"}
-            </p>
-            <p className="text-xs" style={{ color: cancelAtPeriodEnd ? "#f87171" : "rgba(0,255,65,0.7)" }}>
-              {periodEndStr}
-            </p>
+        {isPro && periodEndStr && !cancelAtPeriodEnd && (
+          <div style={row}>
+            <span style={{ color: DIM }}>NEXT BILLING</span>
+            <span style={{ color: "rgba(0,255,65,0.85)" }}>{periodEndStr}</span>
           </div>
         )}
 
         {isPro && (
-          <div className="px-5 py-5" style={{ background: "rgba(0,255,65,0.02)" }}>
-            {cancelAtPeriodEnd ? (
+          <div style={{ ...row, borderBottom: cancelAtPeriodEnd || !periodEndStr ? row.borderBottom : "none", flexWrap: "wrap" }}>
+            {cancelAtPeriodEnd && periodEndStr ? (
               <div
-                className="rounded px-4 py-3 text-xs leading-relaxed"
+                className="w-full rounded px-3 py-2.5 text-xs leading-relaxed"
                 style={{
                   border: "1px solid rgba(239,68,68,0.3)",
                   background: "rgba(239,68,68,0.05)",
                   color: "#f87171",
                 }}
               >
-                Your subscription is scheduled to cancel on{" "}
-                <strong>{periodEndStr}</strong>. You&apos;ll keep Pro access until then.
+                Scheduled to cancel on <strong>{periodEndStr}</strong>. You&apos;ll keep Pro access until then.
               </div>
             ) : (
-              <CancelSubscriptionButton periodEnd={periodEndStr ?? ""} />
+              <>
+                <span style={{ color: DIM }}>MANAGE</span>
+                <CancelSubscriptionButton periodEnd={periodEndStr ?? ""} />
+              </>
             )}
           </div>
         )}
 
         {!isPro && (
-          <div className="px-5 py-5" style={{ background: "rgba(0,255,65,0.02)" }}>
+          <div style={{ ...row, flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
             <Link
               href="/api/subscribe"
-              className="inline-block font-bold text-xs tracking-widest py-2.5 px-6 rounded transition-colors"
+              className="inline-block font-bold text-xs tracking-widest py-2 px-5 rounded transition-colors"
               style={{ background: "#00ff41", color: "#000" }}
             >
-              UPGRADE TO PRO →
+              UPGRADE TO PRO &rarr;
             </Link>
-            <p className="mt-2 text-xs" style={{ color: "rgba(0,255,65,0.3)" }}>
-              $20/mo · all 20 stocks · full detail pages
+            <p className="text-[10px]" style={{ color: "rgba(0,255,65,0.3)" }}>
+              $20/mo &middot; all 20 stocks &middot; full detail pages
             </p>
           </div>
         )}
+
+        <AccountClientActions userEmail={user.email ?? ""} sectionLabel={sectionLabel} rowStyle={row} dim={DIM} />
       </div>
 
-      <AccountClientActions userEmail={user.email ?? ""} />
+      <p className="text-center mt-8">
+        <SignOutButton />
+      </p>
     </div>
   );
 }

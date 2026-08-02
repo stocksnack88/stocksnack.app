@@ -3,8 +3,8 @@ const FONT  = "var(--font-geist-mono), 'Courier New', monospace"
 
 export type FunnelTier = { label: string; count: number; pctOfTotal: number }
 
-const VBW = 680
-const CENTER_X = VBW / 2
+const VBW = 840
+const CENTER_X = 310 // off-center: right side reserved for outside leader-line labels
 const MAX_W = 540
 const MIN_W = 70
 const FLOOR_PCT = 4 // visual-only floor so a near-zero tier still renders a sliver; never affects the displayed number
@@ -32,7 +32,7 @@ export default function SignalFunnel({ tiers }: { tiers: FunnelTier[] }) {
   const topWidths = [MAX_W, ...bottomWidths.slice(0, -1)]
 
   const totalH = tiers.length * BAND_H + (tiers.length - 1) * BAND_GAP + 20
-  const outsideLabelX = CENTER_X + MAX_W / 2 + 50
+  const outsideLabelX = CENTER_X + MAX_W / 2 + 40
 
   return (
     <svg viewBox={`0 0 ${VBW} ${totalH}`} width="100%" role="img" style={{ fontFamily: FONT }}>

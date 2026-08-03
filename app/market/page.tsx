@@ -516,10 +516,7 @@ export default async function MarketPage({
         <div style={S.section}>
           <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
-              <p style={S.head}>02 — RAW FUNDAMENTAL TRENDS — SUM ACROSS UNIVERSE (FY21–FY25)</p>
-              <p style={{ fontSize: 11, color: DIM, margin: '4px 0 0', letterSpacing: '0.08em' }}>
-                What the businesses are actually doing, before the market prices it — click a metric to add/remove its chart
-              </p>
+              <p style={S.head}>02 — Total Stock Performance</p>
             </div>
             <div style={{ padding: '1.25rem' }}>
               <MetricChartPicker metrics={rawTrendMetrics} data={rawTrendData} defaultSelected={['revenue']} />
@@ -529,10 +526,9 @@ export default async function MarketPage({
 
         {/* ── SECTION 3: MARKET VALUATION ── */}
         <div style={S.section}>
-          <p style={{ ...S.head, marginBottom: '0.75rem' }}>03 — MARKET VALUATION — {activeGroup.label} AVERAGE</p>
           <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
-              <p style={{ ...S.head, fontSize: 10, letterSpacing: '0.08em', color: DIM }}>HOW WE GOT HERE — AVG MULTIPLE/YIELD BY YEAR — click a metric to add/remove its chart</p>
+              <p style={S.head}>03 — Total Market Valuation</p>
             </div>
             <div style={{ padding: '1.25rem' }}>
               <MetricChartPicker metrics={valuationTrendMetrics} data={valuationTrendData} defaultSelected={['evEbitda']} />
@@ -544,10 +540,7 @@ export default async function MarketPage({
         <div style={S.section}>
           <div style={{ border: '1px solid rgba(0,255,65,0.2)', background: 'rgba(0,255,65,0.02)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ background: '#001a00', borderBottom: '1px solid rgba(0,255,65,0.1)', padding: '1rem 1.25rem' }}>
-              <p style={S.head}>04 — GROWTH COMPARISON — INDEXED TO FY21 = 100</p>
-              <p style={{ fontSize: 11, color: DIM, margin: '4px 0 0', letterSpacing: '0.08em' }}>
-                Pick any combination of fundamentals and valuation metrics to compare growth rates directly, regardless of original units
-              </p>
+              <p style={S.head}>04 — Growth Comparison</p>
             </div>
             <div style={{ padding: '1.25rem' }}>
               <GrowthComparisonChart metrics={combinedMetrics} data={combinedYearData} defaultSelected={['revenue', 'ebitda']} />
@@ -564,9 +557,6 @@ export default async function MarketPage({
             <div style={{ padding: '1.25rem' }}>
               <p style={{ fontSize: 13, lineHeight: 1.7, color: 'rgba(0,255,65,0.8)', margin: 0 }}>
                 {sentimentSummary}
-              </p>
-              <p style={{ fontSize: 9, color: 'rgba(0,255,65,0.25)', margin: '10px 0 0', letterSpacing: '0.04em' }}>
-                Based on aggregate EBITDA trend ({earningsDir}) vs. average EV/EBITDA trend ({valuationDir}), FY21→FY25.
               </p>
             </div>
           </div>

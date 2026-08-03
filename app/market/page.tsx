@@ -426,7 +426,7 @@ export default async function MarketPage({
               badge below -- not smushed together on one line. Title tooltip
               carries the methodology so it's still discoverable without
               bloating the visible copy. */}
-          <p style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.18em', color: DIM, margin: '0 0 8px' }}>
+          <p style={{ fontSize: 13, fontWeight: 'bold', letterSpacing: '0.18em', color: DIM, margin: '0 0 8px' }}>
             MARKET
           </p>
           <div
@@ -435,10 +435,10 @@ export default async function MarketPage({
               display: 'inline-block',
               border: `2px solid ${sentimentColor}`, borderRadius: 8,
               padding: '10px 28px', marginBottom: '0.75rem',
-              background: `${sentimentColor}14`,
+              background: sentimentColor,
             }}
           >
-            <span style={{ fontSize: 30, fontWeight: 'bold', letterSpacing: '0.06em', color: sentimentColor }}>{sentiment}</span>
+            <span style={{ fontSize: 30, fontWeight: 'bold', letterSpacing: '0.06em', color: '#000' }}>{sentiment}</span>
           </div>
 
           <p style={{ fontSize: 13, lineHeight: 1.5, margin: '0 0 1.25rem', color: 'rgba(0,255,65,0.75)' }}>

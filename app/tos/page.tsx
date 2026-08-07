@@ -73,7 +73,7 @@ export default function TosPage() {
           },
           {
             label: "PRO",
-            desc: `Full access to all ${COVERED_STOCK_COUNT} stocks (S&P 500 and beyond) with complete scoring breakdowns, filters, and detail pages. Billed monthly.`,
+            desc: `Full access to S&P 500 + ${COVERED_STOCK_COUNT} stocks with complete scoring breakdowns, filters, and detail pages. Billed monthly.`,
           },
         ].map(({ label, desc }) => (
           <div

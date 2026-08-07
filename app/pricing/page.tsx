@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
 import PricingTrialCountdown from "@/components/PricingTrialCountdown";
+import { COVERED_STOCK_COUNT } from "@/lib/constants";
 
 const font = "var(--font-geist-mono), 'Courier New', monospace";
 const bV   = "0.5px solid rgba(0,255,65,0.1)";   // vertical column dividers
@@ -44,7 +45,7 @@ export default async function PricingPage() {
   const isLoggedIn = !!user;
 
   const rows: { label: string; free: string; freeColor: string; freeBold?: boolean; pro: string; proColor: string }[] = [
-    { label: "Stocks access",           free: "5 random", freeColor: "rgba(255,255,255,0.3)",  pro: "S&P 500", proColor: "rgba(0,255,65,0.8)"  },
+    { label: "Stocks access",           free: "5 random", freeColor: "rgba(255,255,255,0.3)",  pro: `S&P 500 + ${COVERED_STOCK_COUNT} stocks`, proColor: "rgba(0,255,65,0.8)"  },
     { label: "Filter function",         free: "✕",        freeColor: "rgba(255,80,80,0.55)",   freeBold: true, pro: "✓", proColor: "#00ff41", },
     { label: "Price Projection",        free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
     { label: "Growth Quality",          free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },

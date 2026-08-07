@@ -65,7 +65,7 @@ function buildCaption(
   } else if (blockTitle?.includes('OVERVIEW')) {
     para2 = `This is the full summary — score, signal, and projected return at a glance.`
   } else {
-    para2 = `StockSnack scores all ${COVERED_STOCK_COUNT} stocks (S&P 500 and beyond) using 30 financial metrics.`
+    para2 = `StockSnack scores S&P 500 + ${COVERED_STOCK_COUNT} stocks using 30 financial metrics.`
   }
 
   const para3 = `Check it out → stocksnack.app\nUse code SNACKBUDDY50 for 50% off Pro`

@@ -19,10 +19,10 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: 'StockSnack — What\'s the best stock in S&P 500?',
-  description: `StockSnack scores all ${COVERED_STOCK_COUNT} stocks (S&P 500 and beyond) using 30 financial metrics based on Buffett-style fundamentals. Free to try.`,
+  description: `StockSnack scores S&P 500 + ${COVERED_STOCK_COUNT} stocks using 30 financial metrics based on Buffett-style fundamentals. Free to try.`,
   openGraph: {
     title: "What's the best stock in S&P 500?",
-    description: `Sign up to get the answer! StockSnack ranks all ${COVERED_STOCK_COUNT} stocks (S&P 500 and beyond) with BUY/HOLD/SELL verdicts backed by 30 financial metrics.`,
+    description: `Sign up to get the answer! StockSnack ranks S&P 500 + ${COVERED_STOCK_COUNT} stocks with BUY/HOLD/SELL verdicts backed by 30 financial metrics.`,
     url: 'https://stocksnack.app',
     siteName: 'StockSnack',
     images: [

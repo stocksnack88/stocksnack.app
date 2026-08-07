@@ -405,11 +405,60 @@ def _fetch_supabase_ebitda(ticker: str, client) -> dict[int, float]:
         return {}
 
 
-def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None, client=None) -> dict:
+def _last_known_shares(ticker: str, client) -> float | None:
+    """Most recent stock_fundamentals.shares_outstanding — passed to get_profile()
+    as a fallback for reconstructing marketCap if Yahoo Finance is down and the
+    Nasdaq price-only fallback has to fill in."""
+    try:
+        resp = (
+            client.table("stock_fundamentals")
+            .select("shares_outstanding")
+            .eq("ticker", ticker)
+            .order("fiscal_year", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = resp.data or []
+        v = rows[0].get("shares_outstanding") if rows else None
+        return float(v) if v else None
+    except Exception as exc:
+        log.warning("[%s] last-known shares lookup failed: %s", ticker, exc)
+        return None
+
+
+def build_data_dict(
+    ticker: str, years: int = 5, sector_mode: dict | None = None, client=None,
+    cached_sec: dict | None = None,
+) -> dict:
     """
     Fetch SEC + yfinance data and assemble the data dict the scoring layers expect.
+
+    cached_sec: when provided (smart-pull hit — no new SEC filing since last run),
+    skips the SEC re-extraction entirely and reuses the cached income/balance/
+    cashflow/metrics lists from the last full run. profile (price/marketCap) is
+    ALWAYS fetched fresh regardless — the whole point is that price must stay
+    current every run even when the underlying financials haven't changed.
     """
     _sm = sector_mode or {}
+
+    log.info("[%s] Fetching profile from yfinance…", ticker)
+    fallback_shares = _last_known_shares(ticker, client) if client is not None else None
+    profile = get_profile(ticker, fallback_shares=fallback_shares)
+
+    if cached_sec is not None:
+        log.info("[%s] Using cached SEC extraction (smart-pull: no new filing) — refreshing price only", ticker)
+        return {
+            "profile":           profile,
+            "income":            cached_sec["income"],
+            "balance":           cached_sec["balance"],
+            "cashflow":          cached_sec["cashflow"],
+            "metrics":           cached_sec["metrics"],
+            "hist_mktcap":       {int(k): v for k, v in (cached_sec.get("hist_mktcap") or {}).items()},
+            "product_segments":  [],
+            "geo_segments":      [],
+            "reported_currency": cached_sec.get("reported_currency", "USD"),
+        }
+
     log.info("[%s] Fetching SEC data…", ticker)
     flat_years = normalise(ticker, years=years)  # newest first
 
@@ -432,8 +481,6 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
                         yr[k] = round(v / rate, 4)
             log.info("[%s] FY%d %s→USD: rate %.4f", ticker, fy, ticker_currency, rate)
 
-    log.info("[%s] Fetching profile from yfinance…", ticker)
-    profile       = get_profile(ticker)
     market_cap    = _safe(profile.get("marketCap"))
     price_raw     = _safe(profile.get("price"))
     implied_shares = market_cap / price_raw if (market_cap and price_raw and price_raw > 0) else None
@@ -662,6 +709,22 @@ def build_data_dict(ticker: str, years: int = 5, sector_mode: dict | None = None
                 inc["revenue"] = lease_income_
 
     log.info("[%s] Building data dict…", ticker)
+
+    if client is not None:
+        try:
+            client.table("stocks").update({
+                "sec_extraction_cache": {
+                    "income":            income_list,
+                    "balance":           balance_list,
+                    "cashflow":          cashflow_list,
+                    "metrics":           metrics_list,
+                    "hist_mktcap":       {str(k): v for k, v in hist_mktcap.items()},
+                    "reported_currency": "USD",
+                },
+            }).eq("ticker", ticker).execute()
+        except Exception as exc:
+            log.warning("[%s] sec_extraction_cache write failed: %s", ticker, exc)
+
     return {
         "profile":           profile,
         "income":            income_list,
@@ -788,7 +851,10 @@ def _send_failure_email(
 
 # ── Per-ticker processor ──────────────────────────────────────────────────────
 
-def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool) -> tuple:
+def process(
+    ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool,
+    cached_sec: dict | None = None,
+) -> tuple:
     try:
         sector_mode = _resolve_sector_mode(
             ticker, client=writer.client if writer is not None else None
@@ -797,6 +863,7 @@ def process(ticker: str, writer: SupabaseWriter | None, spy: dict, dry_run: bool
             ticker,
             sector_mode=sector_mode,
             client=writer.client if writer is not None else None,
+            cached_sec=cached_sec,
         )
 
         if not data["profile"].get("price"):
@@ -957,6 +1024,33 @@ def update_filing_checkpoint(ticker: str, client, latest: dict) -> None:
         log.warning("[smart-pull] %s: checkpoint update failed: %s", ticker, exc)
 
 
+def load_sec_cache(ticker: str, client) -> dict | None:
+    """
+    Load the SEC-derived data (income/balance/cashflow/metrics/hist_mktcap) cached
+    by the last full extraction, for reuse when smart-pull finds no new filing.
+
+    Returns None if no cache exists yet (first-ever run for this ticker, or it
+    predates the cache column) — the caller should fall back to a full extraction
+    in that case rather than skip the ticker outright.
+    """
+    try:
+        rows = (
+            client.table("stocks")
+            .select("sec_extraction_cache")
+            .eq("ticker", ticker)
+            .execute()
+            .data
+        )
+    except Exception as exc:
+        log.warning("[smart-pull] %s: cache lookup failed (%s) — falling back to full extraction", ticker, exc)
+        return None
+
+    cache = rows[0].get("sec_extraction_cache") if rows else None
+    if not cache or not cache.get("income"):
+        return None
+    return cache
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -996,8 +1090,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--smart-pull", action="store_true",
-        help="Check each ticker's latest SEC filing before extracting. Shadow mode by "
-             "default — logs what would be skipped without actually skipping. Requires "
+        help="Check each ticker's latest SEC filing before extracting. When enforced "
+             "(--smart-pull-enforce) and no new filing exists, skips the expensive SEC "
+             "re-parse and reuses the cached income/balance/cashflow/metrics from the "
+             "last full run (sec_extraction_cache) — but price/market-cap is ALWAYS "
+             "fetched fresh and every layer is always rescored, every run, regardless of "
+             "filing status. Shadow mode by default (no --smart-pull-enforce) — logs what "
+             "would be cached-vs-full without actually skipping the SEC re-parse. Requires "
              "pipeline/migrate_add_filing_checkpoint.sql to have been applied.",
     )
     parser.add_argument(
@@ -1009,9 +1108,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--smart-pull-enforce", action="store_true",
-        help="With --smart-pull, actually skip tickers with no new filing instead of "
-             "just logging what would be skipped. Do not enable until shadow-mode logs "
-             "have been reviewed across a few real runs.",
+        help="With --smart-pull, actually reuse the cached SEC extraction for tickers "
+             "with no new filing (still fetches fresh price and always rescores) instead "
+             "of just logging what would happen.",
     )
     args = parser.parse_args()
 
@@ -1053,13 +1152,16 @@ def main() -> None:
     log.info("SPY benchmark: cagr=%.4f", spy.get("sp500_cagr") or 0)
 
     processed:       list[str]          = []
-    skipped:         list[str]          = []  # smart-pull: no new filing since last run
+    price_refreshed: list[str]          = []  # smart-pull: no new filing — cached SEC data, fresh price + rescore
     failed:          list[str]          = []
     failed_errors:   dict[str, str]     = {}  # ticker -> first error line
     segment_results: dict[str, tuple]   = {}  # ticker -> (prod_count, geo_count)
 
     for ticker in tickers:
         latest_filing = None
+        cached_sec    = None
+        use_cache     = False
+
         if args.smart_pull and writer is not None:
             skip, latest_filing, reason = smart_pull_check(
                 ticker, writer.client, enforce=args.smart_pull_enforce
@@ -1069,13 +1171,22 @@ def main() -> None:
                 "" if args.smart_pull_enforce else " [shadow]", ticker, reason,
             )
             if skip:
-                skipped.append(ticker)
-                segment_results[ticker] = (0, 0)
-                continue
+                cached_sec = load_sec_cache(ticker, writer.client)
+                if cached_sec is not None:
+                    use_cache = True
+                else:
+                    log.warning(
+                        "[smart-pull] %s: no cache available yet — running full extraction instead",
+                        ticker,
+                    )
 
-        ok, prod_cnt, geo_cnt, err_msg = process(ticker, writer, spy, dry_run)
+        # use_cache tickers still run process() in full: price is always fetched
+        # fresh and rescored, only the expensive SEC re-parse is skipped.
+        ok, prod_cnt, geo_cnt, err_msg = process(ticker, writer, spy, dry_run, cached_sec=cached_sec)
         if ok:
             processed.append(ticker)
+            if use_cache:
+                price_refreshed.append(ticker)
             if args.smart_pull and writer is not None and latest_filing is not None:
                 update_filing_checkpoint(ticker, writer.client, latest_filing)
         else:
@@ -1089,9 +1200,12 @@ def main() -> None:
         log.info("Computing P/E ratios across all tickers…")
         compute_pe_ratios(writer.client)
 
-    log.info("Done — processed: %d  skipped: %d  failed: %d", len(processed), len(skipped), len(failed))
-    if skipped:
-        log.info("Skipped (no new filing): %s", ", ".join(skipped))
+    log.info(
+        "Done — processed: %d (%d via cached SEC + fresh price)  failed: %d",
+        len(processed), len(price_refreshed), len(failed),
+    )
+    if price_refreshed:
+        log.info("Cached SEC + price-refreshed (no new filing): %s", ", ".join(price_refreshed))
     if failed:
         log.warning("Failed: %s", ", ".join(failed))
 

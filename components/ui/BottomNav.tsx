@@ -7,6 +7,7 @@ const MONO: React.CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courie
 
 const ITEMS = [
   { href: "/screener", label: "SCREENER" },
+  { href: "/watchlist", label: "WATCHLIST" },
   { href: "/market", label: "MARKET" },
   { href: "/account", label: "ACCOUNT" },
 ] as const;

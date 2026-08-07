@@ -114,12 +114,49 @@ def get_market_cap(symbol: str) -> float | None:
     return float(v) if v is not None else None
 
 
-def get_profile(symbol: str) -> dict:
+def _nasdaq_fallback_price(symbol: str) -> float | None:
+    """
+    Nasdaq's public quote endpoint — no API key, used ONLY as a fallback when
+    Yahoo Finance's own .info fetch comes back with no price after retries
+    (rate-limit or outage on Yahoo's side, not per-ticker flakiness — a burst
+    of these on the same run is what caused the 2026-08-03 null-cascade
+    incident on MCD + 48 other tickers). Unofficial/undocumented endpoint,
+    same "public data, no formal commercial agreement" risk category as
+    yfinance itself — not a licensing upgrade, just a second independent
+    source so one provider's outage doesn't take down the whole run.
+    Price only — Nasdaq's endpoint doesn't return market cap or shares.
+    """
+    import json as _json
+    import urllib.request as _urlreq
+    try:
+        req = _urlreq.Request(
+            f"https://api.nasdaq.com/api/quote/{symbol.upper()}/info?assetclass=stocks",
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        with _urlreq.urlopen(req, timeout=10) as resp:
+            data = _json.load(resp)
+        raw = (data.get("data") or {}).get("primaryData", {}).get("lastSalePrice")
+        if not raw:
+            return None
+        return float(str(raw).replace("$", "").replace(",", ""))
+    except Exception as exc:
+        log.warning("[%s] Nasdaq fallback price lookup failed: %s", symbol, exc)
+        return None
+
+
+def get_profile(symbol: str, fallback_shares: float | None = None) -> dict:
     """
     Returns a profile dict matching the shape scoring layers expect from FMP:
       price, marketCap, sector, industry, exchange, companyName,
       currency, lastDividend
     All fields default to None if unavailable. Never raises.
+
+    fallback_shares: last-known shares outstanding (e.g. from stock_fundamentals).
+    Only used if Yahoo Finance comes back with no usable price/marketCap and the
+    Nasdaq fallback has to fill in — Nasdaq's endpoint has no marketCap of its
+    own, so marketCap is reconstructed as fallback_price * fallback_shares. This
+    keeps _shares() in layer1_ppm.py resolving to something usable (last-known
+    share count) instead of the whole PPM/valuation cascade going null.
     """
     try:
         info = _info(symbol)
@@ -127,6 +164,20 @@ def get_profile(symbol: str) -> dict:
         mktcap = info.get("marketCap")
         # dividendRate is forward annualized $/share — matches FMP lastDividend behaviour
         last_div = info.get("dividendRate") or info.get("lastDividendValue")
+
+        if price is None or mktcap is None:
+            fb_price = _nasdaq_fallback_price(symbol)
+            if fb_price is not None:
+                log.warning(
+                    "[%s] yfinance profile incomplete (price=%s marketCap=%s) — "
+                    "using Nasdaq fallback price %.2f",
+                    symbol, price, mktcap, fb_price,
+                )
+                if price is None:
+                    price = fb_price
+                if mktcap is None and fallback_shares:
+                    mktcap = fb_price * fallback_shares
+
         return {
             "symbol":      symbol.upper(),
             "price":       float(price)    if price    is not None else None,

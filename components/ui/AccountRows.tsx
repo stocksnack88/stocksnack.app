@@ -15,6 +15,7 @@ type FeedbackItem = {
   fix_summary: string | null
   created_at: string
   resolved_at: string | null
+  image_url: string | null
 }
 
 function fmtDate(iso: string) {
@@ -69,6 +70,8 @@ export default function AccountRows({
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [history, setHistory] = useState<FeedbackItem[]>([])
+  const [image, setImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   useEffect(() => {
     setInstalled(
@@ -89,23 +92,50 @@ export default function AccountRows({
 
   useEffect(() => { loadHistory() }, [])
 
+  function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    if (!file) {
+      setImage(null)
+      setImagePreview(null)
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image is too large (max 5MB)')
+      e.target.value = ''
+      return
+    }
+    setError('')
+    setImage(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  function clearImage() {
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setImage(null)
+    setImagePreview(null)
+  }
+
   async function handleFeedback(e: React.FormEvent) {
     e.preventDefault()
     if (!message.trim()) return
     setSubmitting(true)
     setError('')
     try {
-      const res = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: message.trim(), email: userEmail, page_url: window.location.href }),
-      })
+      const formData = new FormData()
+      formData.set('message', message.trim())
+      formData.set('email', userEmail)
+      formData.set('page_url', window.location.href)
+      if (image) formData.set('image', image)
+
+      const res = await fetch('/api/feedback', { method: 'POST', body: formData })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
         throw new Error(d.error ?? 'Something went wrong')
       }
       setSubmitted(true)
       setMessage('')
+      clearImage()
       loadHistory()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -182,50 +212,73 @@ export default function AccountRows({
       </AccordionRow>
 
       <AccordionRow icon={<FeedbackIcon />} label="FEEDBACK" right={{ kind: 'chevron' }}>
-        {submitted ? (
-          <div className="mb-4">
-            <p className="text-xs font-bold tracking-widest mb-1" style={{ color: '#00ff41' }}>&#10003; GOT IT</p>
-            <p className="text-[10px]" style={{ color: 'rgba(0,255,65,0.4)' }}>We&apos;ll email you if we ship a fix based on this.</p>
-            <button
-              onClick={() => setSubmitted(false)}
-              className="mt-3 text-[10px] tracking-widest"
-              style={{ background: 'none', border: 'none', color: 'rgba(0,255,65,0.35)', cursor: 'pointer', padding: 0 }}
+        <form onSubmit={handleFeedback} className="mb-4">
+          {submitted && (
+            <div className="mb-2.5">
+              <p className="text-xs font-bold tracking-widest mb-1" style={{ color: '#00ff41' }}>&#10003; GOT IT</p>
+              <p className="text-[10px]" style={{ color: 'rgba(0,255,65,0.4)' }}>We&apos;ll email you if we ship a fix based on this. Send another below any time.</p>
+            </div>
+          )}
+          {/* text-base (16px) is deliberate, not a typo -- iOS Safari
+              auto-zooms the viewport on focus for any field under 16px */}
+          <textarea
+            value={message}
+            onChange={e => { setMessage(e.target.value); setSubmitted(false) }}
+            rows={5}
+            placeholder="Bug, missing data, feature request…"
+            required
+            className="text-base md:text-xs"
+            style={{
+              width: '100%', background: '#0a0a0a', border: '1px solid rgba(0,255,65,0.15)',
+              borderRadius: 4, color: '#00ff41', padding: '10px', lineHeight: 1.5,
+              resize: 'none', boxSizing: 'border-box', outline: 'none',
+            }}
+          />
+          {error && <p className="text-[11px] mt-1" style={{ color: '#ef4444' }}>{error}</p>}
+
+          {imagePreview ? (
+            <div className="mt-1.5 flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview, not a remote asset */}
+              <img
+                src={imagePreview}
+                alt="Attachment preview"
+                style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 4, border: '1px solid rgba(0,255,65,0.25)' }}
+              />
+              <button
+                type="button"
+                onClick={clearImage}
+                className="text-[10px] tracking-widest"
+                style={{ background: 'none', border: 'none', color: 'rgba(0,255,65,0.4)', cursor: 'pointer', padding: 0 }}
+              >
+                REMOVE
+              </button>
+            </div>
+          ) : (
+            <label
+              className="mt-1.5 inline-flex items-center gap-1.5 text-[10px] tracking-widest"
+              style={{ color: 'rgba(0,255,65,0.4)', cursor: 'pointer' }}
             >
-              SEND ANOTHER &rarr;
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleFeedback} className="mb-4">
-            {/* text-base (16px) is deliberate, not a typo -- iOS Safari
-                auto-zooms the viewport on focus for any field under 16px */}
-            <textarea
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              rows={5}
-              placeholder="Bug, missing data, feature request…"
-              required
-              className="text-base md:text-xs"
-              style={{
-                width: '100%', background: '#0a0a0a', border: '1px solid rgba(0,255,65,0.15)',
-                borderRadius: 4, color: '#00ff41', padding: '10px', lineHeight: 1.5,
-                resize: 'none', boxSizing: 'border-box', outline: 'none',
-              }}
-            />
-            {error && <p className="text-[11px] mt-1" style={{ color: '#ef4444' }}>{error}</p>}
-            <button
-              type="submit"
-              disabled={submitting || !message.trim()}
-              className="mt-1.5 font-bold text-[10px] tracking-widest px-4 py-1.5 rounded"
-              style={{
-                background: message.trim() ? '#00ff41' : 'rgba(0,255,65,0.1)',
-                color: message.trim() ? '#000' : 'rgba(0,255,65,0.3)',
-                border: 'none', cursor: message.trim() ? 'pointer' : 'default',
-              }}
-            >
-              {submitting ? 'SENDING…' : 'SUBMIT →'}
-            </button>
-          </form>
-        )}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M21.44 11.05l-9.19 9.19a5 5 0 01-7.07-7.07l9.19-9.19a3.5 3.5 0 014.95 4.95l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              ATTACH IMAGE
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleImagePick} style={{ display: 'none' }} />
+            </label>
+          )}
+
+          <button
+            type="submit"
+            disabled={submitting || !message.trim()}
+            className="mt-1.5 block font-bold text-[10px] tracking-widest px-4 py-1.5 rounded"
+            style={{
+              background: message.trim() ? '#00ff41' : 'rgba(0,255,65,0.1)',
+              color: message.trim() ? '#000' : 'rgba(0,255,65,0.3)',
+              border: 'none', cursor: message.trim() ? 'pointer' : 'default',
+            }}
+          >
+            {submitting ? 'SENDING…' : 'SUBMIT →'}
+          </button>
+        </form>
 
         {history.length > 0 && (
           <div style={{ borderTop: '1px solid rgba(0,255,65,0.08)', paddingTop: 10 }}>
@@ -247,6 +300,16 @@ export default function AccountRows({
                     </span>
                   </div>
                   <p className="text-[9px] mt-0.5" style={{ color: 'rgba(0,255,65,0.25)' }}>{fmtDate(item.created_at)}</p>
+                  {item.image_url && (
+                    <a href={item.image_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-1.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- Supabase Storage public URL, not a static app asset */}
+                      <img
+                        src={item.image_url}
+                        alt="Attached screenshot"
+                        style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 4, border: '1px solid rgba(0,255,65,0.15)' }}
+                      />
+                    </a>
+                  )}
                   {item.status === 'resolved' && item.fix_summary && (
                     <p className="text-[10px] mt-1 pl-2" style={{ color: 'rgba(0,255,65,0.5)', borderLeft: '2px solid rgba(0,255,65,0.2)' }}>
                       {item.fix_summary}

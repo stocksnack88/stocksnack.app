@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import CookieBanner from "@/components/ui/CookieBanner";
@@ -41,6 +41,11 @@ export const metadata: Metadata = {
     description: 'Sign up to get the answer!',
     images: ['https://stocksnack.app/og-image.png'],
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({

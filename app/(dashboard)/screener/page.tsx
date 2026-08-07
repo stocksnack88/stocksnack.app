@@ -1,10 +1,9 @@
 export const dynamic = 'force-dynamic'
 
-import { unstable_cache } from 'next/cache'
-import { supabaseAdmin, fetchAllRows } from "@/lib/supabase";
-import { COVERED_STOCK_COUNT, isLaunchedStock } from "@/lib/constants";
+import { COVERED_STOCK_COUNT } from "@/lib/constants";
 import { getCachedUser, getCachedUserProfile } from "@/lib/server-auth";
-import ScreenerTable, { type ScreenerRow } from "@/components/ui/ScreenerTable";
+import { getAllScreenerRows } from "@/lib/screener-data";
+import ScreenerTable from "@/components/ui/ScreenerTable";
 import ScreenerTableErrorBoundary from "@/components/ui/ScreenerTableErrorBoundary";
 import NavHeightLogger from "@/components/ui/NavHeightLogger";
 import OnboardingModal from "@/components/ui/OnboardingModal";
@@ -15,46 +14,6 @@ const FREE_LIMIT = 5;
 const TRIAL_DURATION_MS = 5 * 60 * 1000;
 const EXTENSION_DURATION_MS = 15 * 60 * 1000;
 
-// Stock data is updated weekly — cache for 60 s to avoid hitting DB on every request
-const getStockData = unstable_cache(
-  async () => {
-    const [{ data: rawRows, error }, { data: priceRows }] = await Promise.all([
-      fetchAllRows((start, end) =>
-        supabaseAdmin
-          .from("stock_scores")
-          .select(`
-            ticker,
-            ppm_cagr,
-            ppm_blended_price,
-            growth_score,
-            health_passes,
-            final_score,
-            signal,
-            updated_at,
-            has_anomaly,
-            anomaly_reasons,
-            m_cumulative_div_ps,
-            div_yield_5y_avg,
-            div_yield,
-            stocks ( name, index_tags )
-          `)
-          .order("final_score", { ascending: false })
-          .range(start, end)
-      ),
-      fetchAllRows((start, end) =>
-        supabaseAdmin.from("stock_prices").select("ticker, current_price").range(start, end)
-      ),
-    ]);
-    // Backend can freely ingest S&P 400/600 ahead of launch — this keeps them
-    // out of the live screener until index_tags says otherwise. See lib/constants.ts.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows = (rawRows ?? []).filter((r: any) => isLaunchedStock(r.stocks?.index_tags));
-    return { rows, error: error ?? null, priceRows: priceRows ?? [] };
-  },
-  ['screener-stock-data'],
-  { revalidate: 60 }
-);
-
 export default async function ScreenerPage({
   searchParams,
 }: {
@@ -63,9 +22,9 @@ export default async function ScreenerPage({
   const justUpgraded = searchParams.upgraded === "1";
 
   // Auth and stock data run concurrently — stock data doesn't depend on who the user is
-  const [user, { rows, error, priceRows }] = await Promise.all([
+  const [user, { stocks, error }] = await Promise.all([
     getCachedUser(),
-    getStockData(),
+    getAllScreenerRows(),
   ]);
 
   const isGuest = !user;
@@ -95,29 +54,6 @@ export default async function ScreenerPage({
       (!isPro && trialExtensionStartedAt !== null && extensionElapsed < EXTENSION_DURATION_MS);
   }
   const effectivelyPro = isPro || isTrialActive;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const priceMap = new Map((priceRows).map((p: any) => [p.ticker, p.current_price as number]));
-
-  // rows is already ordered final_score DESC from Supabase — index+1 is the true universe rank.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const stocks: ScreenerRow[] = (rows).map((r: any, i: number) => ({
-    ticker: r.ticker,
-    name: r.stocks?.name ?? null,
-    ppm_cagr: r.ppm_cagr,
-    ppm_blended_price: r.ppm_blended_price,
-    current_price: priceMap.get(r.ticker) ?? null,
-    growth_score: r.growth_score,
-    health_passes: r.health_passes,
-    signal: r.signal,
-    updated_at: r.updated_at,
-    has_anomaly: r.has_anomaly ?? null,
-    anomaly_reasons: r.anomaly_reasons ?? null,
-    m_cumulative_div_ps: r.m_cumulative_div_ps ?? null,
-    div_yield_5y_avg: r.div_yield_5y_avg ?? null,
-    div_yield: r.div_yield ?? null,
-    rank: i + 1,
-  }));
 
   const { visible: rawVisible } = effectivelyPro
     ? { visible: stocks }

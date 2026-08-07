@@ -18,6 +18,7 @@ type FeedbackRow = {
   fix_summary: string | null
   created_at: string
   resolved_at: string | null
+  image_url: string | null
 }
 
 const MONO: CSSProperties = { fontFamily: "'Courier New', Courier, monospace" }
@@ -49,7 +50,7 @@ export default async function AdminFeedbackPage() {
 
   const { data: rows, error } = await supabaseAdmin
     .from('feedback')
-    .select('id, user_id, email, message, page_url, status, fix_summary, created_at, resolved_at')
+    .select('id, user_id, email, message, page_url, status, fix_summary, created_at, resolved_at, image_url')
     .order('created_at', { ascending: false })
 
   const feedback = (rows ?? []) as FeedbackRow[]
@@ -81,6 +82,7 @@ export default async function AdminFeedbackPage() {
                 <th style={S.th}>STATUS</th>
                 <th style={S.th}>EMAIL</th>
                 <th style={S.th}>MESSAGE</th>
+                <th style={S.th}>IMAGE</th>
                 <th style={S.th}>PAGE</th>
                 <th style={S.th}>SUBMITTED</th>
                 <th style={S.th}>ACTION / FIX</th>
@@ -98,6 +100,20 @@ export default async function AdminFeedbackPage() {
                   <td style={{ ...S.td, color: '#00ff88' }}>{row.email ?? <span style={{ color: DIM }}>—</span>}</td>
                   <td style={{ ...S.td, maxWidth: 320, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {row.message}
+                  </td>
+                  <td style={S.td}>
+                    {row.image_url ? (
+                      <a href={row.image_url} target="_blank" rel="noopener noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- admin-only review table, not a perf-sensitive page */}
+                        <img
+                          src={row.image_url}
+                          alt="Attachment"
+                          style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 3, border: `1px solid ${FAINT}` }}
+                        />
+                      </a>
+                    ) : (
+                      <span style={{ color: DIM }}>—</span>
+                    )}
                   </td>
                   <td style={{ ...S.td, maxWidth: 200, wordBreak: 'break-all' }}>
                     {row.page_url ? (

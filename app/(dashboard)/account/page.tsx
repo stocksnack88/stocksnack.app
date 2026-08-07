@@ -67,7 +67,7 @@ export default async function AccountPage() {
 
   return (
     <div
-      className="max-w-md mx-auto px-6 py-12"
+      className="w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto px-4 sm:px-6 py-8 sm:py-12"
       style={{ fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }}
     >
       <p className="text-xs tracking-[0.3em] mb-3" style={{ color: "rgba(0,255,65,0.35)" }}>

@@ -269,6 +269,7 @@ export default function ScreenerTable({
   trialExtensionStartedAt?: string | null;
 }) {
   const { conversionReady } = useGuidedTour();
+  const [watchlist, setWatchlist] = useState<Set<string>>(new Set());
   const [detailLevel,  setDetailLevel]  = useState(0);
   const [showFilters,  setShowFilters]  = useState(false);
   const [showProGate,    setShowProGate]    = useState(false);
@@ -348,6 +349,44 @@ export default function ScreenerTable({
 
   const router = useRouter();
   const [clickedTicker, setClickedTicker] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hasSession) return;
+    fetch('/api/watchlist')
+      .then(res => res.json())
+      .then(d => { if (Array.isArray(d.tickers)) setWatchlist(new Set(d.tickers)); })
+      .catch(() => {});
+  }, [hasSession]);
+
+  function toggleWatchlist(e: React.MouseEvent, ticker: string) {
+    e.stopPropagation();
+    if (!hasSession) { router.push('/login'); return; }
+    const isSaved = watchlist.has(ticker);
+    setWatchlist(prev => {
+      const next = new Set(prev);
+      if (isSaved) next.delete(ticker); else next.add(ticker);
+      return next;
+    });
+    fetch('/api/watchlist', {
+      method: isSaved ? 'DELETE' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker }),
+    }).then(res => {
+      if (res.ok) return;
+      // revert on failure
+      setWatchlist(prev => {
+        const next = new Set(prev);
+        if (isSaved) next.add(ticker); else next.delete(ticker);
+        return next;
+      });
+    }).catch(() => {
+      setWatchlist(prev => {
+        const next = new Set(prev);
+        if (isSaved) next.add(ticker); else next.delete(ticker);
+        return next;
+      });
+    });
+  }
 
   const showSummaries = detailLevel >= 1;
   const showQuality   = detailLevel >= 2;
@@ -816,7 +855,22 @@ export default function ScreenerTable({
                   style={{ animation: `fadeInUp 200ms ease-out ${Math.min(i, 25) * 30}ms both` }}
                 >
                   <td className={`px-2 py-3 ${stickyTd}`}>
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => toggleWatchlist(e, stock.ticker)}
+                        aria-label={watchlist.has(stock.ticker) ? `Remove ${stock.ticker} from watchlist` : `Add ${stock.ticker} to watchlist`}
+                        aria-pressed={watchlist.has(stock.ticker)}
+                        className="shrink-0 p-0.5 -m-0.5"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24"
+                          fill={watchlist.has(stock.ticker) ? '#00ff41' : 'none'}
+                          stroke="#00ff41" strokeWidth="1.8" strokeLinejoin="round"
+                        >
+                          <path d="M12 2.5l2.9 6.6 7.1.7-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7-5.4-4.7 7.1-.7z" />
+                        </svg>
+                      </button>
                       <span className="font-mono font-bold text-[#00ff41] tracking-wider underline decoration-[#00ff41]">
                         {stock.ticker}
                       </span>

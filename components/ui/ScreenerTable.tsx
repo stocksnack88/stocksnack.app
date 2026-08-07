@@ -811,7 +811,7 @@ export default function ScreenerTable({
           <thead>
             {/* Group label row — [+] spans both header rows via rowSpan */}
             <tr className="bg-[#001200]">
-              <th rowSpan={2} className="border-0 sticky left-0 z-20 bg-[#001200] w-14 px-2 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">TICKER</th>
+              <th rowSpan={2} className="border-0 sticky left-0 z-20 bg-[#001200] w-14 px-1.5 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">TICKER</th>
               <th rowSpan={2} className="border-0 hidden md:table-cell bg-[#001200] px-2 py-3 text-left text-xs font-bold tracking-widest text-[#00ff41]/70">COMPANY</th>
               <th colSpan={2} className="border-0 bg-[#001a00]/40 px-2 py-0.5 text-center text-xs font-bold tracking-widest text-[#00ff41]/60">5Y PROJECTED</th>
               {showQuality && (
@@ -831,12 +831,12 @@ export default function ScreenerTable({
 
             {/* Main column header row — sticky */}
             <tr className="border-b border-[#00ff41]/60 bg-[#001200]">
-              <th className="px-1 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">CAGR</th>
-              <th className="px-1 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">RETURN</th>
+              <th className="px-0.5 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">CAGR</th>
+              <th className="px-0.5 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">RETURN</th>
               {showQuality && <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001200]">GROWTH</th>}
               {showQuality && <th className="px-1 py-3 text-right text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001200]">HEALTH</th>}
-              <th className="px-1 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">SIGNAL</th>
-              <th className="px-1 py-3 text-center text-[10px] font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">RANK</th>
+              <th className="px-0.5 py-3 text-center text-xs font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">SIGNAL</th>
+              <th className="px-0.5 py-3 text-center text-[10px] font-bold tracking-widest text-[#00ff41]/70 bg-[#001a00]/40">RANK</th>
             </tr>
           </thead>
 
@@ -854,8 +854,8 @@ export default function ScreenerTable({
                   }`}
                   style={{ animation: `fadeInUp 200ms ease-out ${Math.min(i, 25) * 30}ms both` }}
                 >
-                  <td className={`px-2 py-3 ${stickyTd}`}>
-                    <span className="inline-flex items-center gap-1.5">
+                  <td className={`px-1.5 py-3 ${stickyTd}`}>
+                    <span className="inline-flex items-center gap-1">
                       <button
                         type="button"
                         onClick={(e) => toggleWatchlist(e, stock.ticker)}
@@ -864,7 +864,7 @@ export default function ScreenerTable({
                         className="shrink-0 p-0.5 -m-0.5"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', lineHeight: 0 }}
                       >
-                        <svg width="13" height="13" viewBox="0 0 24 24"
+                        <svg width="11" height="11" viewBox="0 0 24 24"
                           fill={watchlist.has(stock.ticker) ? '#00ff41' : 'none'}
                           stroke="#00ff41" strokeWidth="1.8" strokeLinejoin="round"
                         >
@@ -886,10 +886,10 @@ export default function ScreenerTable({
                       {stock.name ?? ""}
                     </span>
                   </td>
-                  <td className="px-1 py-3 text-right bg-[#001a00]/40">
+                  <td className="px-0.5 py-3 text-right bg-[#001a00]/40">
                     <CagrCell stock={stock} />
                   </td>
-                  <td className="px-1 py-3 text-right bg-[#001a00]/40">
+                  <td className="px-0.5 py-3 text-right bg-[#001a00]/40">
                     <ReturnCell stock={stock} />
                   </td>
                   {showQuality && (
@@ -902,10 +902,10 @@ export default function ScreenerTable({
                       <HealthPassesCell value={stock.health_passes} />
                     </td>
                   )}
-                  <td className="px-1 py-3 text-center bg-[#001a00]/40">
+                  <td className="px-0.5 py-3 text-center bg-[#001a00]/40">
                     <SignalBadge signal={stock.signal} />
                   </td>
-                  <td className="px-1 py-3 text-center bg-[#001a00]/40">
+                  <td className="px-0.5 py-3 text-center bg-[#001a00]/40">
                     <span className="text-[#00ff41]/40 font-mono text-[10px]">#{stock.rank}</span>
                   </td>
                   <td className="px-1" />

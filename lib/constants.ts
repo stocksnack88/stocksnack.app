@@ -2,19 +2,22 @@
 // Every "we cover N stocks" claim in copy should read from here instead of a
 // hardcoded number, so expanding the universe doesn't require re-auditing
 // every page/email that mentions a count.
-export const COVERED_STOCK_COUNT = 500;
-export const COVERED_UNIVERSE_LABEL = "S&P 500";
+// 2026-08-07: launched S&P 400 + 600 (Pro-only, see PRO_ONLY_INDEX_TAGS below) —
+// this is now the FULL universe count (1,497 scored tickers), not S&P 500 alone.
+export const COVERED_STOCK_COUNT = 1497;
+export const COVERED_UNIVERSE_LABEL = "S&P 500 + More";
 
-// Backend ingestion can freely pull/score/tag S&P 400 + 600 tickers ahead of
-// launch — this is the one gate that keeps them out of every public listing
-// until we're actually ready to show them. Flip by removing tags from this
-// list (or deleting it) when the expansion goes live; nothing else to change.
-const UNLAUNCHED_INDEX_TAGS: readonly string[] = ["SP400", "SP600"];
+// S&P 400 + 600 are Pro-only: visible in the screener/watchlist only for
+// effectively-Pro users (paid or on trial). Free-tier users still only see
+// the S&P 500 base universe. Flip by removing tags from this list (or
+// deleting it) if the expansion should become free-tier visible too.
+const PRO_ONLY_INDEX_TAGS: readonly string[] = ["SP400", "SP600"];
 
 // Fails open on purpose: a stock with no index_tags (or the column missing)
-// is treated as already-live rather than hidden, so this can never accidentally
-// blank the screener if tagging is ever incomplete for an existing ticker.
-export function isLaunchedStock(indexTags: string[] | null | undefined): boolean {
+// is treated as free-tier-visible rather than hidden, so this can never
+// accidentally blank the screener if tagging is ever incomplete for an
+// existing ticker.
+export function isFreeTierStock(indexTags: string[] | null | undefined): boolean {
   if (!indexTags || indexTags.length === 0) return true;
-  return !indexTags.some((t) => UNLAUNCHED_INDEX_TAGS.includes(t));
+  return !indexTags.some((t) => PRO_ONLY_INDEX_TAGS.includes(t));
 }

@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { COVERED_STOCK_COUNT } from "@/lib/constants";
+import { COVERED_STOCK_COUNT, isFreeTierStock } from "@/lib/constants";
 import { getCachedUser, getCachedUserProfile } from "@/lib/server-auth";
 import { getAllScreenerRows } from "@/lib/screener-data";
 import ScreenerTable from "@/components/ui/ScreenerTable";
@@ -55,9 +55,13 @@ export default async function ScreenerPage({
   }
   const effectivelyPro = isPro || isTrialActive;
 
+  // S&P 400/600 are Pro-only (launched 2026-08-07) — free-tier users still only
+  // pick from the S&P 500 base universe.
+  const tierStocks = effectivelyPro ? stocks : stocks.filter(s => isFreeTierStock(s.index_tags));
+
   const { visible: rawVisible } = effectivelyPro
-    ? { visible: stocks }
-    : getDailyFreeStocks(stocks, FREE_LIMIT);
+    ? { visible: tierStocks }
+    : getDailyFreeStocks(tierStocks, FREE_LIMIT);
 
   // Randomize order on every page load (force-dynamic ensures a new shuffle per request)
   const visibleStocks = [...rawVisible].sort(() => Math.random() - 0.5);
@@ -106,7 +110,7 @@ export default async function ScreenerPage({
               )}
               {(isPro || isTrialActive) && (
                 <p className="text-[9px] sm:text-xs md:mt-0.5 whitespace-nowrap">
-                  <span className="text-[#00ff41]">● {isTrialActive ? "PRO PREVIEW" : "PRO"} · ALL {stocks.length} STOCKS</span>
+                  <span className="text-[#00ff41]">● {isTrialActive ? "PRO PREVIEW" : "PRO"} · S&amp;P 500 + {tierStocks.length} STOCKS</span>
                 </p>
               )}
             </div>

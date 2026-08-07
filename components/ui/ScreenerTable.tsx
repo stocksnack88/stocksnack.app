@@ -26,6 +26,7 @@ export type ScreenerRow = {
   div_yield_5y_avg: number | null;
   div_yield: number | null;
   rank: number;
+  index_tags: string[] | null;
 };
 
 // Compute effective 5-year cumulative dividend per share for any stock.

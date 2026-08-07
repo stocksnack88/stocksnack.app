@@ -1,11 +1,15 @@
 import { unstable_cache } from 'next/cache'
 import { supabaseAdmin, fetchAllRows } from "@/lib/supabase";
-import { isLaunchedStock } from "@/lib/constants";
 import type { ScreenerRow } from "@/components/ui/ScreenerTable";
 
 // Stock data is updated weekly — cache for 60 s to avoid hitting DB on every request.
 // Shared by /screener (full universe) and /watchlist (filtered to saved tickers) so
 // both pages agree on the same universe rank (# out of COVERED_STOCK_COUNT).
+//
+// Returns the FULL universe (S&P 500 + 400 + 600), unfiltered — tier-based
+// visibility (S&P 400/600 are Pro-only) is applied by the caller via
+// isFreeTierStock() in lib/constants.ts, once it knows whether the current
+// user is effectively Pro. Rank is computed across this full universe.
 export const getAllScreenerRows = unstable_cache(
   async (): Promise<{ stocks: ScreenerRow[]; error: unknown }> => {
     const [{ data: rawRows, error }, { data: priceRows }] = await Promise.all([
@@ -36,10 +40,7 @@ export const getAllScreenerRows = unstable_cache(
       ),
     ]);
 
-    // Backend can freely ingest S&P 400/600 ahead of launch — this keeps them
-    // out of the live screener until index_tags says otherwise. See lib/constants.ts.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows = (rawRows ?? []).filter((r: any) => isLaunchedStock(r.stocks?.index_tags));
+    const rows = rawRows ?? [];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const priceMap = new Map((priceRows ?? []).map((p: any) => [p.ticker, p.current_price as number]));
@@ -62,6 +63,7 @@ export const getAllScreenerRows = unstable_cache(
       div_yield_5y_avg: r.div_yield_5y_avg ?? null,
       div_yield: r.div_yield ?? null,
       rank: i + 1,
+      index_tags: r.stocks?.index_tags ?? null,
     }));
 
     return { stocks, error: error ?? null };

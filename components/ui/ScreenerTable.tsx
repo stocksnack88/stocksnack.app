@@ -564,7 +564,7 @@ export default function ScreenerTable({
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="SEARCH TICKER OR COMPANY..."
-            className="w-full bg-black border border-[#00ff41]/20 text-[#00ff41] text-base md:text-xs rounded px-2.5 py-1 font-mono placeholder-[#00ff41]/20 focus:outline-none focus:border-[#00ff41]/50 pr-6"
+            className="w-full bg-black border border-[#00ff41]/20 text-[#00ff41] text-xs rounded px-2.5 py-1 font-mono placeholder-[#00ff41]/20 focus:outline-none focus:border-[#00ff41]/50 pr-6"
           />
           {searchQuery && (
             <button

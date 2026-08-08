@@ -207,6 +207,23 @@ def get_xbrl_files(cik: str, ticker: str = "") -> dict[str, str] | None:
     if not instance_url:
         log.warning("[%s] No XBRL instance file found in filing %s", ticker, accn)
         return None
+
+    # Some filers no longer publish standalone _lab.xml/_pre.xml — the label
+    # and presentation linkbases are embedded directly inside the DTS schema
+    # (.xsd) instead (a valid, increasingly common packaging choice; confirmed
+    # via RPM's FY2026 10-K, whose schema literally contains <link:labelLink>/
+    # <link:presentationLink> elements with no loose linkbase files anywhere in
+    # the filing). parse_labels()/parse_presentation() both search the whole
+    # tree for those elements regardless of the root tag, so pointing them at
+    # the schema works unchanged — no separate parser needed.
+    if not label_url or not pre_url:
+        schema_url = find_file([r"\.xsd$"])
+        if schema_url:
+            if not label_url:
+                label_url = schema_url
+            if not pre_url:
+                pre_url = schema_url
+
     if not label_url:
         log.warning("[%s] No label linkbase found in filing %s", ticker, accn)
     if not pre_url:

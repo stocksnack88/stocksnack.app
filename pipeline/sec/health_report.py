@@ -257,7 +257,7 @@ def main() -> int:
         rev = fund.get("revenue")
         if not rev:
             continue
-        if fund.get("sga") is None:
+        if fund.get("sga") is None and (t, "sga") not in confirmed_set:
             sga_missing.append((t, rev))
         if fund.get("rd_expense") is None:
             rd_missing.append((t, rev))

@@ -100,13 +100,6 @@ const CONDITION_PILLS: Record<ColumnKey, { cond: ConditionKey; label: string }[]
 };
 
 
-function needsValue(f: FilterRow): boolean {
-  return (
-    (f.column === "cagr" || f.column === "return" || f.column === "growth" || f.column === "health") &&
-    !SORT_CONDITIONS.has(f.condition)
-  );
-}
-
 function valuePlaceholder(col: ColumnKey): string {
   if (col === "cagr")   return "% e.g. 15";
   if (col === "return") return "e.g. 2";
@@ -495,62 +488,76 @@ export default function ScreenerTable({
   }
 
   // ── Filter handlers ────────────────────────────────────────────────────────
+  // Every metric row is always visible; these toggle individual chips on/off
+  // directly rather than building filter rows through an "add filter" flow.
+  // Nothing checked in a row = that metric isn't filtered.
 
-  function addFilter() {
-    const col = COLUMNS[0];
-    setFilters(prev => [...prev, { id: nextId, column: col.key, condition: col.conditions[0], value: "", signals: [] }]);
+  function nextFilterId(): number {
+    const id = nextId;
     setNextId(n => n + 1);
-    setShowFilters(true);
+    return id;
   }
 
-  function removeFilter(id: number) {
-    setFilters(prev => prev.filter(f => f.id !== id));
-  }
-
-  function handleColumnChange(id: number, newCol: ColumnKey) {
-    const colConfig     = COLUMNS.find(c => c.key === newCol)!;
-    const defaultCond   = colConfig.conditions[0];
+  // Sort (asc/desc), hazard (show_only/exclude), ticker/company (asc/desc) —
+  // simple on/off chips. Sort is exclusive across every row in the whole
+  // panel (only one column can be actively sorted at a time, matching
+  // applyFilters()'s single-sort-filter behavior); hazard is exclusive
+  // within its own row (show_only vs exclude can't both be active).
+  function toggleConditionChip(column: ColumnKey, condition: ConditionKey) {
     setFilters(prev => {
-      let updated = prev.map(f =>
-        f.id === id ? { ...f, column: newCol, condition: defaultCond, value: "", signals: [] } : f
-      );
-      if (SORT_CONDITIONS.has(defaultCond)) {
-        updated = updated.filter(f => f.id === id || !SORT_CONDITIONS.has(f.condition));
+      const existing = prev.find(f => f.column === column && f.condition === condition);
+      if (existing) return prev.filter(f => f.id !== existing.id);
+
+      let next = prev;
+      if (SORT_CONDITIONS.has(condition)) {
+        next = prev.filter(f => !SORT_CONDITIONS.has(f.condition));
+      } else if (column === "hazard") {
+        next = prev.filter(f => f.column !== "hazard");
       }
-      return updated;
+      return [...next, { id: nextFilterId(), column, condition, value: "", signals: [] }];
     });
   }
 
-  function handleConditionChange(id: number, newCond: ConditionKey) {
+  // ≥ / ≤ threshold inputs for CAGR, RETURN, GROWTH, HEALTH — clearing the
+  // value removes that row entirely (empty = not filtered).
+  function setThresholdValue(column: ColumnKey, condition: "gte" | "lte", value: string) {
     setFilters(prev => {
-      let updated = prev.map(f =>
-        f.id === id ? { ...f, condition: newCond, value: "", signals: [] } : f
-      );
-      if (SORT_CONDITIONS.has(newCond)) {
-        updated = updated.filter(f => f.id === id || !SORT_CONDITIONS.has(f.condition));
+      const existing = prev.find(f => f.column === column && f.condition === condition);
+      if (!value.trim()) {
+        return existing ? prev.filter(f => f.id !== existing.id) : prev;
       }
-      return updated;
+      if (existing) {
+        return prev.map(f => f.id === existing.id ? { ...f, value } : f);
+      }
+      return [...prev, { id: nextFilterId(), column, condition, value, signals: [] }];
     });
   }
 
-  function handleValueChange(id: number, value: string) {
-    setFilters(prev => prev.map(f => f.id === id ? { ...f, value } : f));
+  // SIGNAL multi-select — BUY+/BUY/HOLD/SELL all live on one filter row's
+  // .signals array; deselecting the last one removes the row.
+  function toggleSignalChip(sig: string) {
+    setFilters(prev => {
+      const existing = prev.find(f => f.column === "signal");
+      if (existing) {
+        const sigs = existing.signals.includes(sig)
+          ? existing.signals.filter(s => s !== sig)
+          : [...existing.signals, sig];
+        if (sigs.length === 0) return prev.filter(f => f.id !== existing.id);
+        return prev.map(f => f.id === existing.id ? { ...f, signals: sigs } : f);
+      }
+      return [...prev, { id: nextFilterId(), column: "signal", condition: "is", value: "", signals: [sig] }];
+    });
   }
 
-  function handleSignalToggle(id: number, signal: string) {
-    setFilters(prev => prev.map(f => {
-      if (f.id !== id) return f;
-      const sigs = f.signals.includes(signal)
-        ? f.signals.filter(s => s !== signal)
-        : [...f.signals, signal];
-      return { ...f, signals: sigs };
-    }));
+  function chipCls(active: boolean): string {
+    return `px-2 py-1 text-xs font-mono rounded transition-colors leading-none whitespace-nowrap ${
+      active
+        ? "bg-[#00ff41] text-black font-bold"
+        : "text-[#00ff41]/40 border border-[#00ff41]/20 hover:text-[#00ff41]/70 hover:border-[#00ff41]/40"
+    }`;
   }
 
-  // ── Select / input shared styles ───────────────────────────────────────────
-
-  const selectCls = "bg-black border border-[#00ff41]/20 text-[#00ff41] text-xs rounded px-1.5 py-1 font-mono focus:outline-none focus:border-[#00ff41]/50 cursor-pointer";
-  const inputCls  = "w-24 bg-black border border-[#00ff41]/20 text-[#00ff41] text-xs rounded px-1.5 py-1 font-mono placeholder-[#00ff41]/20 focus:outline-none focus:border-[#00ff41]/50";
+  const gridInputCls = "w-16 bg-black border border-[#00ff41]/20 text-[#00ff41] text-xs rounded px-1.5 py-1 font-mono placeholder-[#00ff41]/20 focus:outline-none focus:border-[#00ff41]/50";
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -643,90 +650,13 @@ export default function ScreenerTable({
         </div>
       </div>
 
-      {/* Filter panel */}
+      {/* Filter panel — every metric always visible as a row; tap chips directly,
+          nothing checked in a row means that metric isn't filtered. */}
       {showFilters && (
-        <div className="mb-4 border border-[#00ff41]/20 rounded p-3 bg-[#00ff41]/[0.015] space-y-2">
-          {filters.length === 0 && (
-            <p className="text-[10px] font-mono text-[#00ff41]/25 tracking-wider py-1">
-              No conditions — click + ADD FILTER
-            </p>
-          )}
-
-          {filters.map(filter => (
-            <div key={filter.id} className="flex flex-wrap items-center gap-1.5">
-              {/* Column dropdown */}
-              <select
-                value={filter.column}
-                onChange={e => handleColumnChange(filter.id, e.target.value as ColumnKey)}
-                className={selectCls}
-              >
-                {COLUMNS.map(c => (
-                  <option key={c.key} value={c.key}>{c.label}</option>
-                ))}
-              </select>
-
-              {/* Condition pills — for all columns except SIGNAL */}
-              {filter.column !== "signal" && CONDITION_PILLS[filter.column].map(({ cond, label }) => (
-                <button
-                  key={cond}
-                  type="button"
-                  onClick={() => handleConditionChange(filter.id, cond)}
-                  className={`px-2 py-1 text-xs font-mono rounded transition-colors leading-none ${
-                    filter.condition === cond
-                      ? "bg-[#00ff41] text-black font-bold"
-                      : "text-[#00ff41]/40 border border-[#00ff41]/20 hover:text-[#00ff41]/70 hover:border-[#00ff41]/40"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-
-              {/* SIGNAL pills — multi-select */}
-              {filter.column === "signal" && SIGNAL_OPTS.map(sig => (
-                <button
-                  key={sig}
-                  type="button"
-                  onClick={() => handleSignalToggle(filter.id, sig)}
-                  className={`px-2 py-1 text-xs font-mono rounded transition-colors leading-none ${
-                    filter.signals.includes(sig)
-                      ? "bg-[#00ff41] text-black font-bold"
-                      : "text-[#00ff41]/40 border border-[#00ff41]/20 hover:text-[#00ff41]/70 hover:border-[#00ff41]/40"
-                  }`}
-                >
-                  {sig}
-                </button>
-              ))}
-
-              {/* Numeric value input */}
-              {needsValue(filter) && (
-                <input
-                  type="number"
-                  value={filter.value}
-                  onChange={e => handleValueChange(filter.id, e.target.value)}
-                  placeholder={valuePlaceholder(filter.column)}
-                  className={inputCls}
-                />
-              )}
-
-              {/* Delete row */}
-              <button
-                onClick={() => removeFilter(filter.id)}
-                aria-label="Remove filter"
-                className="text-[#00ff41]/25 hover:text-red-400 text-xs font-mono transition-colors ml-1"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-
-          {/* Panel footer */}
-          <div className="flex items-center gap-4 pt-1.5 border-t border-[#00ff41]/10">
-            <button
-              onClick={addFilter}
-              className="text-xs font-mono text-[#00ff41]/50 hover:text-[#00ff41] transition-colors tracking-wider"
-            >
-              + ADD FILTER
-            </button>
+        <div className="mb-4 border border-[#00ff41]/20 rounded p-3 bg-[#00ff41]/[0.015]">
+          {/* CLEAR ALL lives at the top now */}
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#00ff41]/10">
+            <span className="text-[10px] font-mono font-bold text-[#00ff41]/30 tracking-widest">FILTERS</span>
             {filters.length > 0 && (
               <button
                 onClick={clearAllFilters}
@@ -735,6 +665,59 @@ export default function ScreenerTable({
                 CLEAR ALL
               </button>
             )}
+          </div>
+
+          <div className="space-y-2">
+            {COLUMNS.map(col => (
+              <div key={col.key} className="flex items-center gap-2">
+                {/* Left: metric label, ~30% */}
+                <div className="w-[26%] sm:w-[22%] shrink-0">
+                  <span className="text-[10px] font-mono font-bold text-[#00ff41]/50 tracking-widest">
+                    {col.label}
+                  </span>
+                </div>
+
+                {/* Right: pick-able chips, ~70% — scrolls sideways on its own if it overflows */}
+                <div className="flex-1 min-w-0 overflow-x-auto">
+                  <div className="flex items-center gap-1.5 w-max py-0.5">
+                    {col.key === "signal" ? (
+                      SIGNAL_OPTS.map(sig => {
+                        const active = filters.find(f => f.column === "signal")?.signals.includes(sig) ?? false;
+                        return (
+                          <button key={sig} type="button" onClick={() => toggleSignalChip(sig)} className={chipCls(active)}>
+                            {sig}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      CONDITION_PILLS[col.key].map(({ cond, label }) => {
+                        if (cond === "gte" || cond === "lte") {
+                          const existing = filters.find(f => f.column === col.key && f.condition === cond);
+                          return (
+                            <span key={cond} className="inline-flex items-center gap-1 shrink-0">
+                              <span className="text-[10px] text-[#00ff41]/40">{label}</span>
+                              <input
+                                type="number"
+                                value={existing?.value ?? ""}
+                                onChange={e => setThresholdValue(col.key, cond, e.target.value)}
+                                placeholder={valuePlaceholder(col.key)}
+                                className={gridInputCls}
+                              />
+                            </span>
+                          );
+                        }
+                        const active = !!filters.find(f => f.column === col.key && f.condition === cond);
+                        return (
+                          <button key={cond} type="button" onClick={() => toggleConditionChip(col.key, cond)} className={chipCls(active)}>
+                            {label}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

@@ -240,7 +240,7 @@ def main() -> int:
     ebitda_missing = []
     for t, fund in latest_fund.items():
         ni = fund.get("net_income")
-        if ni is not None and ni > 0 and not fund.get("ebitda"):
+        if ni is not None and ni > 0 and not fund.get("ebitda") and (t, "ebitda") not in confirmed_set:
             ebitda_missing.append((t, fund.get("ebitda"), ni))
     ebitda_missing.sort()
 

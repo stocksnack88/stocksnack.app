@@ -104,17 +104,15 @@ export default async function ScreenerPage({
                 STOCK SCREENER
               </h1>
             </div>
-            <div className="text-right shrink-0">
-              {updatedAt && (
-                <p className="text-[9px] sm:text-xs text-[#00ff41]/40 whitespace-nowrap">UPDATED {updatedAt.toUpperCase()}</p>
-              )}
-              {(isPro || isTrialActive) && (
-                <p className="text-[9px] sm:text-xs md:mt-0.5 whitespace-nowrap">
-                  <span className="text-[#00ff41]">● {isTrialActive ? "PRO PREVIEW" : "PRO"} · S&amp;P 500 + {tierStocks.length} STOCKS</span>
-                </p>
-              )}
-            </div>
+            {updatedAt && (
+              <p className="text-[9px] sm:text-xs text-[#00ff41]/40 whitespace-nowrap shrink-0">UPDATED {updatedAt.toUpperCase()}</p>
+            )}
           </div>
+          {(isPro || isTrialActive) && (
+            <p className="text-[9px] sm:text-xs mt-1">
+              <span className="text-[#00ff41]">● {isTrialActive ? "PRO PREVIEW" : "PRO"} · S&amp;P 500 + {tierStocks.length} STOCKS</span>
+            </p>
+          )}
         </div>
       </div>
 

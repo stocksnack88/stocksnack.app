@@ -90,10 +90,10 @@ const PAGE_SIZE = 100;
 
 const CONDITION_PILLS: Record<ColumnKey, { cond: ConditionKey; label: string }[]> = {
   signal:  [],
-  cagr:    [{ cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }, { cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }],
-  return:  [{ cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }, { cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }],
-  growth:  [{ cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }, { cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }],
-  health:  [{ cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }, { cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }],
+  cagr:    [{ cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }, { cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }],
+  return:  [{ cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }, { cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }],
+  growth:  [{ cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }, { cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }],
+  health:  [{ cond: "desc", label: "↑ HIGH→LOW" }, { cond: "asc", label: "↓ LOW→HIGH" }, { cond: "gte", label: "≥" }, { cond: "lte", label: "≤" }],
   ticker:  [{ cond: "asc", label: "A→Z" }, { cond: "desc", label: "Z→A" }],
   company: [{ cond: "asc", label: "A→Z" }, { cond: "desc", label: "Z→A" }],
   hazard:  [{ cond: "show_only", label: "SHOW ONLY" }, { cond: "exclude", label: "EXCLUDE" }],

@@ -335,6 +335,8 @@ def main() -> int:
     for t, rows in by_ticker.items():
         sorted_rows = sorted(rows, key=lambda r: r["fiscal_year"])
         for f in scale_fields:
+            if (t, f) in confirmed_set:
+                continue
             prev = None
             for r in sorted_rows:
                 curr = r.get(f)

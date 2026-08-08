@@ -418,57 +418,92 @@ def extract_annual_series(
 
         # ── Step 2: depreciation_amortization — special resolution ───────────
         if standardised_name == "depreciation_amortization":
-            # Try priority-1 (complete aggregate) first.
-            p1 = tags[0]
-            if p1 in tag_data:
-                series, _ = tag_data[p1]
-                most_recent = max(d["year"] for d in series)
-                if cur_year - most_recent <= 1:
+            # Exactly two tags in tag_mapping.csv are genuine PARTIAL sub-components
+            # (PP&E depreciation + intangible amortization, per the CSV's own "component
+            # for sum" notes) meant to be summed together. Every other tag — including
+            # ones appended to the CSV later, like the utility/PEG substitute or the
+            # staleness-fallback duplicates — is a COMPLETE aggregate meant to be tried
+            # on its own. Selected by name, not list position: a positional slice
+            # (tags[1:4]) broke silently once more complete-alternative rows were
+            # appended after the original 5-tag design, pushing these two components
+            # out of the slice's range (found via SMG, 2026-08-08 — its FY2025 filing
+            # reports only the two components, no complete tag, and the stale slice
+            # meant real, available data was silently dropped).
+            _SUM_COMPONENTS = {"Depreciation", "AmortizationOfIntangibleAssets"}
+            complete_tags = [t for t in dict.fromkeys(tags) if t not in _SUM_COMPONENTS]
+            _all_da_tags = [*complete_tags, *_SUM_COMPONENTS]
+
+            # The single most recent year available from ANY D&A-related tag —
+            # used below to detect when a candidate's own window (even if a "full"
+            # `years`-long series) is missing the true latest year because it's
+            # stuck on an older tag the filer has since stopped using (SMG-class:
+            # its legacy DepreciationAndAmortization tag stops at FY2024, but a
+            # fresher FY2025 figure exists via the two component tags — a naive
+            # "is this series `years` items long" check accepted the stale one
+            # since it already had a full 5 years, just the wrong 5).
+            newest_available_year = max(
+                (d["year"] for t in _all_da_tags if t in tag_data for d in tag_data[t][0]),
+                default=None,
+            )
+
+            def _try_complete_tags(max_staleness: int) -> list[dict] | None:
+                for candidate in complete_tags:
+                    if candidate not in tag_data:
+                        continue
+                    series, _ = tag_data[candidate]
+                    most_recent = max(d["year"] for d in series)
+                    if cur_year - most_recent > max_staleness:
+                        print(
+                            f"[field_mapper] WARNING: {ticker} depreciation_amortization tag "
+                            f"'{candidate}' most recent year {most_recent} — stale "
+                            f"(> {max_staleness}y), skipping",
+                            file=sys.stderr,
+                        )
+                        continue
                     result = sorted(series, key=lambda d: d["year"])[-years:]
                     for d in result:
                         print(
                             f"[field_mapper] {ticker} depreciation_amortization {d['year']}: "
-                            f"tag={p1} value={d['value']/1e6:.0f}M",
+                            f"tag={candidate} value={d['value']/1e6:.0f}M",
                             file=sys.stderr,
                         )
-                    # Backfill missing years from lower-priority tags when P1 doesn't
-                    # reach back `years` years (e.g. a tag switch mid-history).
-                    if len(result) < years:
-                        covered = {d["year"] for d in result}
-                        merged  = list(result)
-                        for idx2, tag2 in enumerate(tags):
-                            if idx2 == 0:
-                                continue  # skip P1 (already primary)
-                            if len(merged) >= years:
-                                break
-                            if tag2 not in tag_data:
+                    # Extend towards the newest year available anywhere — not just
+                    # "does this reach `years` entries" — whenever a fresher tag
+                    # (complete or component) has a later year this candidate lacks.
+                    covered  = {d["year"] for d in result}
+                    at_newest = newest_available_year is None or max(covered) >= newest_available_year
+                    if len(result) < years or not at_newest:
+                        merged = list(result)
+                        for tag2 in _all_da_tags:
+                            if tag2 == candidate or tag2 not in tag_data:
                                 continue
                             series2, _ = tag_data[tag2]
                             for d2 in sorted(series2, key=lambda x: x["year"]):
-                                if len(merged) >= years:
-                                    break
                                 if d2["year"] in covered:
                                     continue
                                 covered.add(d2["year"])
                                 merged.append(d2)
                                 print(
                                     f"[field_mapper] WARNING: [{ticker}] depreciation_amortization "
-                                    f"year {d2['year']} backfilled from fallback tag "
-                                    f"(priority {idx2 + 1}): {tag2}",
+                                    f"year {d2['year']} backfilled from fallback tag: {tag2}",
                                     file=sys.stderr,
                                 )
                         result = sorted(merged, key=lambda d: d["year"])[-years:]
                     return result
-                print(
-                    f"[field_mapper] WARNING: {ticker} depreciation_amortization tag '{p1}' "
-                    f"most recent year {most_recent} — stale, skipping",
-                    file=sys.stderr,
-                )
+                return None
 
-            # Priority-1 stale/absent → sum priority-2 + priority-3 + priority-4.
-            # These are genuine sub-components (PP&E depreciation / intangible
-            # amortization) that add up to the total D&A figure.
-            component_tags = tags[1:4]
+            # Two-tier staleness tolerance, same as the original design: try every
+            # complete tag strictly fresh (<=1y) first, then retry all of them with
+            # a looser tolerance (<=2y) before falling back to summing components —
+            # preserves the wider tolerance PCG/UPS-class duplicate fallback entries
+            # were added for, just no longer position-dependent.
+            result = _try_complete_tags(1) or _try_complete_tags(2)
+            if result is not None:
+                return result
+
+            # No complete aggregate has fresh-enough data → sum the two genuine
+            # sub-components (PP&E depreciation + intangible amortization).
+            component_tags = [t for t in dict.fromkeys(tags) if t in _SUM_COMPONENTS]
             active: dict[str, list[dict]] = {}
             for tag in component_tags:
                 if tag not in tag_data:
@@ -534,28 +569,6 @@ def extract_annual_series(
                         {"year": yr, "value": year_totals[yr]["value"], "end": year_totals[yr]["end"]}
                         for yr in all_years
                     ]
-
-            # Last resort: any remaining tag beyond the component range (index 4+).
-            # Iterate rather than hardcode index so duplicate priority entries don't shift the target.
-            for p5 in tags[4:]:
-                if p5 not in tag_data:
-                    continue
-                series, _ = tag_data[p5]
-                most_recent = max(d["year"] for d in series)
-                if cur_year - most_recent <= 2:
-                    result = sorted(series, key=lambda d: d["year"])[-years:]
-                    for d in result:
-                        print(
-                            f"[field_mapper] {ticker} depreciation_amortization {d['year']}: "
-                            f"tag={p5} value={d['value']/1e6:.0f}M",
-                            file=sys.stderr,
-                        )
-                    return result
-                print(
-                    f"[field_mapper] WARNING: {ticker} depreciation_amortization tag '{p5}' "
-                    f"most recent year {most_recent} — stale, skipping",
-                    file=sys.stderr,
-                )
 
             print(
                 f"[field_mapper] depreciation_amortization: all tags stale or missing for {ticker}",

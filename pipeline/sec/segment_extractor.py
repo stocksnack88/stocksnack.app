@@ -1101,8 +1101,23 @@ def parse_segments(
         """True when every segment name contains a geographic keyword.
         Used to detect companies like PEP whose reportable segments are geographic
         business units filed under StatementBusinessSegmentsAxis (e.g.
-        'Europe, Middle East & Africa', 'Latin America Foods')."""
-        return bool(segs) and all(_GEO_KEYWORDS_RE.search(s["name"]) for s in segs)
+        'Europe, Middle East & Africa', 'Latin America Foods').
+
+        A repeated region with different business descriptors is not a pure
+        geographic breakdown.  HSY, for example, reports "North America
+        Confectionery" and "North America Salty Snacks" as two distinct
+        operating segments plus "International".  The former implementation
+        saw a geographic word in every label and moved all three real product
+        segments to geo_segments.  Repeated matched regions are a strong signal
+        that the suffix, not the geography, defines the segment.
+        """
+        if not segs:
+            return False
+        matches = [_GEO_KEYWORDS_RE.search(s["name"]) for s in segs]
+        if not all(matches):
+            return False
+        regions = [m.group(0).lower() for m in matches if m]
+        return len(regions) == len(set(regions))
 
     # Build product segments — try ProductOrService axis first, fall back to
     # StatementBusinessSegmentsAxis when the product axis returns nothing or only

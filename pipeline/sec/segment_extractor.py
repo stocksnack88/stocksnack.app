@@ -71,6 +71,37 @@ _BIZ_SEGMENT_AXES = {
 
 _NULL_RESULT = {"product_segments": None, "geo_segments": None}
 
+
+def _is_geo_complement_member(member: str) -> bool:
+    """True for a geo member that's a catch-all complement of named regions
+    (the "everything else" side of a split), not an independently-sized region
+    in its own right: NonUsMember-style ("non-US"/"excluding US"/"ex-US") or a
+    literal "Other"/"Rest of World" bucket.
+
+    Found via OTIS/SLAB (both real, multi-country geo breakdowns collapsing to
+    None): their catch-all bucket is tagged `otis:OtherMember` /
+    `slab:RestOfWorldMember`, which neither of this function's two former
+    call sites (`_build_segments`'s geo-dedup and `_drop_rollups`'s subset-sum
+    "others" pool, previously two near-duplicate functions with slightly
+    different pattern lists) recognized as a complement — only "non-us"-style
+    names were covered. A generic "Other"/"Rest of World" bucket is almost
+    always LARGER than any single named country (it's everything not called
+    out individually), so treating it as a normal member let it wrongly
+    subsume every real country row, leaving only itself -- which then often
+    also got filtered out by the boilerplate-label check, producing a null
+    result for what was actually rich, real per-country data.
+    """
+    m = member.lower()
+    local = m.split(":", 1)[-1]
+    return (
+        member == "us-gaap:NonUsMember"
+        or "nonusmember" in m or "non-us" in m or "nonus" in m
+        or "excluding" in m or "ex-us" in m
+        or "restofworld" in m or "rest of world" in m
+        or "foreign" in local          # AllForeignCountriesMember (EMN), ForeignOperationsMember (CHH)
+        or local.startswith("other")   # OtherMember (OTIS), OtherCountriesMember (AEIS)
+    )
+
 # Segment names that are roll-up rows, not real segments.
 # Lowercased exact matches — anything starting with "total" is also excluded.
 _NAME_ROLLUPS = {"worldwide", "consolidated", "revenue to unaffiliated customers,", "revenues"}
@@ -717,12 +748,6 @@ def _drop_rollups(
         m = s.get("member", "")
         return m.startswith("us-gaap:") or m.startswith("srt:")
 
-    def _is_complement_member(m: str) -> bool:
-        """True for aggregate members that are the complement of a specific country."""
-        ml = m.lower()
-        return (m == "us-gaap:NonUsMember" or "nonusmember" in ml or "nonus" in ml
-                or "excluding" in ml or "ex-us" in ml)
-
     n_total   = len(segments)
     candidates = [s for s in segments if _is_std(s) or n_total <= _SMALL_N]
     if not candidates:
@@ -741,7 +766,7 @@ def _drop_rollups(
         # NonUS + EMEA + Japan ≈ US would otherwise falsely drop the US row.
         if candidate.get("member", "").startswith("country:"):
             others = [s for s in segments
-                      if s is not candidate and not _is_complement_member(s.get("member", ""))]
+                      if s is not candidate and not _is_geo_complement_member(s.get("member", ""))]
         else:
             others = [s for s in segments if s is not candidate]
         if not others:
@@ -750,8 +775,14 @@ def _drop_rollups(
         child_vals = sorted([s["value"] for s in others], reverse=True)
         n = len(child_vals)
 
-        # Fast path: all others sum to v
-        if lo <= sum(child_vals) <= hi:
+        # Fast path: all others sum to v. Requires >=2 siblings -- with only 1
+        # sibling, "the other one sums to v" is trivially just "the other one
+        # is close to v", which proves nothing about rollup-ness. Found via
+        # CVX: US ($65.331B) and Non-US ($65.545B) are two genuinely
+        # independent, similarly-sized regions, not a total+component pair --
+        # but with n=1 the old check couldn't tell the difference and treated
+        # either one as "= sum of the other", dropping a real region.
+        if n >= 2 and lo <= sum(child_vals) <= hi:
             to_drop.add(id(candidate))
             continue
 
@@ -822,12 +853,6 @@ def _build_segments(
         if country_facts and noncountry_facts:
             yr = max(f["period_end"] for f in relevant)[:4]
 
-            def _is_complement(member: str) -> bool:
-                m = member.lower()
-                return ("nonusmember" in m or "non-us" in m or "nonus" in m
-                        or "excluding" in m or "ex-us" in m
-                        or member == "us-gaap:NonUsMember")
-
             to_drop = set()
             for cf in country_facts:
                 # Use MAX across all facts for this member in the most-recent year so
@@ -842,7 +867,7 @@ def _build_segments(
                 if cv is None:
                     continue
                 if any(f["period_end"][:4] == yr
-                       and not _is_complement(f["member"])
+                       and not _is_geo_complement_member(f["member"])
                        and f["value"] > cv * 0.90
                        for f in noncountry_facts):
                     to_drop.add(id(cf))
@@ -1065,7 +1090,10 @@ def parse_segments(
     _GEO_KEYWORDS_RE = re.compile(
         r'\b(europe|middle east|africa|latin america|asia|pacific|'
         r'north america|americas|international|emea|apac|apla|amesa|australia|india|'
-        r'u\.s\.|u\.s|united states|domestic|canada)\b',
+        r'u\.s\.|u\.s|united states|domestic|canada|'
+        r'china|japan|germany|france|mexico|brazil|korea|taiwan|spain|italy|'
+        r'united kingdom|hong kong|singapore|netherlands|switzerland|russia|'
+        r'rest of world|worldwide)\b',
         re.IGNORECASE
     )
 
@@ -1123,14 +1151,27 @@ def parse_segments(
         if geo is None or len(biz_product_geo_segments) > len(geo):
             geo = biz_product_geo_segments
             log.info("[%s] Geo segments from geo-named BizSegments", ticker)
-    if geo is None and not product_used_biz:
+    if not product_used_biz:
         biz_geo = _build_segments(facts, _BIZ_SEGMENT_AXES, labels, parent_child_map)
         if biz_geo and len(biz_geo) >= 3:
             # Require ≥3 segments to avoid using brand/business segments (e.g. NKE's
             # "NIKE Brand / Converse" which has only 2 entries on BizSegments axis).
             # Geographic breakdowns typically have ≥3 regions.
-            geo = biz_geo
-            log.info("[%s] Geo segments sourced from StatementBusinessSegmentsAxis", ticker)
+            if geo is None:
+                geo = biz_geo
+                log.info("[%s] Geo segments sourced from StatementBusinessSegmentsAxis", ticker)
+            elif len(biz_geo) > len(geo) and _is_all_geo_named(biz_geo):
+                # geo already has a valid (>=2 member) result from the plain geo
+                # axis, but BizSegments offers a richer one -- only override when
+                # biz_geo's names are actually geographic (unlike the geo-is-None
+                # case above, we can't blindly trust >=3 members here: AAPL has a
+                # real BizSegments-sourced 5-region breakdown that should win over
+                # its coarser 3-bucket US/China/Other geo-axis result, but e.g.
+                # GD's 4 BizSegments (Marine/Aerospace/Combat/Technologies) are
+                # real products, not geography, and must never replace its
+                # already-correct 5-region geo result just for having more rows.
+                geo = biz_geo
+                log.info("[%s] Geo segments upgraded to richer StatementBusinessSegmentsAxis breakdown", ticker)
 
     return {"product_segments": product, "geo_segments": geo}
 

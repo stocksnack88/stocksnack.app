@@ -145,6 +145,10 @@ _MEMBER_OVERRIDES: dict[str, str] = {
     "cat:ResourceIndustriesMember":      "Resource Industries",
     "cat:PowerEnergyMember":             "Energy & Transportation",
     "cat:FinancialProductsSegmentMember": "Financial Products",
+    # Company-extension geo members whose taxonomy labels are generic
+    # definitions rather than useful display names.
+    "emn:AllForeignCountriesMember": "Other Foreign Countries",
+    "kai:SegmentGeographicalGroupsOfCountriesOtherCountriesMember": "Other Countries",
     # Standard XBRL members — replace generic taxonomy labels with clean names
     "us-gaap:ProductAndServiceOtherMember":  "Other",
     "us-gaap:AllOtherSegmentsMember":        "Other",
@@ -422,7 +426,25 @@ def _clean_member_name(member: str, labels: dict[str, str]) -> str:
         _rept = re.match(r'represents\s+information\s+pertaining\s+to\s+(.+)', name, re.IGNORECASE)
         if _rept:
             name = _rept.group(1).split(',')[0].strip()
-        return _shorten(name)
+        # Some extension taxonomies use the standard XBRL definition of a
+        # reportable segment as every member's *label* instead of a concise
+        # display name.  Returning it produces several indistinguishable rows
+        # such as "A component of an entity for which there" (EMN/MLI/EWBC)
+        # or "The reportable segment, a component of" (ATO).  The member QName
+        # still contains the real name, so fall through to the code-derived
+        # formatter for these documentation labels.
+        _generic_definition = re.match(
+            r'^(?:'
+            r'(?:the\s+reportable\s+segment,?\s*)?a\s+component\s+of\s+'
+            r'(?:an\s+entity|an\s+enterprise)\b'
+            r'|(?:a|an)\s+(?:second\s+)?(?:specified|unspecified)\s+group\s+of\s+foreign\b'
+            r'|the\s+.+?\s+component\s+of\s+an?\b'
+            r')',
+            name,
+            re.IGNORECASE,
+        )
+        if not _generic_definition:
+            return _shorten(name)
 
     # Strip namespace prefix
     local = member.split(":")[-1] if ":" in member else member
@@ -433,6 +455,13 @@ def _clean_member_name(member: str, labels: dict[str, str]) -> str:
     # Strip trailing "Segment"
     if local.endswith("Segment"):
         local = local[:-7]
+
+    # Some extension members glue a lowercase conjunction to the following
+    # CamelCase word (ATO: PipelineandStorage, EWBC:
+    # ConsumerandBusinessBanking). Split that boundary before the general
+    # camel-case formatter.
+    local = re.sub(r"(?<=[a-z])and(?=[A-Z])", "And", local)
+    local = re.sub(r"(?<=[a-z])foreign(?=[A-Z]|$)", "Foreign", local)
 
     # Split camelCase into words
     words = re.sub(r"([A-Z][a-z])", r" \1", local).strip()
@@ -1169,17 +1198,16 @@ def parse_segments(
     if not product_used_biz:
         biz_geo = _build_segments(facts, _BIZ_SEGMENT_AXES, labels, parent_child_map)
         if biz_geo and len(biz_geo) >= 3:
-            # Require ≥3 segments to avoid using brand/business segments (e.g. NKE's
-            # "NIKE Brand / Converse" which has only 2 entries on BizSegments axis).
-            # Geographic breakdowns typically have ≥3 regions.
-            if geo is None:
+            # Require ≥3 explicitly geo-named segments. The old count-only
+            # fallback put TDS Telecom / Array / Other into geo_segments simply
+            # because there were three business rows.
+            if geo is None and _is_all_geo_named(biz_geo):
                 geo = biz_geo
                 log.info("[%s] Geo segments sourced from StatementBusinessSegmentsAxis", ticker)
-            elif len(biz_geo) > len(geo) and _is_all_geo_named(biz_geo):
+            elif geo is not None and len(biz_geo) > len(geo) and _is_all_geo_named(biz_geo):
                 # geo already has a valid (>=2 member) result from the plain geo
                 # axis, but BizSegments offers a richer one -- only override when
-                # biz_geo's names are actually geographic (unlike the geo-is-None
-                # case above, we can't blindly trust >=3 members here: AAPL has a
+                # biz_geo's names are actually geographic. AAPL has a
                 # real BizSegments-sourced 5-region breakdown that should win over
                 # its coarser 3-bucket US/China/Other geo-axis result, but e.g.
                 # GD's 4 BizSegments (Marine/Aerospace/Combat/Technologies) are

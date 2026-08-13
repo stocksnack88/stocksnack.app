@@ -124,8 +124,18 @@ def _m1_ebitda(data: dict, shares: float, fx_rate: float = 1.0, sp500_cagr: floa
         return None
 
     if pj["avg_dollar_change"] is not None:
-        current     = ebitda_vals[0]
-        growth_rate = pj["avg_dollar_change"]
+        current = ebitda_vals[0]
+        # Display-only normalization: avg_dollar_change is a raw $/yr figure,
+        # not a rate -- storing it directly as growth_rate made the frontend's
+        # "%/yr" formatting show nonsense like "4800000000.0%/yr" (feedback:
+        # "Presentation of data with odd number need to be clean up").
+        # Dividing by the current base converts it to a genuine fraction,
+        # matching the exact normalization layer2_growth.py already applies
+        # to revenue/net_income's display CAGR for the identical reason.
+        # tapered_project() below still receives the raw pj["avg_dollar_change"]
+        # via pj, not this normalized value -- only the returned (display-only)
+        # growth_rate changes here.
+        growth_rate = (pj["avg_dollar_change"] / abs(current)) if current else pj["weighted_cagr"]
     else:
         current = pj.get("projection_base")   # B2: use replacement, not dropped value
         if current is None:

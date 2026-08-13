@@ -290,6 +290,7 @@ export default function ScreenerTable({
 }) {
   const { conversionReady } = useGuidedTour();
   const [watchlist, setWatchlist] = useState<Set<string>>(new Set());
+  const [watchlistCallout, setWatchlistCallout] = useState<string | null>(null);
   const [detailLevel,  setDetailLevel]  = useState(0);
   const [showFilters,  setShowFilters]  = useState(false);
   const [showProGate,    setShowProGate]    = useState(false);
@@ -391,14 +392,28 @@ export default function ScreenerTable({
       method: isSaved ? 'DELETE' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ticker }),
-    }).then(res => {
-      if (res.ok) return;
-      // revert on failure
-      setWatchlist(prev => {
-        const next = new Set(prev);
-        if (isSaved) next.add(ticker); else next.delete(ticker);
-        return next;
-      });
+    }).then(async res => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // revert on failure
+        setWatchlist(prev => {
+          const next = new Set(prev);
+          if (isSaved) next.add(ticker); else next.delete(ticker);
+          return next;
+        });
+        const message =
+          data.error === 'limit_reached' ? `Free watchlist limit reached (${data.limit ?? 10}) — remove one or upgrade for unlimited`
+          : data.error === 'pro_only' ? `${ticker} is Pro-only (S&P 400/600) — upgrade to add it`
+          : 'Failed to update watchlist';
+        setWatchlistCallout(message);
+        return;
+      }
+      // Save succeeded but landed past the free-tier unlock cutoff — same
+      // callout treatment whether it happened here or via the watchlist
+      // tab's own add box, so users see one consistent message either way.
+      if (!isSaved && data.locked) {
+        setWatchlistCallout(`${ticker} saved, but locked — you already have 5 unlocked free picks. Upgrade to Pro to see it.`);
+      }
     }).catch(() => {
       setWatchlist(prev => {
         const next = new Set(prev);
@@ -744,6 +759,28 @@ export default function ScreenerTable({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Watchlist callout toast — save rejected (limit/pro-only) or saved-but-locked */}
+      {watchlistCallout && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 md:left-auto md:right-4 md:translate-x-0 z-[100] w-[calc(100vw-2rem)] max-w-[320px]">
+          <div className="relative bg-[#050505] border border-[#00ff41]/20 rounded-xl px-5 py-3.5 shadow-lg shadow-black/60">
+            <button
+              onClick={() => setWatchlistCallout(null)}
+              className="absolute top-3 right-3 text-[#00ff41]/30 hover:text-[#00ff41] font-mono text-xs leading-none transition-colors"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+            <p className="text-xs font-mono text-[#00ff41]/70 leading-relaxed pr-4">{watchlistCallout}</p>
+            <a
+              href="/pricing"
+              className="inline-block mt-2 text-[10px] font-mono font-bold text-[#00ff41] tracking-widest hover:underline"
+            >
+              UPGRADE TO PRO →
+            </a>
           </div>
         </div>
       )}

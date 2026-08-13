@@ -21,3 +21,13 @@ export function isFreeTierStock(indexTags: string[] | null | undefined): boolean
   if (!indexTags || indexTags.length === 0) return true;
   return !indexTags.some((t) => PRO_ONLY_INDEX_TAGS.includes(t));
 }
+
+// Free-tier watchlist rules (2026-08-08): a free/logged-in user can search
+// and save up to WATCHLIST_FREE_CAP tickers of their own choosing (some room
+// for typos/changing their mind), but only the first WATCHLIST_FREE_UNLOCKED
+// of those (by when they were added, oldest first) render with full data —
+// the rest are saved but locked until upgrade. Unstarring one promotes the
+// next-oldest locked pick into the unlocked set. Effectively-Pro users
+// (paid or on an active trial) are exempt from both numbers entirely.
+export const WATCHLIST_FREE_CAP = 10;
+export const WATCHLIST_FREE_UNLOCKED = 5;

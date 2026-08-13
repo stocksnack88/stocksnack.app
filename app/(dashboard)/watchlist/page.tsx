@@ -4,9 +4,11 @@ import { redirect } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getCachedUser, getCachedUserProfile } from '@/lib/server-auth'
 import { getAllScreenerRows } from '@/lib/screener-data'
+import { WATCHLIST_FREE_UNLOCKED } from '@/lib/constants'
 import ScreenerTable, { type ScreenerRow } from '@/components/ui/ScreenerTable'
 import ScreenerTableErrorBoundary from '@/components/ui/ScreenerTableErrorBoundary'
 import NavHeightLogger from '@/components/ui/NavHeightLogger'
+import WatchlistAddBox from '@/components/ui/WatchlistAddBox'
 
 const TRIAL_DURATION_MS = 5 * 60 * 1000
 const EXTENSION_DURATION_MS = 15 * 60 * 1000
@@ -20,8 +22,9 @@ export default async function WatchlistPage() {
     supabaseAdmin
       .from('watchlist')
       .select('ticker')
+      // Oldest-first: free-tier unlock rule is "first N added stay unlocked".
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: true }),
     getAllScreenerRows(),
   ])
 
@@ -35,11 +38,19 @@ export default async function WatchlistPage() {
     (!isPro && trialExtensionStartedAt !== null && extensionElapsed < EXTENSION_DURATION_MS)
   const effectivelyPro = isPro || isTrialActive
 
-  // Keep the user's own add-order (most recent first), not the screener's rank order.
   const stockByTicker = new Map(allStocks.map(s => [s.ticker, s]))
-  const watchedStocks: ScreenerRow[] = (watchlistRows ?? [])
+  // watchlistRows is oldest-first (the free-tier "first N added stay unlocked"
+  // rule needs that order) — reverse for display so newest saves show first.
+  const orderedAsc: ScreenerRow[] = (watchlistRows ?? [])
     .map(r => stockByTicker.get(r.ticker))
     .filter((s): s is ScreenerRow => !!s)
+  const watchedStocks = [...orderedAsc].reverse()
+
+  // Effectively-Pro users have no cap; free-tier users only get the first
+  // WATCHLIST_FREE_UNLOCKED (oldest) with full data — the rest stay saved
+  // but locked. Unstarring one promotes the next-oldest locked pick.
+  const unlockedStocks = effectivelyPro ? watchedStocks : [...orderedAsc.slice(0, WATCHLIST_FREE_UNLOCKED)].reverse()
+  const lockedStocks = effectivelyPro ? [] : [...orderedAsc.slice(WATCHLIST_FREE_UNLOCKED)].reverse()
 
   if (error) {
     return (
@@ -66,11 +77,13 @@ export default async function WatchlistPage() {
 
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto">
+          <WatchlistAddBox />
+
           {watchedStocks.length === 0 ? (
             <div className="border border-[#00ff41]/15 rounded-lg px-6 py-16 text-center">
               <p className="text-sm text-[#00ff41]/60 mb-1">Your watchlist is empty.</p>
               <p className="text-xs text-[#00ff41]/30 mb-5">
-                Tap the star next to any ticker in the screener to save it here.
+                Type a ticker above, or tap the star next to any ticker in the screener to save it here.
               </p>
               <a
                 href="/screener"
@@ -84,29 +97,37 @@ export default async function WatchlistPage() {
               <ScreenerTable visibleStocks={watchedStocks} hasSession isPro />
             </ScreenerTableErrorBoundary>
           ) : (
-            <div className="relative">
-              <div className="blur-sm select-none pointer-events-none opacity-60">
-                <ScreenerTableErrorBoundary>
-                  <ScreenerTable visibleStocks={watchedStocks} hasSession isPro />
-                </ScreenerTableErrorBoundary>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center px-6">
-                <div className="bg-[#050505] border border-[#00ff41]/25 rounded-lg px-6 py-5 text-center shadow-lg shadow-black/60 max-w-xs">
-                  <p className="text-xs font-bold tracking-widest text-[#00ff41] mb-1">
-                    YOUR TRIAL HAS ENDED
-                  </p>
-                  <p className="text-[11px] text-[#00ff41]/50 mb-4">
-                    Your {watchedStocks.length} saved stock{watchedStocks.length === 1 ? '' : 's'} {watchedStocks.length === 1 ? 'is' : 'are'} still here — upgrade to Pro to see them again.
-                  </p>
-                  <a
-                    href="/pricing"
-                    className="inline-block bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest px-4 py-2 rounded hover:bg-[#00dd38] transition-colors"
-                  >
-                    UPGRADE TO PRO →
-                  </a>
+            <>
+              <ScreenerTableErrorBoundary>
+                <ScreenerTable visibleStocks={unlockedStocks} hasSession isPro />
+              </ScreenerTableErrorBoundary>
+
+              {lockedStocks.length > 0 && (
+                <div className="relative mt-6">
+                  <div className="blur-sm select-none pointer-events-none opacity-60">
+                    <ScreenerTableErrorBoundary>
+                      <ScreenerTable visibleStocks={lockedStocks} hasSession isPro />
+                    </ScreenerTableErrorBoundary>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center px-6">
+                    <div className="bg-[#050505] border border-[#00ff41]/25 rounded-lg px-6 py-5 text-center shadow-lg shadow-black/60 max-w-xs">
+                      <p className="text-xs font-bold tracking-widest text-[#00ff41] mb-1">
+                        {lockedStocks.length} MORE SAVED, LOCKED
+                      </p>
+                      <p className="text-[11px] text-[#00ff41]/50 mb-4">
+                        Free accounts get full access to your first {WATCHLIST_FREE_UNLOCKED} picks. Upgrade to Pro to unlock the rest.
+                      </p>
+                      <a
+                        href="/pricing"
+                        className="inline-block bg-[#00ff41] text-black font-bold font-mono text-xs tracking-widest px-4 py-2 rounded hover:bg-[#00dd38] transition-colors"
+                      >
+                        UPGRADE TO PRO →
+                      </a>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>

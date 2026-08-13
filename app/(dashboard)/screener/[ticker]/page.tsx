@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { COVERED_STOCK_COUNT } from "@/lib/constants";
+import { COVERED_STOCK_COUNT, WATCHLIST_FREE_UNLOCKED } from "@/lib/constants";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -96,7 +96,23 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   const price = priceRes.data;
   const score = scoreRes.data;
   const fundamentals = fundRes.data ?? [];
-  const canAccess = isPro || isTrialActive || freeTickers.has(ticker);
+
+  // Free-tier users get full access to their own first WATCHLIST_FREE_UNLOCKED
+  // saved picks (oldest-added first), same rule the /watchlist page enforces —
+  // only checked when nothing else already grants access, to skip the extra
+  // query for the common case.
+  let inUnlockedWatchlist = false;
+  if (!isPro && !isTrialActive && !freeTickers.has(ticker) && session?.user?.id) {
+    const { data: ownWatchlist } = await supabaseAdmin
+      .from("watchlist")
+      .select("ticker")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: true })
+      .limit(WATCHLIST_FREE_UNLOCKED);
+    inUnlockedWatchlist = (ownWatchlist ?? []).some((r) => r.ticker === ticker);
+  }
+
+  const canAccess = isPro || isTrialActive || freeTickers.has(ticker) || inUnlockedWatchlist;
 
   // ── Paywall ──────────────────────────────────────────────────────────────────
   if (!canAccess) {

@@ -700,7 +700,33 @@ def extract_computed(
                     f"[field_mapper] {standardised_name}: {comp_b} missing — using {comp_a} as FCF (capex=0)",
                     file=sys.stderr,
                 )
-                return [{"year": d["year"], "value": d["value"], "end": d.get("end", "")} for d in series_a]
+                fallback_result = [{"year": d["year"], "value": d["value"], "end": d.get("end", "")} for d in series_a]
+                # This branch used to return without writing to extracted_data.csv --
+                # since normalizer.py reads exclusively from that CSV (not this
+                # function's return value), the fallback never actually reached the
+                # database: normalise() saw no "free_cash_flow" row, treated it as
+                # missing, and defaulted it to a hard 0.0 (its documented "missing
+                # fields default to 0" policy). Confirmed via ABNB (feedback #9,
+                # "Air bnb ticker detail missing fcf chart"): free_cash_flow was
+                # stored as a literal 0.0 for all 5 years despite real, positive
+                # operating cash flow ($2.3B-$4.6B) -- capex simply isn't tagged in
+                # ABNB's XBRL at all. Write the fallback result the same way the
+                # normal computed path below does, so it's actually persisted.
+                pulled_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                _append_extracted([
+                    {
+                        "ticker":            ticker,
+                        "fiscal_year":       d["year"],
+                        "standardised_name": standardised_name,
+                        "original_tag":      f"computed: {comp_a} (capex unavailable, treated as 0)",
+                        "value":             d["value"],
+                        "unit":              "USD",
+                        "pulled_at":         pulled_at,
+                        "period_of_report":  d.get("end", ""),
+                    }
+                    for d in fallback_result
+                ])
+                return fallback_result
             print(f"[field_mapper] {standardised_name}: secondary component {comp_b} missing", file=sys.stderr)
             _append_missing(ticker, standardised_name, notes="secondary component missing")
             return []

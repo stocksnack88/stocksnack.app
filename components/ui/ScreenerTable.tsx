@@ -15,6 +15,9 @@ export type ScreenerRow = {
   name: string | null;
   ppm_cagr: number | null;
   ppm_blended_price: number | null;
+  net_income_cagr_5y: number | null;
+  fcf_cagr_5y: number | null;
+  revenue_cagr_5y: number | null;
   current_price: number | null;
   growth_score: number | null;
   health_passes: number | null;
@@ -56,6 +59,23 @@ function totalReturnCagr(stock: ScreenerRow): number | null {
   const mult = totalReturnMult(stock);
   if (mult == null) return null;
   return Math.pow(mult, 0.2) - 1;
+}
+
+// True when a stock's underlying 5-year trend is genuinely declining (not just
+// missing data) — used to distinguish "we have no price target because this
+// business is shrinking" from "we have no price target because we're missing
+// data" wherever ppm_blended_price is null. A dash reads as "unknown"; a
+// declining company deserves a clearer signal than that.
+function isNegativeTrend(stock: {
+  net_income_cagr_5y: number | null;
+  fcf_cagr_5y: number | null;
+  revenue_cagr_5y: number | null;
+}): boolean {
+  return (
+    (stock.net_income_cagr_5y ?? 0) < 0 ||
+    (stock.fcf_cagr_5y ?? 0) < 0 ||
+    (stock.revenue_cagr_5y ?? 0) < 0
+  );
 }
 
 // ── Filter types & config ─────────────────────────────────────────────────────
@@ -220,14 +240,20 @@ function HealthPassesCell({ value }: { value: number | null }) {
 
 function CagrCell({ stock }: { stock: ScreenerRow }) {
   const value = totalReturnCagr(stock);
-  if (value === null) return <span className="text-gray-600">—</span>;
+  if (value === null) {
+    if (isNegativeTrend(stock)) return <span className="font-mono font-bold text-red-400">NEG</span>;
+    return <span className="text-gray-600">—</span>;
+  }
   const color = value >= 0.2 ? "text-[#00ff41]" : value >= 0.1 ? "text-yellow-300" : "text-red-400";
   return <span className={`font-mono font-bold ${color}`}>{(value * 100).toFixed(1)}%</span>;
 }
 
 function ReturnCell({ stock }: { stock: ScreenerRow }) {
   const mult = totalReturnMult(stock);
-  if (mult == null) return <span className="text-gray-600">—</span>;
+  if (mult == null) {
+    if (isNegativeTrend(stock)) return <span className="font-mono font-bold text-red-400">NEG</span>;
+    return <span className="text-gray-600">—</span>;
+  }
   const color = mult >= 2 ? "text-[#00ff41]" : mult >= 1.5 ? "text-yellow-300" : "text-red-400";
   return <span className={`font-mono font-bold ${color}`}>{mult.toFixed(1)}x</span>;
 }

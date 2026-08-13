@@ -44,6 +44,14 @@ function fmtDollar(n: number | null | undefined): string {
   return `$${Math.round(n).toLocaleString("en-US")}`
 }
 
+// Price target display: shows "NEG" in red instead of a bare dash when the
+// price target is blank because the underlying trend is genuinely negative
+// (as opposed to just missing data, which stays a plain dash).
+function PriceTargetValue({ price, negative }: { price: number | null; negative: boolean }) {
+  if (price == null && negative) return <span style={{ color: "#ef4444" }}>NEG</span>
+  return <span style={{ color: "#00ff41" }}>{fmtDollar(price)}</span>
+}
+
 function fmtCagr(n: number | null | undefined): string {
   if (n === null || n === undefined) return "—"
   return fmtPct(n * 100)
@@ -116,6 +124,14 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
 
   const currentPrice: number | null = price?.current_price ?? null
   const blendedPrice: number | null = score?.ppm_blended_price ?? null
+
+  // True when the price target is blank because the underlying business is
+  // genuinely declining (not just missing data) — see ScreenerTable.tsx's
+  // isNegativeTrend for the same logic applied to the screener table.
+  const isNegativeTrend =
+    (score?.net_income_cagr_5y != null && Number(score.net_income_cagr_5y) < 0) ||
+    (score?.fcf_cagr_5y != null && Number(score.fcf_cagr_5y) < 0) ||
+    (score?.revenue_cagr_5y != null && Number(score.revenue_cagr_5y) < 0)
 
   // Cumulative dividend income over 5 years (per share)
   const cumDivPs: number = (() => {
@@ -263,8 +279,8 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                 <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>
                   {m1Mode ? "EBITDA-ONLY (5Y)" : "PROJECTED (5Y)"}
                 </p>
-                <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-                  {fmtDollar(displayPrice)}
+                <p className="text-2xl font-bold font-mono">
+                  <PriceTargetValue price={displayPrice} negative={isNegativeTrend} />
                 </p>
               </div>
             </div>
@@ -1018,7 +1034,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             <p className="text-[9px] font-bold tracking-[0.3em] mb-2" style={{ color: "rgba(0,255,65,0.3)" }}>
               {m1Mode ? "METHOD 1 ONLY" : "AVERAGE OF ALL METHODS"}
             </p>
-            <p className="text-4xl font-bold font-mono" style={{ color: "#00ff41" }}>{fmtDollar(displayPrice)}</p>
+            <p className="text-4xl font-bold font-mono"><PriceTargetValue price={displayPrice} negative={isNegativeTrend} /></p>
             <p className="text-[9px] tracking-widest mt-1.5" style={{ color: "rgba(0,255,65,0.3)" }}>
               {m1Mode
                 ? "M1 (EBITDA Multiple) standalone price target"
@@ -1047,8 +1063,8 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
               <p className="text-xs tracking-widest mb-1" style={{ color: "rgba(0,255,65,0.4)" }}>
                 {m1Mode ? "EBITDA-ONLY (5Y)" : "PROJECTED (5Y)"}
               </p>
-              <p className="text-2xl font-bold font-mono" style={{ color: "#00ff41" }}>
-                {fmtDollar(displayPrice)}
+              <p className="text-2xl font-bold font-mono">
+                <PriceTargetValue price={displayPrice} negative={isNegativeTrend} />
               </p>
             </div>
           </div>

@@ -162,6 +162,16 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
     { id: "capture-8-geo",     label: "Geographic Breakdown",   has: Array.isArray(score?.geo_segments) && score.geo_segments.length > 0 },
   ].filter(p => p.has).map(({ id, label }) => ({ id, label }))
 
+  // Market Comparison share picker — all 3 metrics always render (no data
+  // gate), unlike the sections above. Label mirrors renderMetric()'s own
+  // primaryLabel logic (P/E for banks/financials, EV/EBITDA otherwise).
+  const marketComparisonPrimaryLabel = (score?.sector_override === 'Bank' || score?.sector_override === 'Financial') ? 'P/E' : 'EV/EBITDA'
+  const marketComparisonParts: SharePart[] = [
+    { id: "capture-9",  label: `${marketComparisonPrimaryLabel} Analysis` },
+    { id: "capture-10", label: "FCF Yield Analysis" },
+    { id: "capture-11", label: "Dividend Yield Analysis" },
+  ]
+
   // Cumulative dividend income over 5 years (per share)
   const cumDivPs: number = (() => {
     const db = score?.m_cumulative_div_ps != null ? Number(score.m_cumulative_div_ps) : 0
@@ -478,7 +488,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           </CollapsibleSectionHeader>
 
           {/* Market Comparison */}
-          <CollapsibleSectionHeader id={1} label="MARKET COMPARISON" shareButton={<BlockShareButton captureIds={['capture-9', 'capture-10', 'capture-11']} mode="multi" fileName={`${ticker}-market`} blockTitle="MARKET COMPARISON" {...shareProps} />}>
+          <CollapsibleSectionHeader id={1} label="MARKET COMPARISON" shareButton={<BlockShareButton captureIds={['capture-9', 'capture-10', 'capture-11']} parts={marketComparisonParts} mode="multi" fileName={`${ticker}-market`} blockTitle="MARKET COMPARISON" {...shareProps} />}>
           {(() => {
           // Banks/financials are valued on P/E (EV/EBITDA doesn't fit — debt IS
           // the business). Everyone else (incl. REITs, which lack a better

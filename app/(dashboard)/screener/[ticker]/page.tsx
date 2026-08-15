@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { COVERED_STOCK_COUNT, WATCHLIST_FREE_UNLOCKED } from "@/lib/constants";
+import { COVERED_STOCK_COUNT, WATCHLIST_FREE_UNLOCKED, isFreeTierStock } from "@/lib/constants";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -44,16 +44,26 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   );
   const { data: { session } } = await supabase.auth.getSession();
 
-  // Daily free tickers — same date-seeded algorithm as the screener list
+  // Daily free tickers — same date-seeded algorithm as the screener list.
+  // Must filter to the S&P 500 base universe BEFORE shuffling, same as
+  // screener/page.tsx's tierStocks does: the seeded shuffle's result depends
+  // on the input array's contents/order, not just the date seed, so shuffling
+  // the full ~1497-ticker universe here (vs. the screener's filtered ~502)
+  // silently produces a *different* "today's 5" set than what's actually
+  // shown on the screener list -- found live: TYL appeared as a free pick
+  // on /screener but paywalled on /screener/TYL, this is why.
   const { data: allTickerRows } = await supabaseAdmin
     .from("stock_scores")
-    .select("ticker, signal")
+    .select("ticker, signal, stocks ( index_tags )")
     .order("final_score", { ascending: false });
   const freeTickers = getDailyFreeTickers(
-    (allTickerRows ?? []).map((r: { ticker: string; signal: string | null }) => ({
-      ticker: r.ticker,
-      signal: r.signal,
-    })),
+    (allTickerRows ?? [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((r: any) => isFreeTierStock(r.stocks?.index_tags ?? null))
+      .map((r: { ticker: string; signal: string | null }) => ({
+        ticker: r.ticker,
+        signal: r.signal,
+      })),
     FREE_LIMIT,
   );
 

@@ -215,9 +215,9 @@ function SignalBadge({ signal }: { signal: string | null }) {
   };
   return (
     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold tracking-widest ${styles[s] ?? "bg-gray-800 text-gray-400 border border-gray-600"}`}>
-      {s || "—"}
       {/* Compliance: reinforces the footer disclaimer directly on every verdict, not just once at the bottom of the page */}
-      {s && <span className="opacity-50 ml-0.5" title="Not financial advice — for informational purposes only">*</span>}
+      {s && <span className="opacity-50 mr-0.5" title="Not financial advice — for informational purposes only">*</span>}
+      {s || "—"}
     </span>
   );
 }

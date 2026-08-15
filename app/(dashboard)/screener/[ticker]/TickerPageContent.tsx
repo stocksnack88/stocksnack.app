@@ -88,9 +88,9 @@ function SignalBadge({ signal }: { signal: string | null | undefined }) {
       className="inline-block px-3 py-1 rounded text-sm font-bold tracking-widest"
       style={map[s] ?? { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.1)" }}
     >
-      {s || "—"}
       {/* Compliance: reinforces the footer disclaimer directly on every verdict */}
-      {s && <span style={{ opacity: 0.5, marginLeft: 2 }} title="Not financial advice — for informational purposes only">*</span>}
+      {s && <span style={{ opacity: 0.5, marginRight: 2 }} title="Not financial advice — for informational purposes only">*</span>}
+      {s || "—"}
     </span>
   )
 }
@@ -1771,9 +1771,9 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                       className="inline-block text-lg font-bold tracking-widest px-6 py-2 rounded"
                       style={styles[s] ?? { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.1)" }}
                     >
-                      {s || "—"}
                       {/* Compliance: reinforces the footer disclaimer directly on every verdict */}
-                      {s && <span style={{ opacity: 0.5, marginLeft: 2 }} title="Not financial advice — for informational purposes only">*</span>}
+                      {s && <span style={{ opacity: 0.5, marginRight: 2 }} title="Not financial advice — for informational purposes only">*</span>}
+                      {s || "—"}
                     </span>
                   </div>
                 )

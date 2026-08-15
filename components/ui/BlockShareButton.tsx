@@ -39,6 +39,12 @@ function toBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 
 type ModalImage = { dataUrl: string; blob: Blob; name: string }
 
+// A single pickable piece of a section (e.g. Layer 2's revenue chart, or
+// Layer 3's Balance Sheet category). When a BlockShareButton is given a
+// `parts` list, clicking it opens a checklist instead of capturing
+// immediately, so the user can share just one piece, a few, or everything.
+export type SharePart = { id: string; label: string }
+
 function buildCaption(
   ticker?: string,
   companyName?: string | null,
@@ -231,6 +237,107 @@ function ShareModal({
   )
 }
 
+// Checklist shown before capture when a BlockShareButton has a `parts` list.
+// Defaults to everything selected ("share all" is the common case); the user
+// can narrow it down to just the piece(s) they actually want.
+function PartsPicker({
+  parts,
+  blockTitle,
+  onConfirm,
+  onClose,
+}: {
+  parts: SharePart[]
+  blockTitle?: string
+  onConfirm: (ids: string[]) => void
+  onClose: () => void
+}) {
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(parts.map(p => p.id)))
+  const allSelected = selected.size === parts.length
+
+  function toggle(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-[9999]"
+        style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+        onClick={onClose}
+      />
+      <div
+        className="fixed z-[10000] rounded-lg"
+        style={{
+          top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          width: 'calc(100% - 2rem)', maxWidth: '22rem', maxHeight: '80vh', overflowY: 'auto',
+          background: '#050505', border: '1px solid rgba(0,255,65,0.25)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div
+          className="sticky top-0 flex items-center justify-between px-4 py-3"
+          style={{ background: '#050505', borderBottom: '1px solid rgba(0,255,65,0.1)', zIndex: 1 }}
+        >
+          <p className="font-mono text-[11px] font-bold tracking-widest" style={{ color: 'rgba(0,255,65,0.7)' }}>
+            {blockTitle ? `SHARE ${blockTitle}` : 'WHAT TO SHARE?'}
+          </p>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="flex items-center justify-center w-7 h-7 rounded font-mono text-sm font-bold leading-none"
+            style={{ color: '#00ff41', background: 'rgba(0,255,65,0.12)', border: '1px solid rgba(0,255,65,0.35)' }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="px-4 pt-3 pb-1">
+          <button
+            onClick={() => setSelected(new Set(allSelected ? [] : parts.map(p => p.id)))}
+            className="font-mono text-[10px] tracking-widest"
+            style={{ color: 'rgba(0,255,65,0.5)' }}
+          >
+            {allSelected ? 'CLEAR ALL' : 'SELECT ALL'}
+          </button>
+        </div>
+
+        <div className="px-4 py-2 flex flex-col gap-1">
+          {parts.map(p => (
+            <label
+              key={p.id}
+              className="flex items-center gap-2.5 px-2 py-2 rounded cursor-pointer"
+              style={{ background: selected.has(p.id) ? 'rgba(0,255,65,0.06)' : 'transparent' }}
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(p.id)}
+                onChange={() => toggle(p.id)}
+                className="accent-[#00ff41]"
+              />
+              <span className="font-mono text-xs" style={{ color: 'rgba(0,255,65,0.85)' }}>{p.label}</span>
+            </label>
+          ))}
+        </div>
+
+        <div className="px-4 pb-4 pt-2">
+          <button
+            onClick={() => selected.size > 0 && onConfirm(parts.filter(p => selected.has(p.id)).map(p => p.id))}
+            disabled={selected.size === 0}
+            className="w-full rounded py-2.5 font-mono text-[10px] font-bold tracking-widest disabled:opacity-30"
+            style={{ background: 'rgba(0,255,65,0.15)', color: '#00ff41', border: '1px solid rgba(0,255,65,0.5)' }}
+          >
+            {allSelected ? 'SHARE ALL →' : `SHARE SELECTED (${selected.size}) →`}
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
 type Props = {
   captureIds: string[]
   mode: 'single' | 'stitch' | 'multi'
@@ -241,6 +348,11 @@ type Props = {
   signal?: string | null
   projectedReturn?: number | null
   cagr?: number | null
+  // When set, clicking the button opens a checklist first instead of
+  // capturing `captureIds` immediately -- lets the user share just one
+  // piece, a few, or everything ("select all" = today's default behavior).
+  // captureIds is still used as the fallback/full set when parts is omitted.
+  parts?: SharePart[]
 }
 
 export default function BlockShareButton({
@@ -252,19 +364,20 @@ export default function BlockShareButton({
   signal,
   projectedReturn,
   cagr,
+  parts,
 }: Props) {
   const [status, setStatus] = useState<'idle' | 'busy'>('idle')
+  const [showPicker, setShowPicker] = useState(false)
   const [modal, setModal] = useState<ModalImage[] | null>(null)
 
   const defaultCaption = buildCaption(ticker, companyName, signal, projectedReturn, cagr, blockTitle)
 
-  async function handleShare(e: React.MouseEvent) {
-    e.stopPropagation()
+  async function runCapture(idsToCapture: string[]) {
     if (status === 'busy') return
     setStatus('busy')
     try {
       // Collect source elements
-      const sourceEls = captureIds
+      const sourceEls = idsToCapture
         .map(id => document.getElementById(id))
         .filter((el): el is HTMLElement => el !== null)
       if (!sourceEls.length) return
@@ -376,16 +489,35 @@ export default function BlockShareButton({
     }
   }
 
+  function handleClick(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (status === 'busy') return
+    if (parts && parts.length > 0) {
+      setShowPicker(true)
+      return
+    }
+    runCapture(captureIds)
+  }
+
   return (
     <>
       <button
-        onClick={handleShare}
+        onClick={handleClick}
         disabled={status === 'busy'}
         className="font-mono text-[10px] tracking-wider transition-colors"
         style={{ color: status === 'busy' ? 'rgba(0,255,65,0.15)' : 'rgba(0,255,65,0.35)' }}
       >
         {status === 'busy' ? '···' : <Share2 size={16} />}
       </button>
+      {showPicker && parts && typeof document !== 'undefined' && createPortal(
+        <PartsPicker
+          parts={parts}
+          blockTitle={blockTitle}
+          onClose={() => setShowPicker(false)}
+          onConfirm={(ids) => { setShowPicker(false); runCapture(ids) }}
+        />,
+        document.body,
+      )}
       {modal && typeof document !== 'undefined' && createPortal(
         <ShareModal
           images={modal}

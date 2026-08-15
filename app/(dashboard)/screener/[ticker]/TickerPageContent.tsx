@@ -7,7 +7,7 @@ import DescriptionToggle from '@/components/ui/DescriptionToggle'
 import HealthCategories, { type FundRow as HealthFundRow } from '@/components/ui/HealthCategories'
 import HazardTooltip from '@/components/ui/HazardTooltip'
 import ShareButton from '@/components/ui/ShareButton'
-import BlockShareButton from '@/components/ui/BlockShareButton'
+import BlockShareButton, { type SharePart } from '@/components/ui/BlockShareButton'
 import { LayerProvider, CollapsibleLayer, CollapsibleSectionHeader, ExpandCollapseButton, ChildCollapsibleLayer, ConnectedSegmentBreakdown, MethodologyToggle } from '@/components/ui/LayersAccordion'
 
 type HealthCheck = {
@@ -134,6 +134,33 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
     (score?.net_income_cagr_5y != null && Number(score.net_income_cagr_5y) < 0) ||
     (score?.fcf_cagr_5y != null && Number(score.fcf_cagr_5y) < 0) ||
     (score?.revenue_cagr_5y != null && Number(score.revenue_cagr_5y) < 0)
+
+  // Layer 2 share picker — only offer parts that actually have data
+  // (mirrors the same per-metric "any non-null value" / growth_score
+  // checks the section itself uses to decide whether to render).
+  const layer2Parts: SharePart[] = [
+    { id: "capture-3-revenue",        label: "Revenue Chart",  has: fundamentals.some(r => r.revenue != null) },
+    { id: "capture-3-ebitda",         label: "EBITDA Chart",   has: fundamentals.some(r => r.ebitda != null) },
+    { id: "capture-3-free_cash_flow", label: "FCF Chart",      has: fundamentals.some(r => r.free_cash_flow != null) },
+    { id: "capture-3-score",          label: "Growth Quality Score", has: score?.growth_score != null },
+  ].filter(p => p.has).map(({ id, label }) => ({ id, label }))
+
+  // Layer 3 share picker: the top-line summary plus one entry per health
+  // category. Slug must match HealthCategories.tsx's id generation exactly.
+  const layer3Parts: SharePart[] = [
+    { id: "capture-4", label: "Financial Health Overview" },
+    ...healthCats.map(c => ({
+      id: `capture-4-${c.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+      label: c.label,
+    })),
+  ]
+
+  // "About the Business" share picker — only offer product/geo individually
+  // when that breakdown actually exists (mirrors the section's own render gate).
+  const aboutBusinessParts: SharePart[] = [
+    { id: "capture-8-product", label: "Product Breakdown",      has: Array.isArray(score?.product_segments) && score.product_segments.length > 0 },
+    { id: "capture-8-geo",     label: "Geographic Breakdown",   has: Array.isArray(score?.geo_segments) && score.geo_segments.length > 0 },
+  ].filter(p => p.has).map(({ id, label }) => ({ id, label }))
 
   // Cumulative dividend income over 5 years (per share)
   const cumDivPs: number = (() => {
@@ -410,7 +437,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
           {/* ── About the Business ──────────────────────────────────────────────── */}
           <ChildCollapsibleLayer id={8} header={
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>ABOUT THE BUSINESS</p>
-          } shareButton={<BlockShareButton captureIds={['capture-8-product', 'capture-8-geo']} mode="multi" fileName={`${ticker}-segments`} blockTitle="ABOUT THE BUSINESS" {...shareProps} />}>
+          } shareButton={<BlockShareButton captureIds={['capture-8-product', 'capture-8-geo']} parts={aboutBusinessParts} mode="multi" fileName={`${ticker}-segments`} blockTitle="ABOUT THE BUSINESS" {...shareProps} />}>
           {(() => {
           const rawProduct = score?.product_segments
           const rawGeo     = score?.geo_segments
@@ -1241,7 +1268,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                 Historical financials and growth trajectory
               </p>
             </>
-          )} shareButton={<BlockShareButton captureIds={['capture-3']} mode="single" fileName={`${ticker}-layer2`} blockTitle="LAYER 2 — GROWTH QUALITY" {...shareProps} />}>
+          )} shareButton={<BlockShareButton captureIds={['capture-3']} parts={layer2Parts} mode="single" fileName={`${ticker}-layer2`} blockTitle="LAYER 2 — GROWTH QUALITY" {...shareProps} />}>
           <div id="capture-3">
           {(() => {
             type FundRow = { fiscal_year: number; revenue: number | null; ebitda: number | null; free_cash_flow: number | null }
@@ -1308,7 +1335,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                       : benchLabel?.startsWith("Moderate") ? "#f59e0b"
                       : "#ef4444"
                     return (
-                      <div key={key} data-tour-id={`growth-${key.replaceAll('_', '-')}`}>
+                      <div key={key} id={`capture-3-${key}`} data-tour-id={`growth-${key.replaceAll('_', '-')}`}>
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-xs font-bold tracking-widest shrink-0" style={{ color: "rgba(0,255,65,0.7)" }}>
                             {label}
@@ -1536,7 +1563,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
                 const rawScore     = validPts.length ? Math.round(validPts.reduce((s, p) => s + p, 0) / validPts.length) : null
                 const penaltyLabel = hasPenalty && worstSig ? `${worstSig} ×${worstMult.toFixed(2)}` : "None"
                 return (
-                  <div data-tour-id="growth-score" className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
+                  <div id="capture-3-score" data-tour-id="growth-score" className="mx-2 mt-4 mb-4 rounded p-3" style={{ border: "1px solid rgba(0,255,65,0.15)" }}>
                     <div className="mb-3 pb-2" style={{ borderBottom: "1px solid rgba(0,255,65,0.08)" }}>
                       <p className="text-[10px] uppercase tracking-widest text-center" style={{ color: "rgba(0,255,65,0.4)" }}>
                         GROWTH QUALITY SCORE
@@ -1646,7 +1673,7 @@ export default function TickerPageContent({ ticker, stock, price, score, fundame
             <p className="text-xs font-bold tracking-widest" style={{ color: "#00ff41" }}>
               LAYER 3 — FINANCIAL HEALTH
             </p>
-          )} shareButton={<BlockShareButton captureIds={['capture-4']} mode="single" fileName={`${ticker}-layer3`} blockTitle="LAYER 3 — FINANCIAL HEALTH" {...shareProps} />}>
+          )} shareButton={<BlockShareButton captureIds={layer3Parts.map(p => p.id)} parts={layer3Parts} mode="stitch" fileName={`${ticker}-layer3`} blockTitle="LAYER 3 — FINANCIAL HEALTH" {...shareProps} />}>
           <div className="px-5 pt-4 pb-3" id="capture-4" data-tour-id="health-summary">
             <div className="flex items-center rounded-lg p-4 mb-3" style={{ border: "1px solid rgba(0,255,65,0.2)" }}>
               <div className="flex-1 flex flex-col items-center">

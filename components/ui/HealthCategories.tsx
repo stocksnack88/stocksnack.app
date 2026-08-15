@@ -710,6 +710,9 @@ export default function HealthCategories({ cats, fundamentals }: { cats: HealthC
         return (
           <div
             key={cat.label}
+            // id must match the slug TickerPageContent.tsx builds for its
+            // share picker (lowercase, non-alphanumeric runs -> single "-")
+            id={`capture-4-${cat.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
             style={catIdx < cats.length - 1 ? { borderBottom: "1px solid rgba(0,255,65,0.1)" } : {}}
           >
             {/* Category header */}

@@ -93,10 +93,19 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
     supabaseAdmin.from("stocks").select("*").eq("ticker", ticker).single(),
     supabaseAdmin.from("stock_prices").select("*").eq("ticker", ticker).single(),
     supabaseAdmin.from("stock_scores").select("*").eq("ticker", ticker).single(),
+    // Newest-first + limit(5), NOT ascending + limit(5) -- some tickers (fiscal
+    // years that don't align to calendar years, or just extra history from a
+    // re-extraction) have MORE than 5 rows in stock_fundamentals (47 currently,
+    // incl. MSFT, TSM, KLAC, DECK -- DECK has FY21-FY26, 6 rows). Ascending +
+    // limit(5) silently grabbed the 5 OLDEST years and dropped the newest one
+    // entirely; found live by comparing DECK's ticker page against a video
+    // that correctly showed all 6 years. Fetch newest-first then reverse
+    // below so downstream rendering (which assumes oldest-first, e.g. Layer
+    // 2's chronological bars) is unaffected.
     supabaseAdmin.from("stock_fundamentals")
       .select("fiscal_year,revenue,gross_profit,ebitda,free_cash_flow,gross_margin,operating_income,net_income,eps,total_assets,total_debt,total_equity,cash_and_equivalents,operating_cash_flow,capex,dividends_paid,buybacks,net_margin,roe,roic,debt_to_equity,interest_coverage,market_cap_at_year,sga,rd_expense,tax_rate,sbc,shares_outstanding,intangibles,preferred_stock,retained_earnings")
       .eq("ticker", ticker)
-      .order("fiscal_year", { ascending: true })
+      .order("fiscal_year", { ascending: false })
       .limit(5),
   ]);
 
@@ -105,7 +114,12 @@ export default async function StockDetailPage({ params }: { params: { ticker: st
   const stock = stockRes.data;
   const price = priceRes.data;
   const score = scoreRes.data;
-  const fundamentals = fundRes.data ?? [];
+  // Query above fetches newest-first (to correctly get the 5 MOST RECENT
+  // years, see comment there) -- reverse back to oldest-first here since
+  // every downstream consumer (Layer 2's chronological bars, HIST. GROWTH
+  // calcs comparing first-vs-last row, HealthCategories' FY columns) assumes
+  // that order.
+  const fundamentals = [...(fundRes.data ?? [])].reverse();
 
   // Free-tier users get full access to their own first WATCHLIST_FREE_UNLOCKED
   // saved picks (oldest-added first), same rule the /watchlist page enforces —

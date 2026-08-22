@@ -5,26 +5,47 @@ import { useGuidedTour } from './GuidedTour'
 import { playClick } from '@/lib/sounds'
 
 const MONO: React.CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }
+const GREEN = '#00ff41'
 
 const itemClass = 'flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors'
 const itemStyle: React.CSSProperties = { ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }
+
+// Solid pill badge -- same treatment as the PRO badge / GO button elsewhere
+// in the app, so a category header reads as a distinct tier from the plain
+// links nested under it, instead of just dimmer text that blends in.
+function Badge({ children, outline }: { children: string; outline?: boolean }) {
+  return (
+    <span style={{
+      display: 'inline-block',
+      background: outline ? 'transparent' : GREEN,
+      color: outline ? 'rgba(0,255,65,0.4)' : '#000',
+      border: outline ? '1px solid rgba(0,255,65,0.3)' : 'none',
+      fontWeight: 'bold',
+      fontSize: 9,
+      letterSpacing: '0.08em',
+      padding: '3px 8px',
+      borderRadius: 3,
+      ...MONO,
+    }}>
+      {children}
+    </span>
+  )
+}
 
 function CategoryHeader({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
   return (
     <button
       onClick={() => { playClick(); onToggle() }}
       aria-expanded={open}
-      className="flex items-center justify-between w-full px-4 py-2.5 text-[9px] font-bold tracking-[0.2em] cursor-pointer transition-colors"
+      className="flex items-center justify-between w-full px-4 py-2.5 cursor-pointer transition-colors hover:bg-[#00ff41]/[0.04]"
       style={{
         background: 'none',
         border: 'none',
         borderBottom: '1px solid rgba(0,255,65,0.08)',
-        color: 'rgba(0,255,65,0.35)',
-        ...MONO,
       }}
     >
-      {label}
-      <span style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>
+      <Badge>{label}</Badge>
+      <span style={{ color: 'rgba(0,255,65,0.5)', fontSize: 11, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>
         ▸
       </span>
     </button>
@@ -115,12 +136,7 @@ export default function NavDropdown({ planLabel }: { planLabel?: string }) {
               style={itemStyle}
             >
               PLAN
-              <span
-                className="font-bold"
-                style={{ color: planLabel === 'FREE' ? 'rgba(0,255,65,0.4)' : '#00ff41' }}
-              >
-                {planLabel}
-              </span>
+              <Badge outline={planLabel === 'FREE'}>{planLabel}</Badge>
             </Link>
           )}
 

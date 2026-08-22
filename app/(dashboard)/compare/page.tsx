@@ -126,7 +126,7 @@ export default async function ComparePage({
             STOCKSNACK · STOCK COMPARE
           </p>
           <h1 style={{ fontSize: 22, fontWeight: 'bold', letterSpacing: '0.05em', margin: 0 }}>
-            COMPARE
+            STOCK COMPARE
           </h1>
           <p style={{ fontSize: 11, color: DIM, margin: '6px 0 0', letterSpacing: '0.08em' }}>
             Side-by-side analysis
@@ -181,33 +181,44 @@ export default async function ComparePage({
 
           {hasSelection && result && result.ok && (
             <>
-              {/* overall winner tally */}
+              {/* overall winner tally -- stock ticker on top, win count below,
+                  same solid green/black-or-red/black box treatment as the
+                  per-row badges (and the PRO badge / GO button elsewhere) */}
               <div style={{
                 border: '1px solid rgba(0,255,65,0.2)',
                 background: 'rgba(0,255,65,0.02)',
                 borderRadius: 4,
                 padding: '1rem 1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '0.5rem',
               }}>
-                <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.15em', margin: 0 }}>
+                <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.15em', margin: '0 0 0.75rem' }}>
                   METRICS WON
                 </p>
-                <p style={{ fontSize: 13, fontWeight: 'bold', letterSpacing: '0.08em', margin: 0 }}>
-                  <span style={{ color: result.tally.aWins >= result.tally.bWins ? GREEN : DIM }}>
-                    {result.labelA} {result.tally.aWins}
-                  </span>
-                  <span style={{ color: DIM, margin: '0 10px' }}>—</span>
-                  <span style={{ color: result.tally.bWins >= result.tally.aWins ? GREEN : DIM }}>
-                    {result.tally.bWins} {result.labelB}
-                  </span>
-                  <span style={{ color: 'rgba(251,191,36,0.6)', marginLeft: 10, fontSize: 10 }}>
+                <div style={{ display: 'flex', gap: '0.6rem' }}>
+                  {([
+                    { label: result.labelA, wins: result.tally.aWins, other: result.tally.bWins },
+                    { label: result.labelB, wins: result.tally.bWins, other: result.tally.aWins },
+                  ] as const).map(({ label, wins, other }) => (
+                    <div
+                      key={label}
+                      style={{
+                        flex: 1,
+                        textAlign: 'center',
+                        borderRadius: 4,
+                        padding: '0.6rem',
+                        background: wins === other ? 'rgba(255,255,255,0.08)' : wins > other ? GREEN : '#ef4444',
+                        color: wins === other ? GREEN : '#000',
+                      }}
+                    >
+                      <div style={{ fontSize: 14, fontWeight: 'bold', letterSpacing: '0.05em' }}>{label}</div>
+                      <div style={{ fontSize: 11, fontWeight: 'bold', marginTop: 2 }}>{wins} WIN{wins === 1 ? '' : 'S'}</div>
+                    </div>
+                  ))}
+                </div>
+                {result.tally.ties > 0 && (
+                  <p style={{ fontSize: 10, color: 'rgba(251,191,36,0.6)', textAlign: 'center', margin: '0.6rem 0 0' }}>
                     ({result.tally.ties} TIE{result.tally.ties === 1 ? '' : 'S'})
-                  </span>
-                </p>
+                  </p>
+                )}
               </div>
 
               {result.sections.map(section => (
@@ -227,7 +238,7 @@ export default async function ComparePage({
           textAlign: 'center', letterSpacing: '0.15em',
           margin: '2.5rem 0 0',
         }}>
-          STOCKSNACK · COMPARE
+          STOCKSNACK · STOCK COMPARE
         </p>
 
       </div>

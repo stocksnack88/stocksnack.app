@@ -45,7 +45,7 @@ export default async function PricingPage() {
   const isLoggedIn = !!user;
 
   const rows: { label: string; free: string; freeColor: string; freeBold?: boolean; pro: string; proColor: string }[] = [
-    { label: "Stocks access",           free: "5 random", freeColor: "rgba(255,255,255,0.3)",  pro: `S&P 500 + ${COVERED_STOCK_COUNT} stocks`, proColor: "rgba(0,255,65,0.8)"  },
+    { label: "Stocks access",           free: "5 random daily", freeColor: "rgba(255,255,255,0.3)",  pro: `S&P 500 + ${COVERED_STOCK_COUNT} stocks`, proColor: "rgba(0,255,65,0.8)"  },
     { label: "Filter function",         free: "✕",        freeColor: "rgba(255,80,80,0.55)",   freeBold: true, pro: "✓", proColor: "#00ff41", },
     { label: "Price Projection",        free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
     { label: "Growth Quality",          free: "5 only",   freeColor: "rgba(255,255,255,0.25)", pro: "All",     proColor: "rgba(0,255,65,0.8)"  },
@@ -160,33 +160,9 @@ export default async function PricingPage() {
 
             {/* Feature rows */}
             <tbody>
-              {/* Price rows */}
-              <tr className="pricing-row" style={{ background: "transparent", borderBottom: bH, animation: "fadeInUp 300ms ease-out 50ms both" }}>
-                <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Monthly</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.4)" }}>$0</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.7)" }}>$40</td>
-                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$20</td>
-              </tr>
-              <tr className="pricing-row" style={{ background: "rgba(0,255,65,0.018)", borderBottom: bH, animation: "fadeInUp 300ms ease-out 100ms both" }}>
-                <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Annual</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.2)" }}>—</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.35)" }}>$480/yr</td>
-                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$240/yr</td>
-              </tr>
-              <tr className="pricing-row" style={{ background: "transparent", borderBottom: bH, animation: "fadeInUp 300ms ease-out 150ms both" }}>
-                <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Billed</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.2)" }}>—</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.45)" }}>monthly</td>
-                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "rgba(0,255,65,0.7)", ...annualCell, boxShadow: annualGlow }}>annually</td>
-              </tr>
-              <tr className="pricing-row" style={{ background: "rgba(0,255,65,0.018)", borderBottom: bH, animation: "fadeInUp 300ms ease-out 200ms both" }}>
-                <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Daily cost</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.2)" }}>$0.00/day</td>
-                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.35)" }}>$1.33/day</td>
-                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$0.66/day</td>
-              </tr>
+              {/* Benefits first -- lead with value, price sits right above the decision point */}
               {rows.map((row, i) => (
-                <tr key={row.label} className="pricing-row" style={{ background: (i + 1) % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH, animation: `fadeInUp 300ms ease-out ${(5 + i) * 50}ms both` }}>
+                <tr key={row.label} className="pricing-row" style={{ background: (i + 1) % 2 === 1 ? "rgba(0,255,65,0.018)" : "transparent", borderBottom: bH, animation: `fadeInUp 300ms ease-out ${(1 + i) * 50}ms both` }}>
                   <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>
                     {row.label}
                   </td>
@@ -198,6 +174,31 @@ export default async function PricingPage() {
                   </td>
                 </tr>
               ))}
+              {/* Price rows */}
+              <tr className="pricing-row" style={{ background: "transparent", borderBottom: bH, animation: "fadeInUp 300ms ease-out 400ms both" }}>
+                <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Monthly</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.4)" }}>$0</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.7)" }}>$40</td>
+                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$20</td>
+              </tr>
+              <tr className="pricing-row" style={{ background: "rgba(0,255,65,0.018)", borderBottom: bH, animation: "fadeInUp 300ms ease-out 450ms both" }}>
+                <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Annual</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.2)" }}>—</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.35)" }}>$480/yr</td>
+                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$240/yr</td>
+              </tr>
+              <tr className="pricing-row" style={{ background: "transparent", borderBottom: bH, animation: "fadeInUp 300ms ease-out 500ms both" }}>
+                <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Billed</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.2)" }}>—</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.45)" }}>monthly</td>
+                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "rgba(0,255,65,0.7)", ...annualCell, boxShadow: annualGlow }}>annually</td>
+              </tr>
+              <tr className="pricing-row" style={{ background: "rgba(0,255,65,0.018)", borderBottom: bH, animation: "fadeInUp 300ms ease-out 550ms both" }}>
+                <td style={{ padding: "10px 8px", fontSize: "11px", color: "rgba(255,255,255,0.45)", wordBreak: "break-word" }}>Daily cost</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(255,255,255,0.2)" }}>$0.00/day</td>
+                <td style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", borderLeft: bV, color: "rgba(0,255,65,0.35)" }}>$1.33/day</td>
+                <td className="annual-cell" style={{ padding: "10px 4px", fontSize: "11px", textAlign: "center", color: "#00ff41", ...annualCell, boxShadow: annualGlow }}>$0.66/day</td>
+              </tr>
             </tbody>
 
             {/* CTA row */}

@@ -12,6 +12,9 @@ export type CompareMetricRow = {
   direction: Direction
   format?: (v: number | boolean | string | null) => string
   band?: number
+  // Short explainer shown behind a click-to-expand (i) next to the label --
+  // for metrics that aren't self-explanatory from the name alone (PPM Score).
+  info?: string
 }
 
 export type CompareSection = {
@@ -127,39 +130,26 @@ function overviewSection(stockA: Stock | null, priceA: Record<string, number> | 
   }
 }
 
+const PPM_SCORE_INFO = "Blends the projected 5-year return across the EBITDA, FCF, and Dividend price-target methods into one 0-100 score, scaled against the S&P 500's own return. Higher means a stronger expected return relative to the market, not just a bigger price target."
+
+// Trimmed to the rows that carry real signal for a side-by-side: the
+// per-method price targets (M1/M2/M3) and DIV INCOME were dropped as
+// clutter -- BLENDED PRICE TARGET already folds them together, and
+// PROJECTED RETURN/CAGR already include dividend income in the total.
 function priceProjectionSection(scoreA: Score | null, priceA: number | null, scoreB: Score | null, priceB: number | null): CompareSection {
   const retA = projectedReturn(scoreA, priceA)
   const retB = projectedReturn(scoreB, priceB)
-  const m2naA = !scoreA?.ppm_m2_price || num(scoreA.ppm_m2_price) === 0
-  const m2naB = !scoreB?.ppm_m2_price || num(scoreB.ppm_m2_price) === 0
-  const m3naA = scoreA?.m3_applicable === false || !scoreA?.ppm_m3_price || num(scoreA.ppm_m3_price) === 0
-  const m3naB = scoreB?.m3_applicable === false || !scoreB?.ppm_m3_price || num(scoreB.ppm_m3_price) === 0
 
-  const rows: CompareMetricRow[] = [
-    { label: "BLENDED PRICE TARGET", valueA: num(scoreA?.ppm_blended_price), valueB: num(scoreB?.ppm_blended_price), direction: "none", format: fmtDollarSafe },
-    { label: "PROJECTED RETURN (5Y)", valueA: retA.totalReturnMult, valueB: retB.totalReturnMult, direction: "higher", band: 0, format: fmtMultSafe },
-    { label: "PROJECTED CAGR (5Y)", valueA: retA.totalReturnCagr, valueB: retB.totalReturnCagr, direction: "higher", band: 0, format: fmtCagrSafe },
-    { label: "VS S&P 500 CAGR", valueA: num(scoreA?.sp500_cagr), valueB: num(scoreB?.sp500_cagr), direction: "none", format: fmtCagrSafe },
-  ]
-  if (!m2naA || !m2naB) {
-    rows.push({ label: "M2 — FCF PRICE TARGET", valueA: m2naA ? null : num(scoreA?.ppm_m2_price), valueB: m2naB ? null : num(scoreB?.ppm_m2_price), direction: "none", format: fmtDollarSafe })
+  return {
+    title: "LAYER 1 — PRICE PROJECTION",
+    rows: [
+      { label: "BLENDED PRICE TARGET", valueA: num(scoreA?.ppm_blended_price), valueB: num(scoreB?.ppm_blended_price), direction: "none", format: fmtDollarSafe },
+      { label: "PROJECTED RETURN (5Y)", valueA: retA.totalReturnMult, valueB: retB.totalReturnMult, direction: "higher", band: 0, format: fmtMultSafe },
+      { label: "PROJECTED CAGR (5Y)", valueA: retA.totalReturnCagr, valueB: retB.totalReturnCagr, direction: "higher", band: 0, format: fmtCagrSafe },
+      { label: "VS S&P 500 CAGR", valueA: num(scoreA?.sp500_cagr), valueB: num(scoreB?.sp500_cagr), direction: "none", format: fmtCagrSafe },
+      { label: "PPM SCORE", valueA: num(scoreA?.ppm_score), valueB: num(scoreB?.ppm_score), direction: "higher", band: 0, format: fmtNumSafe, info: PPM_SCORE_INFO },
+    ],
   }
-  if (!m3naA || !m3naB) {
-    rows.push({ label: "M3 — DIVIDEND PRICE TARGET", valueA: m3naA ? null : num(scoreA?.ppm_m3_price), valueB: m3naB ? null : num(scoreB?.ppm_m3_price), direction: "none", format: fmtDollarSafe })
-  }
-  rows.push({ label: "M1 — EBITDA PRICE TARGET", valueA: num(scoreA?.ppm_m1_price), valueB: num(scoreB?.ppm_m1_price), direction: "none", format: fmtDollarSafe })
-  if (retA.hasDividend || retB.hasDividend) {
-    rows.push({
-      label: "DIV INCOME (5Y/SHARE)",
-      valueA: retA.hasDividend ? retA.cumDivPs : null,
-      valueB: retB.hasDividend ? retB.cumDivPs : null,
-      direction: "none",
-      format: fmtDollarSafe,
-    })
-  }
-  rows.push({ label: "PPM SCORE", valueA: num(scoreA?.ppm_score), valueB: num(scoreB?.ppm_score), direction: "higher", band: 0, format: fmtNumSafe })
-
-  return { title: "LAYER 1 — PRICE PROJECTION", rows }
 }
 
 // STOCK vs S&P 500 mode's Price Projection: the only real head-to-head data

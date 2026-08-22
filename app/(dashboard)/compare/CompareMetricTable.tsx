@@ -1,3 +1,5 @@
+'use client'
+import { Fragment, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { CompareSection, CompareMetricRow } from './compareData'
 import { rowWinner } from './compareData'
@@ -59,6 +61,17 @@ function Cell({ row, side }: { row: CompareMetricRow; side: 'A' | 'B' }) {
 // Pricing table's <colgroup>, so long metric labels and long values wrap
 // onto a second line instead of forcing the table wider than a phone screen.
 export function CompareMetricTable({ section, labelA, labelB }: { section: CompareSection; labelA: string; labelB: string }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  function toggle(label: string) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(label)) next.delete(label)
+      else next.add(label)
+      return next
+    })
+  }
+
   return (
     <div style={{
       border: '1px solid rgba(0,255,65,0.2)',
@@ -91,11 +104,49 @@ export function CompareMetricTable({ section, labelA, labelB }: { section: Compa
         </thead>
         <tbody>
           {section.rows.map((row, i) => (
-            <tr key={`${row.label}-${i}`} style={{ background: i % 2 === 1 ? 'rgba(0,255,65,0.018)' : 'transparent' }}>
-              <td style={tdStyle('left')}>{row.label}</td>
-              <td style={tdStyle('center')}><Cell row={row} side="A" /></td>
-              <td style={tdStyle('center')}><Cell row={row} side="B" /></td>
-            </tr>
+            <Fragment key={`${row.label}-${i}`}>
+              <tr style={{ background: i % 2 === 1 ? 'rgba(0,255,65,0.018)' : 'transparent' }}>
+                <td style={tdStyle('left')}>
+                  {row.label}
+                  {row.info && (
+                    <button
+                      onClick={() => toggle(row.label)}
+                      aria-label={`About ${row.label}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 13,
+                        height: 13,
+                        marginLeft: 5,
+                        borderRadius: '50%',
+                        border: '1px solid rgba(0,255,65,0.4)',
+                        background: expanded.has(row.label) ? 'rgba(0,255,65,0.15)' : 'none',
+                        color: 'rgba(0,255,65,0.6)',
+                        fontSize: 9,
+                        fontWeight: 'bold',
+                        lineHeight: 1,
+                        cursor: 'pointer',
+                        verticalAlign: 'middle',
+                      }}
+                    >
+                      i
+                    </button>
+                  )}
+                </td>
+                <td style={tdStyle('center')}><Cell row={row} side="A" /></td>
+                <td style={tdStyle('center')}><Cell row={row} side="B" /></td>
+              </tr>
+              {row.info && expanded.has(row.label) && (
+                <tr>
+                  <td colSpan={3} style={{ padding: '4px 6px 10px', borderBottom: '1px solid rgba(0,255,65,0.07)' }}>
+                    <p style={{ fontSize: 9, color: 'rgba(0,255,65,0.45)', lineHeight: 1.5, margin: 0 }}>
+                      {row.info}
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           ))}
         </tbody>
       </table>

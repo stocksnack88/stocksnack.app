@@ -181,44 +181,67 @@ export default async function ComparePage({
 
           {hasSelection && result && result.ok && (
             <>
-              {/* overall winner tally -- stock ticker on top, win count below,
-                  same solid green/black-or-red/black box treatment as the
-                  per-row badges (and the PRO badge / GO button elsewhere) */}
+              {/* overall winner tally -- styled as its own section (dark
+                  header bar, same as every CompareMetricTable below) rather
+                  than a plain box, so it reads as "the header" it's meant
+                  to be. Stock ticker on top, win count below, same solid
+                  green/black-or-red/black treatment as the per-row badges.
+                  Ties get their own box with equal visual weight instead of
+                  small bracketed text underneath. */}
               <div style={{
                 border: '1px solid rgba(0,255,65,0.2)',
                 background: 'rgba(0,255,65,0.02)',
                 borderRadius: 4,
-                padding: '1rem 1.25rem',
+                overflow: 'hidden',
               }}>
-                <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.15em', margin: '0 0 0.75rem' }}>
-                  METRICS WON
-                </p>
-                <div style={{ display: 'flex', gap: '0.6rem' }}>
-                  {([
-                    { label: result.labelA, wins: result.tally.aWins, other: result.tally.bWins },
-                    { label: result.labelB, wins: result.tally.bWins, other: result.tally.aWins },
-                  ] as const).map(({ label, wins, other }) => (
-                    <div
-                      key={label}
-                      style={{
-                        flex: 1,
-                        textAlign: 'center',
-                        borderRadius: 4,
-                        padding: '0.6rem',
-                        background: wins === other ? 'rgba(255,255,255,0.08)' : wins > other ? GREEN : '#ef4444',
-                        color: wins === other ? GREEN : '#000',
-                      }}
-                    >
-                      <div style={{ fontSize: 14, fontWeight: 'bold', letterSpacing: '0.05em' }}>{label}</div>
-                      <div style={{ fontSize: 11, fontWeight: 'bold', marginTop: 2 }}>{wins} WIN{wins === 1 ? '' : 'S'}</div>
-                    </div>
-                  ))}
-                </div>
-                {result.tally.ties > 0 && (
-                  <p style={{ fontSize: 10, color: 'rgba(251,191,36,0.6)', textAlign: 'center', margin: '0.6rem 0 0' }}>
-                    ({result.tally.ties} TIE{result.tally.ties === 1 ? '' : 'S'})
+                <div style={{ background: '#001a00', borderBottom: `1px solid ${FAINT}`, padding: '1rem 1.25rem' }}>
+                  <p style={{ fontSize: 12, fontWeight: 'bold', letterSpacing: '0.1em', color: GREEN, margin: 0 }}>
+                    METRICS WON
                   </p>
-                )}
+                </div>
+                <div style={{ padding: '1.25rem', display: 'flex', gap: '0.6rem' }}>
+                  <div style={{
+                    flex: 1.3,
+                    textAlign: 'center',
+                    borderRadius: 4,
+                    padding: '0.7rem 0.5rem',
+                    background: result.tally.aWins === result.tally.bWins ? 'rgba(255,255,255,0.08)' : result.tally.aWins > result.tally.bWins ? GREEN : '#ef4444',
+                    color: result.tally.aWins === result.tally.bWins ? GREEN : '#000',
+                  }}>
+                    <div style={{ fontSize: 14, fontWeight: 'bold', letterSpacing: '0.05em' }}>{result.labelA}</div>
+                    <div style={{ fontSize: 10, fontWeight: 'bold', marginTop: 2 }}>{result.tally.aWins} METRIC WIN{result.tally.aWins === 1 ? '' : 'S'}</div>
+                  </div>
+
+                  {result.tally.ties > 0 && (
+                    <div style={{
+                      flex: 0.8,
+                      textAlign: 'center',
+                      borderRadius: 4,
+                      padding: '0.7rem 0.3rem',
+                      background: 'rgba(251,191,36,0.15)',
+                      border: '1px solid rgba(251,191,36,0.4)',
+                      color: '#fbbf24',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                    }}>
+                      <div style={{ fontSize: 14, fontWeight: 'bold' }}>{result.tally.ties}</div>
+                      <div style={{ fontSize: 9, fontWeight: 'bold', marginTop: 2, letterSpacing: '0.05em' }}>TIE{result.tally.ties === 1 ? '' : 'S'}</div>
+                    </div>
+                  )}
+
+                  <div style={{
+                    flex: 1.3,
+                    textAlign: 'center',
+                    borderRadius: 4,
+                    padding: '0.7rem 0.5rem',
+                    background: result.tally.bWins === result.tally.aWins ? 'rgba(255,255,255,0.08)' : result.tally.bWins > result.tally.aWins ? GREEN : '#ef4444',
+                    color: result.tally.bWins === result.tally.aWins ? GREEN : '#000',
+                  }}>
+                    <div style={{ fontSize: 14, fontWeight: 'bold', letterSpacing: '0.05em' }}>{result.labelB}</div>
+                    <div style={{ fontSize: 10, fontWeight: 'bold', marginTop: 2 }}>{result.tally.bWins} METRIC WIN{result.tally.bWins === 1 ? '' : 'S'}</div>
+                  </div>
+                </div>
               </div>
 
               {result.sections.map(section => (

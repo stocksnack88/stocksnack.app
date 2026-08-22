@@ -92,9 +92,13 @@ export default async function ComparePage({
   const user = await getCachedUser()
   if (!user || !INTERNAL_EMAILS.includes(user.email ?? '')) redirect('/screener')
 
+  // Default to a real, already-populated comparison rather than an empty
+  // input screen -- an empty state with grey placeholder text ("AAPL")
+  // reads as already-filled-in and confused first-time visitors into
+  // thinking the page was broken when the section below stayed blank.
   const mode: Mode = VALID_MODES.includes(searchParams.mode as Mode) ? (searchParams.mode as Mode) : 'STOCK_VS_STOCK'
-  const tickerA = (searchParams.tickerA ?? '').toUpperCase()
-  const tickerB = (searchParams.tickerB ?? '').toUpperCase()
+  const tickerA = (searchParams.tickerA ?? 'AAPL').toUpperCase()
+  const tickerB = (searchParams.tickerB ?? 'MSFT').toUpperCase()
   const hasSelection = tickerA.length > 0 && (mode !== 'STOCK_VS_STOCK' || tickerB.length > 0)
 
   const { data: tickerRows } = await fetchAllRows<{ ticker: string; name: string | null }>(

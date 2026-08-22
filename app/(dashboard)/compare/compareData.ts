@@ -1,36 +1,9 @@
 import { supabaseAdmin } from "@/lib/supabase"
 import { fmtDollar, fmtCagr, fmtPe, fmtYld } from "@/lib/format"
+import { tallyWins } from "./compareTypes"
+import type { Mode, CompareMetricRow, CompareSection, CompareResult } from "./compareTypes"
 
-export type Mode = "STOCK_VS_STOCK" | "STOCK_VS_SP500" | "STOCK_VS_INDUSTRY"
-
-export type Direction = "higher" | "lower" | "pass-fail" | "none"
-
-export type CompareMetricRow = {
-  label: string
-  valueA: number | boolean | string | null
-  valueB: number | boolean | string | null
-  direction: Direction
-  format?: (v: number | boolean | string | null) => string
-  band?: number
-  // Short explainer shown behind a click-to-expand (i) next to the label --
-  // for metrics that aren't self-explanatory from the name alone (PPM Score).
-  info?: string
-}
-
-export type CompareSection = {
-  title: string
-  rows: CompareMetricRow[]
-}
-
-export type CompareResult =
-  | {
-      ok: true
-      labelA: string
-      labelB: string
-      sections: CompareSection[]
-      tally: { aWins: number; bWins: number; ties: number }
-    }
-  | { ok: false; error: "not_found"; ticker: string }
+export type { Mode, Direction, CompareMetricRow, CompareSection, CompareResult } from "./compareTypes"
 
 // health_details is a flat jsonb array of {name, pass, ...} -- Compare lists
 // every check as its own row (no category grouping, per the flat
@@ -290,43 +263,6 @@ function fmtMultSafe(v: number | boolean | string | null) {
 }
 function fmtNumSafe(v: number | boolean | string | null) {
   return typeof v === "number" ? v.toFixed(1) : "—"
-}
-
-export function tallyWins(sections: CompareSection[]): { aWins: number; bWins: number; ties: number } {
-  let aWins = 0
-  let bWins = 0
-  let ties = 0
-  for (const section of sections) {
-    for (const row of section.rows) {
-      const winner = rowWinner(row)
-      if (winner === "A") aWins++
-      else if (winner === "B") bWins++
-      else if (winner === "TIE") ties++
-      // 'none' rows are not counted
-    }
-  }
-  return { aWins, bWins, ties }
-}
-
-export function rowWinner(row: CompareMetricRow): "A" | "B" | "TIE" | null {
-  const { valueA, valueB, direction } = row
-  if (direction === "none") return null
-  if (direction === "pass-fail") {
-    if (typeof valueA !== "boolean" || typeof valueB !== "boolean") return null
-    if (valueA === valueB) return "TIE"
-    return valueA ? "A" : "B"
-  }
-  if (typeof valueA !== "number" || typeof valueB !== "number") return null
-  const band = row.band ?? 0.1
-  if (direction === "higher") {
-    if (valueA > valueB * (1 + band)) return "A"
-    if (valueB > valueA * (1 + band)) return "B"
-    return "TIE"
-  }
-  // 'lower'
-  if (valueA < valueB * (1 - band)) return "A"
-  if (valueB < valueA * (1 - band)) return "B"
-  return "TIE"
 }
 
 export async function getCompareData(mode: Mode, tickerA: string, tickerB: string | null): Promise<CompareResult> {

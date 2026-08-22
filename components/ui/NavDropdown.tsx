@@ -10,49 +10,34 @@ const GREEN = '#00ff41'
 const itemClass = 'flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors'
 const itemStyle: React.CSSProperties = { ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }
 
-// Solid pill badge -- same treatment as the PRO badge / GO button elsewhere
-// in the app, so a category header reads as a distinct tier from the plain
-// links nested under it, instead of just dimmer text that blends in.
-function Badge({ children, outline }: { children: string; outline?: boolean }) {
-  return (
-    <span style={{
-      display: 'inline-block',
-      background: outline ? 'transparent' : GREEN,
-      color: outline ? 'rgba(0,255,65,0.4)' : '#000',
-      border: outline ? '1px solid rgba(0,255,65,0.3)' : 'none',
-      fontWeight: 'bold',
-      fontSize: 9,
-      letterSpacing: '0.08em',
-      padding: '3px 8px',
-      borderRadius: 3,
-      ...MONO,
-    }}>
-      {children}
-    </span>
-  )
-}
-
+// Full-width solid bar (not just a pill around the text) -- same green/black
+// fill as the PRO badge / GO button, extended edge-to-edge to the chevron so
+// the whole row reads as a section divider, not just a tagged line of text.
 function CategoryHeader({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
   return (
     <button
       onClick={() => { playClick(); onToggle() }}
       aria-expanded={open}
-      className="flex items-center justify-between w-full px-4 py-2.5 cursor-pointer transition-colors hover:bg-[#00ff41]/[0.04]"
+      className="flex items-center justify-between w-full px-4 py-2 cursor-pointer transition-opacity hover:opacity-90"
       style={{
-        background: 'none',
+        background: GREEN,
         border: 'none',
-        borderBottom: '1px solid rgba(0,255,65,0.08)',
+        color: '#000',
+        fontWeight: 'bold',
+        fontSize: 9,
+        letterSpacing: '0.1em',
+        ...MONO,
       }}
     >
-      <Badge>{label}</Badge>
-      <span style={{ color: 'rgba(0,255,65,0.5)', fontSize: 11, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>
+      {label}
+      <span style={{ fontSize: 11, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>
         ▸
       </span>
     </button>
   )
 }
 
-export default function NavDropdown({ planLabel }: { planLabel?: string }) {
+export default function NavDropdown() {
   const { startTour, menuLabel } = useGuidedTour()
   const [open, setOpen] = useState(false)
   const [analyzeOpen, setAnalyzeOpen] = useState(true)
@@ -127,19 +112,6 @@ export default function NavDropdown({ planLabel }: { planLabel?: string }) {
             boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
           }}
         >
-          {planLabel && (
-            <Link
-              href="/account"
-              role="menuitem"
-              onClick={() => playClick()}
-              className={itemClass}
-              style={itemStyle}
-            >
-              PLAN
-              <Badge outline={planLabel === 'FREE'}>{planLabel}</Badge>
-            </Link>
-          )}
-
           {/* ANALYZE -- the core tools, expanded by default */}
           <CategoryHeader label="ANALYZE" open={analyzeOpen} onToggle={() => setAnalyzeOpen(o => !o)} />
           {analyzeOpen && (

@@ -1,8 +1,8 @@
 'use client'
 import { Fragment, useState } from 'react'
 import type { CSSProperties } from 'react'
-import type { CompareSection, CompareMetricRow } from './compareData'
-import { rowWinner } from './compareData'
+import type { CompareSection, CompareMetricRow } from './compareTypes'
+import { rowWinner } from './compareTypes'
 
 const GREEN = '#00ff41'
 const FAINT = 'rgba(0,255,65,0.1)'

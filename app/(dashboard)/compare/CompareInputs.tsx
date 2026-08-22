@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TickerTypeahead, { type TickerOption } from './TickerTypeahead'
-import type { Mode } from './compareData'
+import type { Mode } from './compareTypes'
 
 type ModeLabel = 'STOCK vs STOCK' | 'STOCK vs S&P 500' | 'STOCK vs INDUSTRY'
 const MODES: { label: ModeLabel; mode: Mode }[] = [

@@ -7,12 +7,10 @@ export default async function Navbar() {
   const user = await getCachedUser()
 
   let isPro = false
-  let planLabel: string | undefined
   if (user) {
     const profile = await getCachedUserProfile(user.id)
     const status = profile?.subscription_status ?? 'free'
     isPro = status === 'active' || status === 'trialing'
-    planLabel = status === 'trialing' ? 'TRIAL' : isPro ? 'PRO' : 'FREE'
   }
 
   return (
@@ -59,7 +57,7 @@ export default async function Navbar() {
             >
               UPGRADE
             </Link>
-            <NavDropdown planLabel={planLabel} />
+            <NavDropdown />
           </>
         )}
 
@@ -71,7 +69,7 @@ export default async function Navbar() {
             >
               PRO
             </span>
-            <NavDropdown planLabel={planLabel} />
+            <NavDropdown />
           </>
         )}
       </div>

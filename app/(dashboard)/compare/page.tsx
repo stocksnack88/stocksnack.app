@@ -1,15 +1,13 @@
 export const dynamic = 'force-dynamic'
 
-import { redirect } from 'next/navigation'
-import { getCachedUser } from '@/lib/server-auth'
+import Link from 'next/link'
+import { getCachedUser, getCachedUserProfile } from '@/lib/server-auth'
 import { supabaseAdmin, fetchAllRows } from '@/lib/supabase'
 import type { CSSProperties } from 'react'
 import CompareInputs from './CompareInputs'
 import { CompareMetricTable } from './CompareMetricTable'
 import { getCompareData, type Mode } from './compareData'
 import type { TickerOption } from './TickerTypeahead'
-
-const INTERNAL_EMAILS = ['mrepsiloned@gmail.com', 'stocksnack88@gmail.com']
 
 const GREEN  = '#00ff41'
 const DIM    = 'rgba(0,255,65,0.4)'
@@ -89,8 +87,16 @@ export default async function ComparePage({
 }: {
   searchParams: { mode?: string; tickerA?: string; tickerB?: string }
 }) {
+  // Page itself has no login gate, same as /market -- anyone can load
+  // /compare and see the mode/ticker controls. The actual comparison data
+  // below is Pro-only (see isPro check further down), matching Market's
+  // "Signal Funnel free, everything else Pro" pattern.
   const user = await getCachedUser()
-  if (!user || !INTERNAL_EMAILS.includes(user.email ?? '')) redirect('/screener')
+  let isPro = false
+  if (user) {
+    const profile = await getCachedUserProfile(user.id)
+    isPro = profile?.subscription_status === 'active' || profile?.subscription_status === 'trialing'
+  }
 
   // Default to a real, already-populated comparison rather than an empty
   // input screen -- an empty state with grey placeholder text ("AAPL")
@@ -106,7 +112,9 @@ export default async function ComparePage({
   )
   const options: TickerOption[] = tickerRows
 
-  const result = hasSelection ? await getCompareData(mode, tickerA, mode === 'STOCK_VS_STOCK' ? tickerB : null) : null
+  // Skip the actual comparison fetch entirely for non-Pro viewers -- they
+  // see the upgrade card instead, so there's nothing to compute it for.
+  const result = hasSelection && isPro ? await getCompareData(mode, tickerA, mode === 'STOCK_VS_STOCK' ? tickerB : null) : null
 
   return (
     <div style={{ background: '#000', color: GREEN, minHeight: '100vh', ...MONO }}>
@@ -131,6 +139,33 @@ export default async function ComparePage({
 
         {/* results */}
         <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {!isPro ? (
+            <div style={{
+              border: '1px solid rgba(0,255,65,0.25)', borderRadius: 6,
+              background: 'rgba(0,255,65,0.02)', padding: '2.5rem 1.5rem', textAlign: 'center',
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.15em', color: DIM, margin: '0 0 8px' }}>
+                STOCKSNACK PRO
+              </p>
+              <p style={{ fontSize: 16, fontWeight: 'bold', color: GREEN, margin: '0 0 8px' }}>
+                Unlock stock comparison
+              </p>
+              <p style={{ fontSize: 12, color: DIM, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 20px' }}>
+                Side-by-side metrics, benchmarks vs S&amp;P 500 and industry average, and a full win/loss breakdown — all Pro-only.
+              </p>
+              <Link
+                href="/api/subscribe"
+                style={{
+                  display: 'inline-block', background: GREEN, color: '#000', fontWeight: 'bold',
+                  fontSize: 12, letterSpacing: '0.08em', padding: '10px 28px', borderRadius: 6, textDecoration: 'none',
+                }}
+              >
+                UPGRADE TO PRO →
+              </Link>
+              <p style={{ fontSize: 10, color: 'rgba(0,255,65,0.3)', margin: '10px 0 0' }}>$20/mo</p>
+            </div>
+          ) : (
+            <>
           {!hasSelection && PLACEHOLDER_SECTIONS.map(title => (
             <PlaceholderCard key={title} title={title} />
           ))}
@@ -173,6 +208,8 @@ export default async function ComparePage({
               {result.sections.map(section => (
                 <CompareMetricTable key={section.title} section={section} labelA={result.labelA} labelB={result.labelB} />
               ))}
+            </>
+          )}
             </>
           )}
         </div>

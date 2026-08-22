@@ -6,9 +6,36 @@ import { playClick } from '@/lib/sounds'
 
 const MONO: React.CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }
 
+const itemClass = 'flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors'
+const itemStyle: React.CSSProperties = { ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }
+
+function CategoryHeader({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={() => { playClick(); onToggle() }}
+      aria-expanded={open}
+      className="flex items-center justify-between w-full px-4 py-2.5 text-[9px] font-bold tracking-[0.2em] cursor-pointer transition-colors"
+      style={{
+        background: 'none',
+        border: 'none',
+        borderBottom: '1px solid rgba(0,255,65,0.08)',
+        color: 'rgba(0,255,65,0.35)',
+        ...MONO,
+      }}
+    >
+      {label}
+      <span style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>
+        ▸
+      </span>
+    </button>
+  )
+}
+
 export default function NavDropdown({ planLabel }: { planLabel?: string }) {
   const { startTour, menuLabel } = useGuidedTour()
   const [open, setOpen] = useState(false)
+  const [analyzeOpen, setAnalyzeOpen] = useState(true)
+  const [moreOpen, setMoreOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -84,8 +111,8 @@ export default function NavDropdown({ planLabel }: { planLabel?: string }) {
               href="/account"
               role="menuitem"
               onClick={() => playClick()}
-              className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
-              style={{ ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }}
+              className={itemClass}
+              style={itemStyle}
             >
               PLAN
               <span
@@ -96,69 +123,51 @@ export default function NavDropdown({ planLabel }: { planLabel?: string }) {
               </span>
             </Link>
           )}
-          <Link
-            href="/screener"
-            role="menuitem"
-            onClick={() => playClick()}
-            className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
-            style={{ ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }}
-          >
-            SCREENER
-          </Link>
-          <Link
-            href="/watchlist"
-            role="menuitem"
-            onClick={() => playClick()}
-            className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
-            style={{ ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }}
-          >
-            WATCHLIST
-          </Link>
-          <Link
-            href="/account"
-            role="menuitem"
-            onClick={() => playClick()}
-            className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
-            style={{ ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }}
-          >
-            ACCOUNT
-          </Link>
-          <Link
-            href="/blog"
-            role="menuitem"
-            onClick={() => playClick()}
-            className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
-            style={{ ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }}
-          >
-            BLOG
-          </Link>
+
+          {/* ANALYZE -- the core tools, expanded by default */}
+          <CategoryHeader label="ANALYZE" open={analyzeOpen} onToggle={() => setAnalyzeOpen(o => !o)} />
+          {analyzeOpen && (
+            <>
+              <Link href="/screener" role="menuitem" onClick={() => playClick()} className={itemClass} style={{ ...itemStyle, paddingLeft: '1.5rem' }}>
+                SCREENER
+              </Link>
+              <Link href="/watchlist" role="menuitem" onClick={() => playClick()} className={itemClass} style={{ ...itemStyle, paddingLeft: '1.5rem' }}>
+                WATCHLIST
+              </Link>
+              <Link href="/market" role="menuitem" onClick={() => playClick()} className={itemClass} style={{ ...itemStyle, paddingLeft: '1.5rem' }}>
+                MARKET OVERVIEW
+              </Link>
+              <Link href="/compare" role="menuitem" onClick={() => playClick()} className={itemClass} style={{ ...itemStyle, paddingLeft: '1.5rem' }}>
+                STOCK COMPARE
+              </Link>
+            </>
+          )}
+
+          {/* MORE -- secondary items, collapsed by default */}
+          <CategoryHeader label="MORE" open={moreOpen} onToggle={() => setMoreOpen(o => !o)} />
+          {moreOpen && (
+            <>
+              <Link href="/account" role="menuitem" onClick={() => playClick()} className={itemClass} style={{ ...itemStyle, paddingLeft: '1.5rem' }}>
+                ACCOUNT
+              </Link>
+              <Link href="/blog" role="menuitem" onClick={() => playClick()} className={itemClass} style={{ ...itemStyle, paddingLeft: '1.5rem' }}>
+                BLOG
+              </Link>
+            </>
+          )}
+
+          {/* Always visible -- the guided tour targets this exact button
+              mid-flow (GuidedTour.tsx's nav-menu-panel step), so it can't
+              be nested inside a collapsible category. */}
           <button
             data-tour-id="nav-tour-button"
             role="menuitem"
             onClick={() => { setOpen(false); startTour() }}
             className="block w-full text-left px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors cursor-pointer"
-            style={{ background: 'none', border: 'none', borderBottom: '1px solid rgba(0,255,65,0.08)', ...MONO }}
+            style={{ background: 'none', border: 'none', ...MONO }}
           >
             {menuLabel}
           </button>
-          <Link
-            href="/market"
-            role="menuitem"
-            onClick={() => playClick()}
-            className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
-            style={{ ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }}
-          >
-            MARKET OVERVIEW
-          </Link>
-          <Link
-            href="/compare"
-            role="menuitem"
-            onClick={() => playClick()}
-            className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
-            style={{ ...MONO }}
-          >
-            STOCK COMPARE
-          </Link>
         </div>
       )}
     </div>

@@ -142,16 +142,24 @@ export default function MetricChartPicker({
                 />
               </LineChart>
             </ResponsiveContainer>
-            {/* per-year YoY strip */}
+            {/* per-year YoY strip -- one column per year, same count as the
+                chart above so they stay aligned. The first year has nothing
+                to diff against, so it shows the metric label instead of a
+                dash sitting in a shifted column (matches the ticker detail
+                page's Revenue trend treatment). */}
             <div style={{ display: 'flex', borderTop: '1px solid rgba(0,255,136,0.08)', marginTop: 4, paddingTop: 6, fontFamily: FONT, fontSize: 9 }}>
-              {data.slice(1).map((d, i) => {
-                const prev = data[i]
+              {data.map((d, i) => {
+                const prev = i > 0 ? data[i - 1] : null
                 return (
                   <div key={d.year} style={{ flex: 1, textAlign: 'center' }}>
                     <div style={{ color: DIM }}>FY{String(d.year).slice(2)}</div>
-                    <div style={{ color: yoyColor(d[m.key], prev[m.key]), fontWeight: 'bold', marginTop: 2 }}>
-                      {yoy(d[m.key], prev[m.key])}
-                    </div>
+                    {i === 0 ? (
+                      <div style={{ color: DIM, fontWeight: 'bold', marginTop: 2 }}>YoY</div>
+                    ) : (
+                      <div style={{ color: yoyColor(d[m.key], prev![m.key]), fontWeight: 'bold', marginTop: 2 }}>
+                        {yoy(d[m.key], prev![m.key])}
+                      </div>
+                    )}
                   </div>
                 )
               })}

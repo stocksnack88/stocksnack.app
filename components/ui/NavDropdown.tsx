@@ -10,28 +10,35 @@ const GREEN = '#00ff41'
 const itemClass = 'flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors'
 const itemStyle: React.CSSProperties = { ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }
 
-// Full-width solid bar (not just a pill around the text) -- same green/black
-// fill as the PRO badge / GO button, extended edge-to-edge to the chevron so
-// the whole row reads as a section divider, not just a tagged line of text.
+// A wide badge, not a full-bleed bar -- same green/black fill as the PRO
+// badge / GO button, but kept as a rounded pill with a visible gap from the
+// dropdown's edges (the button itself is the full-width tap target and
+// stays transparent; the colored surface is the inner span).
 function CategoryHeader({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
   return (
     <button
       onClick={() => { playClick(); onToggle() }}
       aria-expanded={open}
-      className="flex items-center justify-between w-full px-4 py-2 cursor-pointer transition-opacity hover:opacity-90"
-      style={{
-        background: GREEN,
-        border: 'none',
-        color: '#000',
-        fontWeight: 'bold',
-        fontSize: 9,
-        letterSpacing: '0.1em',
-        ...MONO,
-      }}
+      className="block w-full cursor-pointer transition-opacity hover:opacity-90"
+      style={{ background: 'none', border: 'none', padding: '4px 8px' }}
     >
-      {label}
-      <span style={{ fontSize: 11, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>
-        ▸
+      <span
+        className="flex items-center justify-between w-full"
+        style={{
+          background: GREEN,
+          color: '#000',
+          fontWeight: 'bold',
+          fontSize: 9,
+          letterSpacing: '0.1em',
+          padding: '6px 10px',
+          borderRadius: 5,
+          ...MONO,
+        }}
+      >
+        {label}
+        <span style={{ fontSize: 11, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>
+          ▸
+        </span>
       </span>
     </button>
   )

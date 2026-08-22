@@ -188,8 +188,12 @@ export default function AccountRows({
         )}
         <Link
           href="/pricing"
-          className="inline-block mt-3 text-[10px] tracking-widest underline"
-          style={{ color: 'rgba(0,255,65,0.35)' }}
+          className="inline-block mt-3 font-bold text-xs tracking-widest py-2 px-5 rounded transition-colors"
+          style={{
+            border: '1px solid rgba(0,255,65,0.35)',
+            color: 'rgba(0,255,65,0.7)',
+            background: 'transparent',
+          }}
         >
           VIEW PLAN &rarr;
         </Link>

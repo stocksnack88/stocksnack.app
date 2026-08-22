@@ -31,3 +31,9 @@ export function isFreeTierStock(indexTags: string[] | null | undefined): boolean
 // (paid or on an active trial) are exempt from both numbers entirely.
 export const WATCHLIST_FREE_CAP = 10;
 export const WATCHLIST_FREE_UNLOCKED = 5;
+
+// Stripe price IDs for the two Pro plans -- single source of truth so
+// app/api/subscribe/route.ts (checkout) and app/pricing/page.tsx (detecting
+// which plan a subscriber is actually on) can't silently drift apart.
+export const STRIPE_PRICE_ID_MONTHLY = "price_1ThWRB0pDgkC1le4JlCxAMol";
+export const STRIPE_PRICE_ID_ANNUAL = "price_1ThWRb0pDgkC1le4heS9eWAd";

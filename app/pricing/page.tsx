@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { supabaseAdmin } from "@/lib/supabase";
+import { stripe } from "@/lib/stripe";
 import Link from "next/link";
 import PricingTrialCountdown from "@/components/PricingTrialCountdown";
-import { COVERED_STOCK_COUNT } from "@/lib/constants";
+import { COVERED_STOCK_COUNT, STRIPE_PRICE_ID_MONTHLY, STRIPE_PRICE_ID_ANNUAL } from "@/lib/constants";
 
 const font = "var(--font-geist-mono), 'Courier New', monospace";
 const bV   = "0.5px solid rgba(0,255,65,0.1)";   // vertical column dividers
@@ -28,10 +29,15 @@ export default async function PricingPage() {
   let trialStartedAt: string | null = null;
   let trialExtensionStartedAt: string | null = null;
   let trialUsed = true;
+  // Which specific plan a Pro subscriber is actually on -- null while
+  // trialing (no price committed yet) or if the live Stripe lookup can't
+  // resolve one, in which case the CTA row falls back to a dash rather than
+  // guessing a plan they didn't pick.
+  let activePlan: "monthly" | "annual" | null = null;
   if (user?.id) {
     const { data: profile } = await supabaseAdmin
       .from("user_profiles")
-      .select("subscription_status, trial_used, trial_started_at, trial_extension_started_at")
+      .select("subscription_status, trial_used, trial_started_at, trial_extension_started_at, stripe_customer_id")
       .eq("id", user.id)
       .single();
     isPro =
@@ -40,6 +46,21 @@ export default async function PricingPage() {
     trialStartedAt = profile?.trial_started_at ?? null;
     trialExtensionStartedAt = profile?.trial_extension_started_at ?? null;
     trialUsed = profile?.trial_used ?? true;
+
+    if (profile?.subscription_status === "active" && profile?.stripe_customer_id) {
+      try {
+        const subs = await stripe.subscriptions.list({
+          customer: profile.stripe_customer_id,
+          status: "active",
+          limit: 1,
+        });
+        const priceId = subs.data[0]?.items.data[0]?.price?.id;
+        if (priceId === STRIPE_PRICE_ID_ANNUAL) activePlan = "annual";
+        else if (priceId === STRIPE_PRICE_ID_MONTHLY) activePlan = "monthly";
+      } catch (err) {
+        console.error("[pricing] Stripe subscriptions.list failed:", err);
+      }
+    }
   }
 
   const isLoggedIn = !!user;
@@ -62,6 +83,10 @@ export default async function PricingPage() {
 
   const ctaCurrent: React.CSSProperties = {
     ...ctaBase, border: "0.5px solid rgba(0,255,65,0.25)", color: "rgba(0,255,65,0.4)",
+  };
+
+  const ctaDash: React.CSSProperties = {
+    ...ctaBase, border: "none", color: "rgba(255,255,255,0.15)",
   };
 
   const annualCell: React.CSSProperties = {
@@ -206,9 +231,11 @@ export default async function PricingPage() {
               <tr className="pricing-row" style={{ background: "#080808", borderTop: "0.5px solid rgba(0,255,65,0.12)", animation: "fadeInUp 300ms ease-out 600ms both" }}>
                 <td style={{ padding: "12px 8px" }} />
 
-                {/* FREE — CURRENT PLAN if logged in free user, trial CTA if guest */}
+                {/* FREE — dash if already Pro, trial countdown if logged-in free user, trial CTA if guest */}
                 <td style={{ padding: "8px 6px", textAlign: "center", borderLeft: bV }}>
-                  {isLoggedIn ? (
+                  {isPro ? (
+                    <span style={ctaDash}>—</span>
+                  ) : isLoggedIn ? (
                     <PricingTrialCountdown
                       trialStartedAt={trialStartedAt}
                       trialExtensionStartedAt={trialExtensionStartedAt}
@@ -221,10 +248,12 @@ export default async function PricingPage() {
                   )}
                 </td>
 
-                {/* PRO MONTHLY */}
+                {/* PRO MONTHLY — CURRENT PLAN only if that's the plan they're actually on */}
                 <td style={{ padding: "12px 8px", textAlign: "center", borderLeft: bV }}>
-                  {isPro ? (
+                  {activePlan === "monthly" ? (
                     <span style={ctaCurrent}>CURRENT PLAN</span>
+                  ) : isPro ? (
+                    <span style={ctaDash}>—</span>
                   ) : (
                     <a href="/api/subscribe?plan=monthly" style={{ ...ctaBase, border: "0.5px solid rgba(0,255,65,0.5)", color: "rgba(0,255,65,0.8)" }}>
                       UPGRADE →
@@ -232,10 +261,12 @@ export default async function PricingPage() {
                   )}
                 </td>
 
-                {/* PRO ANNUAL */}
+                {/* PRO ANNUAL — CURRENT PLAN only if that's the plan they're actually on */}
                 <td className="annual-cell" style={{ padding: "12px 8px", textAlign: "center", ...annualCell, borderRadius: "0 0 8px 8px", boxShadow: annualGlow }}>
-                  {isPro ? (
+                  {activePlan === "annual" ? (
                     <span style={ctaCurrent}>CURRENT PLAN</span>
+                  ) : isPro ? (
+                    <span style={ctaDash}>—</span>
                   ) : (
                     <a href="/api/subscribe?plan=annual" style={{ ...ctaBase, background: "#00ff41", color: "#000" }}>
                       UPGRADE →

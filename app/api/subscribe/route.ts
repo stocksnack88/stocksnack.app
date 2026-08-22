@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase";
+import { STRIPE_PRICE_ID_MONTHLY, STRIPE_PRICE_ID_ANNUAL } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
   const response = NextResponse.next();
@@ -62,10 +63,7 @@ export async function GET(request: NextRequest) {
   }
 
   const plan = request.nextUrl.searchParams.get("plan");
-  const priceId =
-    plan === "annual"
-      ? "price_1ThWRb0pDgkC1le4heS9eWAd"
-      : "price_1ThWRB0pDgkC1le4JlCxAMol";
+  const priceId = plan === "annual" ? STRIPE_PRICE_ID_ANNUAL : STRIPE_PRICE_ID_MONTHLY;
 
   const checkoutSession = await stripe.checkout.sessions.create({
     customer: customerId,

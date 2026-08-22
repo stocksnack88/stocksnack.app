@@ -222,7 +222,7 @@ export default async function ComparePage({
           textAlign: 'center', letterSpacing: '0.15em',
           margin: '2.5rem 0 0',
         }}>
-          STOCKSNACK · COMPARE · INTERNAL
+          STOCKSNACK · COMPARE
         </p>
 
       </div>

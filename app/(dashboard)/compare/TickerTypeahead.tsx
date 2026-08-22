@@ -50,16 +50,16 @@ export default function TickerTypeahead({
     borderRadius: 4,
     color: GREEN,
     fontFamily: MONO,
-    fontSize: 13,
-    padding: '10px 14px',
+    fontSize: 12,
+    padding: '7px 10px',
     outline: 'none',
     width: '100%',
-    letterSpacing: '0.1em',
+    letterSpacing: '0.08em',
   } as React.CSSProperties
 
   return (
-    <div ref={ref} style={{ position: 'relative', flex: 1, minWidth: 160 }}>
-      <p style={{ fontSize: 9, color: DIM, fontFamily: MONO, letterSpacing: '0.15em', marginBottom: 6 }}>
+    <div ref={ref} style={{ position: 'relative', flex: 1, minWidth: 96 }}>
+      <p style={{ fontSize: 8, color: DIM, fontFamily: MONO, letterSpacing: '0.12em', marginBottom: 3 }}>
         {label}
       </p>
       <input

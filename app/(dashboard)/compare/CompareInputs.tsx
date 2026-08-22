@@ -14,7 +14,6 @@ const MODES: { label: ModeLabel; mode: Mode }[] = [
 const MONO = "var(--font-geist-mono), 'Courier New', monospace"
 const GREEN = '#00ff41'
 const DIM = 'rgba(0,255,65,0.4)'
-const FAINT = 'rgba(0,255,65,0.1)'
 
 export default function CompareInputs({
   options,
@@ -36,19 +35,6 @@ export default function CompareInputs({
   const needsB = mode === 'STOCK_VS_STOCK'
   const canSubmit = tickerA.length > 0 && (!needsB || tickerB.length > 0)
 
-  const btnStyle = (active: boolean) => ({
-    background: active ? 'rgba(0,255,65,0.1)' : 'none',
-    border: `1px solid ${active ? 'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.15)'}`,
-    color: active ? GREEN : DIM,
-    fontFamily: MONO,
-    fontSize: 9,
-    letterSpacing: '0.12em',
-    padding: '6px 14px',
-    cursor: 'pointer',
-    borderRadius: 3,
-    transition: 'all 0.15s',
-  } as React.CSSProperties)
-
   function submit() {
     if (!canSubmit) return
     const params = new URLSearchParams({ mode, tickerA })
@@ -57,18 +43,46 @@ export default function CompareInputs({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <style>{`
+        .compare-mode-row { display: flex; gap: 6px; }
+        .compare-mode-row button { flex: 1; }
+        @media (max-width: 480px) {
+          .compare-mode-row { flex-direction: column; }
+        }
+        .compare-input-row { display: flex; gap: 8px; align-items: flex-end; }
+        @media (max-width: 420px) {
+          .compare-input-row { flex-wrap: wrap; }
+        }
+      `}</style>
+
       {/* mode toggle */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      <div className="compare-mode-row">
         {MODES.map(m => (
-          <button key={m.mode} style={btnStyle(m.mode === mode)} onClick={() => setMode(m.mode)}>
+          <button
+            key={m.mode}
+            onClick={() => setMode(m.mode)}
+            style={{
+              background: m.mode === mode ? 'rgba(0,255,65,0.1)' : 'none',
+              border: `1px solid ${m.mode === mode ? 'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.15)'}`,
+              color: m.mode === mode ? GREEN : DIM,
+              fontFamily: MONO,
+              fontSize: 9,
+              letterSpacing: '0.08em',
+              padding: '6px 8px',
+              cursor: 'pointer',
+              borderRadius: 3,
+              transition: 'all 0.15s',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {m.label}
           </button>
         ))}
       </div>
 
       {/* stock inputs */}
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div className="compare-input-row">
         <TickerTypeahead
           label="STOCK A"
           placeholder="AAPL"
@@ -77,9 +91,9 @@ export default function CompareInputs({
           onChange={setTickerA}
         />
 
-        <div style={{ paddingTop: 26, color: 'rgba(0,255,65,0.3)', fontFamily: MONO, fontSize: 18, flexShrink: 0 }}>
+        <span style={{ color: 'rgba(0,255,65,0.3)', fontFamily: MONO, fontSize: 13, flexShrink: 0, paddingBottom: 8 }}>
           vs
-        </div>
+        </span>
 
         {needsB ? (
           <TickerTypeahead
@@ -90,49 +104,42 @@ export default function CompareInputs({
             onChange={setTickerB}
           />
         ) : (
-          <div style={{ flex: 1, minWidth: 160 }}>
-            <p style={{ fontSize: 9, color: DIM, fontFamily: MONO, letterSpacing: '0.15em', marginBottom: 6 }}>
-              BENCHMARK
-            </p>
+          <div style={{ flex: 1, minWidth: 120 }}>
             <div style={{
               background: 'rgba(0,255,65,0.03)',
               border: '1px solid rgba(0,255,65,0.2)',
               borderRadius: 4,
               color: DIM,
               fontFamily: MONO,
-              fontSize: 13,
-              padding: '10px 14px',
-              letterSpacing: '0.1em',
+              fontSize: 12,
+              padding: '7px 10px',
+              letterSpacing: '0.06em',
             }}>
               {modeLabel === 'STOCK vs S&P 500' ? 'S&P 500' : 'INDUSTRY AVG'}
             </div>
           </div>
         )}
+
+        <button
+          onClick={submit}
+          disabled={!canSubmit}
+          style={{
+            flexShrink: 0,
+            background: canSubmit ? GREEN : 'rgba(0,255,65,0.1)',
+            color: canSubmit ? '#000' : 'rgba(0,255,65,0.3)',
+            border: 'none',
+            borderRadius: 4,
+            fontFamily: MONO,
+            fontWeight: 'bold',
+            fontSize: 10,
+            letterSpacing: '0.08em',
+            padding: '8px 14px',
+            cursor: canSubmit ? 'pointer' : 'default',
+          }}
+        >
+          GO →
+        </button>
       </div>
-
-      <button
-        onClick={submit}
-        disabled={!canSubmit}
-        style={{
-          alignSelf: 'flex-start',
-          background: canSubmit ? GREEN : 'rgba(0,255,65,0.1)',
-          color: canSubmit ? '#000' : 'rgba(0,255,65,0.3)',
-          border: 'none',
-          borderRadius: 4,
-          fontFamily: MONO,
-          fontWeight: 'bold',
-          fontSize: 11,
-          letterSpacing: '0.12em',
-          padding: '10px 20px',
-          cursor: canSubmit ? 'pointer' : 'default',
-        }}
-      >
-        COMPARE →
-      </button>
-
-      <p style={{ fontSize: 9, color: 'rgba(0,255,65,0.2)', fontFamily: MONO, letterSpacing: '0.1em', borderTop: `1px solid ${FAINT}`, paddingTop: '0.75rem', margin: 0 }}>
-        TYPE A TICKER OR NAME TO SEARCH
-      </p>
     </div>
   )
 }

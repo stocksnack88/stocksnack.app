@@ -120,19 +120,24 @@ export default async function ComparePage({
     <div style={{ background: '#000', color: GREEN, minHeight: '100vh', ...MONO }}>
       <div style={{ maxWidth: 896, margin: '0 auto', padding: '0 1.5rem 4rem' }}>
 
-        {/* hero + filter controls -- controls live inside the hero, not a
-            separate content-styled card, so the border below the hero is
-            the one clear line between "picking what to compare" and the
-            actual comparison content */}
-        <div style={{ borderBottom: `1px solid ${FAINT}`, padding: '2.5rem 0 1.75rem' }}>
+        {/* hero -- title only, no filter controls here */}
+        <div style={{ padding: '2.5rem 0 1.5rem' }}>
           <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.25em', margin: '0 0 10px' }}>
             STOCKSNACK · STOCK COMPARE
           </p>
           <h1 style={{ fontSize: 22, fontWeight: 'bold', letterSpacing: '0.05em', margin: 0 }}>
             COMPARE
           </h1>
-          <p style={{ fontSize: 11, color: DIM, margin: '6px 0 1.25rem', letterSpacing: '0.08em' }}>
-            Side-by-side analysis — stock vs stock, vs S&P 500, or vs industry average.
+          <p style={{ fontSize: 11, color: DIM, margin: '6px 0 0', letterSpacing: '0.08em' }}>
+            Side-by-side analysis
+          </p>
+        </div>
+
+        {/* filter -- separated from the hero above and the results below by
+            its own top/bottom borders */}
+        <div style={{ borderTop: `1px solid ${FAINT}`, borderBottom: `1px solid ${FAINT}`, padding: '1.25rem 0' }}>
+          <p style={{ fontSize: 10, fontWeight: 'bold', letterSpacing: '0.2em', color: GREEN, margin: '0 0 1rem' }}>
+            FILTER
           </p>
           <CompareInputs options={options} initialMode={mode} initialTickerA={tickerA} initialTickerB={tickerB} />
         </div>

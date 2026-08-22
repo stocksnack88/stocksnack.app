@@ -56,7 +56,10 @@ export default function CompareInputs({
         }
       `}</style>
 
-      {/* mode toggle */}
+      {/* filter 1 -- comparison type */}
+      <p style={{ fontSize: 8, color: DIM, fontFamily: MONO, letterSpacing: '0.15em', margin: 0 }}>
+        FILTER 1
+      </p>
       <div className="compare-mode-row">
         {MODES.map(m => (
           <button
@@ -81,7 +84,10 @@ export default function CompareInputs({
         ))}
       </div>
 
-      {/* stock inputs */}
+      {/* filter 2 -- which stocks */}
+      <p style={{ fontSize: 8, color: DIM, fontFamily: MONO, letterSpacing: '0.15em', margin: '0.4rem 0 0' }}>
+        FILTER 2
+      </p>
       <div className="compare-input-row">
         <TickerTypeahead
           label="STOCK A"

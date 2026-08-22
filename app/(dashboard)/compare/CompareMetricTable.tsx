@@ -14,23 +14,45 @@ function displayValue(row: CompareMetricRow, side: 'A' | 'B'): string {
   return String(v)
 }
 
-// Color each value directly (winner green, loser red) instead of a separate
-// "A"/"B"/"TIE" column -- the column header is already the real ticker, so
-// coloring the number under it says "MSFT wins this row" on its own.
-// Pass/fail rows color straight off PASS-vs-FAIL rather than routing
+// Solid pill badge -- same look as the PRO badge / GO button (solid color,
+// black text), not just colored text, so a win/loss reads at a glance.
+function Badge({ win, children }: { win: boolean; children: string }) {
+  return (
+    <span style={{
+      display: 'inline-block',
+      background: win ? GREEN : '#ef4444',
+      color: '#000',
+      fontWeight: 'bold',
+      padding: '2px 7px',
+      borderRadius: 3,
+    }}>
+      {children}
+    </span>
+  )
+}
+
+// Each value renders as a badge (winner green, loser red) instead of a
+// separate "A"/"B"/"TIE" column -- the column header is already the real
+// ticker, so a green badge under it says "MSFT wins this row" on its own.
+// Pass/fail rows badge straight off PASS-vs-FAIL rather than routing
 // through rowWinner's A/B framing, since a PASS is good regardless of what
-// the other side did.
-function sideColor(row: CompareMetricRow, side: 'A' | 'B'): string {
+// the other side did. True ties (within the comparison band) get no badge,
+// just the plain value in brackets.
+function Cell({ row, side }: { row: CompareMetricRow; side: 'A' | 'B' }) {
   const value = side === 'A' ? row.valueA : row.valueB
-  if (row.direction === 'none') return 'rgba(0,255,65,0.55)'
+  const text = displayValue(row, side)
+
+  if (row.direction === 'none') {
+    return <span style={{ color: 'rgba(0,255,65,0.55)' }}>{text}</span>
+  }
   if (row.direction === 'pass-fail') {
-    if (typeof value !== 'boolean') return 'rgba(0,255,65,0.15)'
-    return value ? GREEN : '#ef4444'
+    if (typeof value !== 'boolean') return <span style={{ color: 'rgba(0,255,65,0.15)' }}>{text}</span>
+    return <Badge win={value}>{text}</Badge>
   }
   const winner = rowWinner(row)
-  if (winner === null) return 'rgba(0,255,65,0.15)'
-  if (winner === 'TIE') return '#f59e0b'
-  return winner === side ? GREEN : '#ef4444'
+  if (winner === null) return <span style={{ color: 'rgba(0,255,65,0.15)' }}>{text}</span>
+  if (winner === 'TIE') return <span style={{ color: 'rgba(255,255,255,0.5)' }}>({text})</span>
+  return <Badge win={winner === side}>{text}</Badge>
 }
 
 // Fixed % column widths (no separate WINNER column) -- same approach as the
@@ -71,8 +93,8 @@ export function CompareMetricTable({ section, labelA, labelB }: { section: Compa
           {section.rows.map((row, i) => (
             <tr key={`${row.label}-${i}`} style={{ background: i % 2 === 1 ? 'rgba(0,255,65,0.018)' : 'transparent' }}>
               <td style={tdStyle('left')}>{row.label}</td>
-              <td style={{ ...tdStyle('center'), color: sideColor(row, 'A'), fontWeight: 'bold' }}>{displayValue(row, 'A')}</td>
-              <td style={{ ...tdStyle('center'), color: sideColor(row, 'B'), fontWeight: 'bold' }}>{displayValue(row, 'B')}</td>
+              <td style={tdStyle('center')}><Cell row={row} side="A" /></td>
+              <td style={tdStyle('center')}><Cell row={row} side="B" /></td>
             </tr>
           ))}
         </tbody>

@@ -6,7 +6,7 @@ import { playClick } from '@/lib/sounds'
 
 const MONO: React.CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }
 
-export default function NavDropdown() {
+export default function NavDropdown({ planLabel }: { planLabel?: string }) {
   const { startTour, menuLabel } = useGuidedTour()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -79,6 +79,23 @@ export default function NavDropdown() {
             boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
           }}
         >
+          {planLabel && (
+            <Link
+              href="/account"
+              role="menuitem"
+              onClick={() => playClick()}
+              className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
+              style={{ ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }}
+            >
+              PLAN
+              <span
+                className="font-bold"
+                style={{ color: planLabel === 'FREE' ? 'rgba(0,255,65,0.4)' : '#00ff41' }}
+              >
+                {planLabel}
+              </span>
+            </Link>
+          )}
           <Link
             href="/screener"
             role="menuitem"
@@ -131,7 +148,7 @@ export default function NavDropdown() {
             className="flex items-center justify-between px-4 py-3 text-[11px] tracking-[0.12em] text-[#00ff41]/60 hover:text-[#00ff41] hover:bg-[#00ff41]/[0.04] transition-colors"
             style={{ ...MONO, borderBottom: '1px solid rgba(0,255,65,0.08)' }}
           >
-            MARKET OVERVIEW <span style={{ fontSize: 10 }}>🔒</span>
+            MARKET OVERVIEW
           </Link>
           <Link
             href="/compare"

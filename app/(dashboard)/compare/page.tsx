@@ -2,8 +2,12 @@ export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
 import { getCachedUser } from '@/lib/server-auth'
+import { supabaseAdmin, fetchAllRows } from '@/lib/supabase'
 import type { CSSProperties } from 'react'
 import CompareInputs from './CompareInputs'
+import { CompareMetricTable } from './CompareMetricTable'
+import { getCompareData, type Mode } from './compareData'
+import type { TickerOption } from './TickerTypeahead'
 
 const INTERNAL_EMAILS = ['mrepsiloned@gmail.com', 'stocksnack88@gmail.com']
 
@@ -12,7 +16,7 @@ const DIM    = 'rgba(0,255,65,0.4)'
 const FAINT  = 'rgba(0,255,65,0.1)'
 const MONO: CSSProperties = { fontFamily: "var(--font-geist-mono), 'Courier New', monospace" }
 
-const SECTIONS = [
+const PLACEHOLDER_SECTIONS = [
   'OVERVIEW',
   'LAYER 1 — PRICE PROJECTION',
   'LAYER 2 — GROWTH QUALITY',
@@ -62,9 +66,43 @@ function PlaceholderCard({ title }: { title: string }) {
   )
 }
 
-export default async function ComparePage() {
+function ErrorCard({ ticker }: { ticker: string }) {
+  return (
+    <div style={{
+      border: '1px solid rgba(239,68,68,0.3)',
+      background: 'rgba(239,68,68,0.05)',
+      borderRadius: 4,
+      padding: '1.25rem',
+      color: '#f87171',
+      fontSize: 12,
+      letterSpacing: '0.05em',
+    }}>
+      {ticker ? `TICKER "${ticker}" NOT FOUND — check the spelling and try again.` : 'SELECT A SECOND TICKER TO COMPARE.'}
+    </div>
+  )
+}
+
+const VALID_MODES: Mode[] = ['STOCK_VS_STOCK', 'STOCK_VS_SP500', 'STOCK_VS_INDUSTRY']
+
+export default async function ComparePage({
+  searchParams,
+}: {
+  searchParams: { mode?: string; tickerA?: string; tickerB?: string }
+}) {
   const user = await getCachedUser()
   if (!user || !INTERNAL_EMAILS.includes(user.email ?? '')) redirect('/screener')
+
+  const mode: Mode = VALID_MODES.includes(searchParams.mode as Mode) ? (searchParams.mode as Mode) : 'STOCK_VS_STOCK'
+  const tickerA = (searchParams.tickerA ?? '').toUpperCase()
+  const tickerB = (searchParams.tickerB ?? '').toUpperCase()
+  const hasSelection = tickerA.length > 0 && (mode !== 'STOCK_VS_STOCK' || tickerB.length > 0)
+
+  const { data: tickerRows } = await fetchAllRows<{ ticker: string; name: string | null }>(
+    (start, end) => supabaseAdmin.from('stocks').select('ticker,name').range(start, end)
+  )
+  const options: TickerOption[] = tickerRows
+
+  const result = hasSelection ? await getCompareData(mode, tickerA, mode === 'STOCK_VS_STOCK' ? tickerB : null) : null
 
   return (
     <div style={{ background: '#000', color: GREEN, minHeight: '100vh', ...MONO }}>
@@ -101,16 +139,57 @@ export default async function ComparePage() {
               </p>
             </div>
             <div style={{ padding: '1.25rem' }}>
-              <CompareInputs />
+              <CompareInputs options={options} initialMode={mode} initialTickerA={tickerA} initialTickerB={tickerB} />
             </div>
           </div>
         </div>
 
-        {/* placeholder sections */}
+        {/* results */}
         <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {SECTIONS.map(title => (
+          {!hasSelection && PLACEHOLDER_SECTIONS.map(title => (
             <PlaceholderCard key={title} title={title} />
           ))}
+
+          {hasSelection && result && !result.ok && (
+            <ErrorCard ticker={result.error === 'not_found' ? result.ticker : ''} />
+          )}
+
+          {hasSelection && result && result.ok && (
+            <>
+              {/* overall winner tally */}
+              <div style={{
+                border: '1px solid rgba(0,255,65,0.2)',
+                background: 'rgba(0,255,65,0.02)',
+                borderRadius: 4,
+                padding: '1rem 1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
+              }}>
+                <p style={{ fontSize: 9, color: DIM, letterSpacing: '0.15em', margin: 0 }}>
+                  METRICS WON
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 'bold', letterSpacing: '0.08em', margin: 0 }}>
+                  <span style={{ color: result.tally.aWins >= result.tally.bWins ? GREEN : DIM }}>
+                    {result.labelA} {result.tally.aWins}
+                  </span>
+                  <span style={{ color: DIM, margin: '0 10px' }}>—</span>
+                  <span style={{ color: result.tally.bWins >= result.tally.aWins ? GREEN : DIM }}>
+                    {result.tally.bWins} {result.labelB}
+                  </span>
+                  <span style={{ color: 'rgba(251,191,36,0.6)', marginLeft: 10, fontSize: 10 }}>
+                    ({result.tally.ties} TIE{result.tally.ties === 1 ? '' : 'S'})
+                  </span>
+                </p>
+              </div>
+
+              {result.sections.map(section => (
+                <CompareMetricTable key={section.title} section={section} labelA={result.labelA} labelB={result.labelB} />
+              ))}
+            </>
+          )}
         </div>
 
         {/* footer */}

@@ -186,6 +186,13 @@ export default function AccountRows({
             </p>
           </>
         )}
+        <Link
+          href="/pricing"
+          className="inline-block mt-3 text-[10px] tracking-widest underline"
+          style={{ color: 'rgba(0,255,65,0.35)' }}
+        >
+          VIEW PLAN &rarr;
+        </Link>
       </AccordionRow>
 
       <AccordionRow

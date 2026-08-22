@@ -7,7 +7,6 @@ import type { CSSProperties } from 'react'
 import MetricChartPicker, { type MetricDef, type YearRow } from './MetricChartPicker'
 import GrowthComparisonChart from './GrowthComparisonChart'
 import SignalFunnel from './SignalFunnel'
-import BottomNav from '@/components/ui/BottomNav'
 import { getCachedUser, getCachedUserProfile } from '@/lib/server-auth'
 
 // ── constants ──────────────────────────────────────────────────────────────────
@@ -637,7 +636,6 @@ export default async function MarketPage({
         </p>
 
       </div>
-      <BottomNav />
     </div>
   )
 }
